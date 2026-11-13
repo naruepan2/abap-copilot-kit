@@ -54,10 +54,12 @@ Diagnose, in this order:
 
 ```jsonc
 "SAP_INSECURE": "false",
-"NODE_EXTRA_CA_CERTS": "C:\\Users\\<you>\\Documents\\SAP\\Cert\\sap-example-corp-ca-bundle.crt"
+"NODE_EXTRA_CA_CERTS": "<absolute path to your CA bundle .crt>"
 ```
 
-Restart after an env change. A working `abapfs` does **not** prove the ARC-1 host is fine —
+The live value lives in `%APPDATA%\Code\User\mcp.json`, which is gitignored — copy it from there
+rather than from this document, so this file never becomes a second copy of a machine-specific
+path. Restart after an env change. A working `abapfs` does **not** prove the ARC-1 host is fine —
 they can point at different landscapes.
 
 ## PowerShell 5.1 constraints (this machine)
