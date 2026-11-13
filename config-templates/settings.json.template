@@ -1,0 +1,30 @@
+{
+  // TEMPLATE — this is the settings.json fragment that matters for this workspace.
+  // It is NOT a full settings.json. Merge these keys into your own file.
+  //
+  // Two cautions:
+  // 1. `adt.mcpServer.token` is a real secret. It is shown here as a placeholder only.
+  //    Never commit the filled-in value.
+  // 2. `adt.mcpServer.accessRestrictions.destinations` decides which SAP systems the
+  //    SAP official ADT MCP server may reach. A system missing here cannot be used
+  //    through that server, no matter what its feature comparison says.
+
+  "adt.mcpServer.enabled": true,
+  "adt.mcpServer.token": "{{PASTE_TOKEN_FROM_ADT_EXTENSION}}",
+  "adt.mcpServer.enableEditFileToolForABAPObjects": true,
+  "adt.mcpServer.accessRestrictions": {
+    "destinations": "{{SAP_SID}},{{SAP_SID}}_{{SAP_CLIENT}}_{{SAP_USER}}_EN",
+    "packages-objectChanges": "Z*"
+  },
+
+  // ABAP Remote FS contributes 68 languageModelTools and can auto-start a local
+  // MCP server on port 4847 for *external* clients. Keep autoStart false and let the
+  // tools picker decide; a running server costs startup time and RAM every session.
+  "abapfs.mcpServer.autoStart": false,
+
+  // Virtual tool grouping. 0 disables it entirely, so every enabled tool ships its
+  // full schema on every request. That is the right default when you curate tools in
+  // the picker. Switch to 30-60 only after reducing the picker selection below that
+  // count, because GitHub documents degraded tool calling once the threshold is hit.
+  "github.copilot.chat.virtualTools.threshold": 0
+}

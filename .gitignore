@@ -1,0 +1,58 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Secrets and machine-specific state. NEVER commit these.
+# ---------------------------------------------------------------------------
+
+# VS Code user settings — contains adt.mcpServer.token
+settings.json
+*.settings.json
+
+# Copilot CLI config and state
+config.json
+session-state/
+session-store.db
+session-store.db-*
+logs/
+
+# MCP server config with real hostnames and users
+mcp.json
+
+# Skill lock — records absolute paths and folder hashes from this machine
+.skill-lock.json
+
+# Toolkit asset manifest — hash map of installer-owned files on this machine
+.sap-ai-dev-toolkit-assets.json
+
+# Certificates and credential files
+*.crt
+*.pem
+*.pfx
+*.key
+*.token
+*.env
+.env
+.env.*
+
+# Memory — may contain system identifiers and business data
+memory/
+memories/
+
+# Local archive / backups
+archive/
+*-backup-*/
+docs/archive/
+
+# Temp
+tmp/
+*.tmp
+*.bak
