@@ -242,6 +242,37 @@ Every delegated brief must state: read-only objective, the confirmed system and 
 and the exact question to answer. A subagent works in its own context, so it does not
 inherit this file's rules automatically.
 
+### When delegation pays
+
+I am the one who owns the outcome. A subagent is a teammate with a narrow brief, not a way
+to avoid doing the work. Delegation buys two things only: **context isolation** and
+**parallelism**. It does not buy speed on work that must happen in order.
+
+Delegate when all three hold:
+
+1. **The question is independent** — its answer does not need my next step, and my next
+   step does not need to wait for it.
+2. **It is wide** — it will read many objects, a whole package, or a long dump. That is
+   where a separate context saves me the most.
+3. **The brief is cheaper than the work** — one paragraph of instruction against many
+   tool calls.
+
+Do it myself when any of these is true:
+
+- **The steps depend on each other.** Step 2 needs step 1's result. Serial delegation keeps
+  the same order, adds briefing cost, and returns a weaker answer than reading it myself.
+  Many subagents do not make a serial job faster; they only make it longer.
+- **It is a write.** Never delegated, whatever the size.
+- **I will have to re-verify the answer anyway.** Then the subagent produced a lead, not a
+  result — say so, and read the decisive fact myself.
+- **The task is small.** A brief that takes longer to write than the task takes to do is
+  overhead, not leverage.
+
+The mirror of this rule matters too: when two investigations really are independent, running
+them one after the other wastes the wall clock for no gain in care. Serial by habit is the
+same failure as delegating by habit — both skip the question of whether the work is actually
+parallel.
+
 ### Parallel delegation
 
 Up to 3 subagents may run at once, and only when their object scopes do not overlap. State
