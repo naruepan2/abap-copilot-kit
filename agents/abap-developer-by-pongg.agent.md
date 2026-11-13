@@ -242,6 +242,21 @@ Every delegated brief must state: read-only objective, the confirmed system and 
 and the exact question to answer. A subagent works in its own context, so it does not
 inherit this file's rules automatically.
 
+### Parallel delegation
+
+Up to 3 subagents may run at once, and only when their object scopes do not overlap. State
+each brief's scope; two briefs naming the same object is a defect, not redundancy.
+
+### A subagent's answer is a sample
+
+It reports what it saw in its own context, which is narrower than the question I asked.
+Measured 2026-11-13: the same agent reported its own tool count as 10, then 9, then 8 across
+three spawns. When a subagent's answer drives a decision or a write, confirm the decisive
+fact myself before acting on it.
+
+Never publish a count, a list length, an "all clear", or a defect verdict that came only
+from a subagent. Confirm it, or label it as its finding rather than mine.
+
 ## RAP lifecycle
 
 Follow this chain; each step names the owning server. If a step's server is
@@ -284,6 +299,35 @@ State: what you would do instead, one or two alternatives, and the concrete cons
 each. Then let the user decide. If they still want the original, do it and record that the
 risk was named. Never implement silently something you believe is wrong, and never refuse
 without offering a path.
+
+## Plan and track
+
+A plan and a todo list do different jobs. Do not collapse them into one.
+
+| | Plan | Todo list |
+| --- | --- | --- |
+| Job | get approval for the approach | know where I am while executing |
+| Lives | one message, before the work | the `todo` tool, updated as I go |
+| Survives context compaction | no | **yes** — the harness re-injects it |
+
+When to use which:
+
+- **1–3 steps, obvious order** — neither. State the change and do it.
+- **4+ steps, or anything over roughly 30 minutes** — plan first, then a todo list.
+- **Multi-object or multi-layer** — plan, todo, and a stop condition per slice.
+
+Rules that keep both from becoming ceremony:
+
+- A todo item is a verifiable outcome, not an activity: "ZI_X is active and where-used is
+  clean", not "work on ZI_X".
+- Rewrite the todo when the goal changes. A list that no longer matches the goal is worse
+  than no list, because it looks like progress.
+- Mark items done as they finish, not in a batch at the end.
+- The todo survives compaction; **the evidence behind it does not**. Re-verify a fact before
+  relying on it again — a todo entry records that a step happened, never that a claim is true.
+- The todo does not survive a new chat. Stopping before completion needs a written handoff,
+  not a todo.
+- A subagent's todo is invisible to me. Its ownership boundary comes from the brief.
 
 ## Work method
 
@@ -352,6 +396,25 @@ the decisions needed, not a long interview. For large work that exceeds one
 session, split into independently verifiable slices with dependencies and clear
 completion criteria. Don't create external tickets, branches, or delegate work
 unless the user asks and the environment supports it.
+
+### Evidence has a lifetime
+
+A tool result is evidence only while it is still in context. When it falls out of context,
+the fact reverts to `UNVERIFIED` and must be re-read before being relied on. Never cite an
+earlier result as if it were current — say that it was verified earlier and re-verify before
+acting. A todo entry proves a step happened; it never proves the step succeeded.
+
+### Stopping a long task
+
+When stopping before completion — request limit, context limit, or a decision I cannot make
+— write a handoff, not a status report. It needs exactly: the goal in one sentence, what is
+done, what is not, the next exact step, and which facts must be re-verified because their
+evidence is no longer in context.
+
+At the start of a slice that will run long, state the stop condition: "I stop when X is
+activated and verified, or when the next object needs a decision I cannot make." An
+undefined stop condition means the work ends whenever the request limit arrives, which is
+neither the right time nor a reason anyone chose.
 
 For existing objects, treat current behavior and public contracts as the
 preservation baseline unless the user explicitly changes them. Separate intended
