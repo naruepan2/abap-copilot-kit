@@ -144,9 +144,30 @@ beginning with `"<prefix>/"`. Consequences:
 - MCP tools group by the text before the first `/`. The picker displays that group label,
   which makes it the fastest way to read back the real prefix.
 
-Verify a prefix without guessing: open the agent's tool picker and read the group labels.
-A group whose label matches the entry means the entry resolves; a different label means the
-entry is dead and the tools show unchecked.
+### Verified against a live agent, 2026-11-13
+
+Probed by spawning the agent and having it report its own tool list:
+
+| Entry | Result |
+| --- | --- |
+| `arc-1/*` | ✅ resolves — the key declared in `mcp.json` |
+| `adt-mcp-server/*` | ✅ resolves — even though the server's display label is "ADT MCP Server" |
+| `murbani.vscode-abap-remote-fs/<toolName>` | ✅ resolves, one entry per tool |
+| `ADT MCP Server/*` | ❌ display label does not match |
+| `sapse.adt-vscode/*` | ❌ owning extension id does not match |
+| `com.sap.adt/*` | ❌ provider id does not match |
+| `murbani.vscode-abap-remote-fs/*` | ❌ wildcard does not expand for extension tools |
+
+Two rules follow. **Match an MCP server by its `mcp.json` key**, never by its label or its
+runtime tool id (`mcp_arc-12_*`, `mcp_adt_mcp_serve_*`). **Give every extension-contributed
+tool its own explicit entry**; a wildcard there yields zero tools and no error.
+
+### Self-reports are samples, not inventories
+
+The same agent reported 10, 9 and 8 ARC-1 tools, and 13 then 6 ABAP FS tools, across
+consecutive spawns. Verify **presence of a group** and **whether a named entry resolves**.
+Do not delete a working line because one probe under-reported it, and do not publish counts
+as facts.
 
 ## Agent roster drift
 

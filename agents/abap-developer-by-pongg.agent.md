@@ -17,38 +17,49 @@ tools:
   - agent
   - todo
   - vscode/askQuestions
-  # --- tool prefixes -------------------------------------------------------
-  # Observed in this machine's VS Code state (state.vscdb), 2026-11-13. What was
-  # observed is the RUNTIME tool id and the picker key; whether `tools:` matches
-  # against either of those remains UNVERIFIED. Do not change these values on a
-  # guess — verify first, then edit.
+  # --- tool prefixes: VERIFIED 2026-11-13 -----------------------------------
+  # Verified by spawning this agent and having it report its own live tool list.
   #
-  #   ARC-1        runtime tool id : mcp_arc-12_SAPRead ...  (not "arc-1")
-  #                picker key      : mcp.config.usrlocal.arc-1
-  #                note            : the "-12" suffix is unexplained. The plugin
-  #                                  declares "mcpServers": {} so it is not a
-  #                                  plugin collision. Stale keys ABAP-ARC-1 and
-  #                                  arc-1-gsd120 also exist in state.
+  #   'arc-1/*'                                -> ARC-1 tools present      OK
+  #   'adt-mcp-server/*'                       -> ADT MCP tools present    OK
+  #   'murbani.vscode-abap-remote-fs/<tool>'   -> ABAP FS tools present    OK
   #
-  #   SAP ADT MCP  runtime tool id : mcp_adt_mcp_serve_abap_atc_run_start ...
-  #                picker key      : sapse.adt-vscode/ADT MCP Server
-  #                source verified : McpHttpServerDefinition("ADT MCP Server", ...)
-  #                                  in the SAPSE.adt-vscode bundle
+  # Failed forms, kept here so nobody retries them:
+  #   'ADT MCP Server/*'                       (the server's display label)
+  #   'sapse.adt-vscode/*'                     (the extension that provides it)
+  #   'sapse.adt-vscode/ADT MCP Server/*'
+  #   'com.sap.adt/*'                          (the provider id)
+  #   'murbani.vscode-abap-remote-fs/*'        (wildcard does not expand here)
   #
-  #   ABAP Remote  runtime tool id : abapfs_search_objects ... (no prefix)
-  #   FS           extension id    : murbani.vscode-abap-remote-fs
-  #                contributes     : 68 languageModelTools, NOT an mcpServerProvider
+  # Lessons: an MCP server is matched by its key in mcp.json, not by its display
+  # label and not by its runtime tool id (mcp_arc-12_*, mcp_adt_mcp_serve_*).
+  # Extension-contributed tools need one explicit <extensionId>/<toolName> entry
+  # each; a wildcard silently yields zero.
+  #
+  # Exhaustive counts are NOT reliable: the same agent reported 10, 9 and 8 ARC-1
+  # tools and 13 then 6 ABAP FS tools across spawns. Treat any single listing as a
+  # sample. What is durable is whether a group is present at all, and whether a
+  # named entry resolves — so verify presence, and never delete a working line
+  # because one probe under-reported it.
   # -------------------------------------------------------------------------
-  # ARC-1 — server name as declared in mcp.json ("arc-1").
+  # ARC-1 — MCP server declared in mcp.json.
   - 'arc-1/*'
-  # SAP ADT MCP Server — label registered by SAPSE.adt-vscode.
-  - 'ADT MCP Server/*'
-  # ABAP Remote FS contributes languageModelTools (68), not an MCP server, so this
-  # wildcard uses the extension-ID form. VS Code documents `<server name>/*` for MCP
-  # servers and `<extensionId>/<tool>` for extension tools; the extension wildcard is
-  # not documented either way. If ABAP FS tools fail to appear, replace this one line
-  # with the explicit list kept in the "ABAP FS tool fallback" block below.
-  - 'murbani.vscode-abap-remote-fs/*'
+  # SAP ADT MCP Server — the key the client resolves for the SAPSE.adt-vscode provider.
+  - 'adt-mcp-server/*'
+  # ABAP Remote FS — extension tool. Explicit names only; a wildcard yields nothing.
+  - 'murbani.vscode-abap-remote-fs/abapfs_get_object_source'
+  - 'murbani.vscode-abap-remote-fs/abapfs_get_object_info'
+  - 'murbani.vscode-abap-remote-fs/abapfs_search_object_source'
+  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_object_relations'
+  - 'murbani.vscode-abap-remote-fs/abapfs_run_sql_query'
+  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_dumps'
+  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_traces'
+  - 'murbani.vscode-abap-remote-fs/abapfs_get_version_history'
+  - 'murbani.vscode-abap-remote-fs/abapfs_manage_debug_session'
+  - 'murbani.vscode-abap-remote-fs/abapfs_step_debugger'
+  - 'murbani.vscode-abap-remote-fs/abapfs_get_debug_stack'
+  - 'murbani.vscode-abap-remote-fs/abapfs_inspect_variable'
+  - 'murbani.vscode-abap-remote-fs/abapfs_manage_breakpoints'
 ---
 
 # ABAP Developer by Pongg
@@ -361,31 +372,16 @@ failures and inspect object state before any retry; do not repeat failed writes
 blindly. Distinguish system evidence from inference and never claim an unrun test
 or unavailable capability succeeded.
 
-## ABAP FS tool fallback
+## Tool surface fallback
 
-Only needed if the `murbani.vscode-abap-remote-fs/*` wildcard in `tools:` fails to
-expose ABAP Remote FS tools. Replace that one line with the explicit entries below.
-All 13 names were checked against the extension's `languageModelTools` manifest, so
-they exist; the unknown is only whether the extension wildcard form resolves.
+The 13 ABAP Remote FS entries live in `tools:` because a wildcard does not expand for
+extension-contributed tools (verified). If that list is ever suspected of being stale, ask
+the agent for a count instead of trusting a one-time listing: a probe on 2026-11-13 reported
+6 of 13 tools that were all in fact present.
 
-```yaml
-  - 'murbani.vscode-abap-remote-fs/abapfs_get_object_source'
-  - 'murbani.vscode-abap-remote-fs/abapfs_get_object_info'
-  - 'murbani.vscode-abap-remote-fs/abapfs_search_object_source'
-  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_object_relations'
-  - 'murbani.vscode-abap-remote-fs/abapfs_run_sql_query'
-  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_dumps'
-  - 'murbani.vscode-abap-remote-fs/abapfs_analyze_traces'
-  - 'murbani.vscode-abap-remote-fs/abapfs_get_version_history'
-  - 'murbani.vscode-abap-remote-fs/abapfs_manage_debug_session'
-  - 'murbani.vscode-abap-remote-fs/abapfs_step_debugger'
-  - 'murbani.vscode-abap-remote-fs/abapfs_get_debug_stack'
-  - 'murbani.vscode-abap-remote-fs/abapfs_inspect_variable'
-  - 'murbani.vscode-abap-remote-fs/abapfs_manage_breakpoints'
-```
-
-If neither form works, delete the `tools:` list entirely: an omitted `tools` lets the
-session tools picker decide, which is the safe fallback.
+If an entry stops resolving, do not widen it to a wildcard. Either name the exact tool from
+the extension's `languageModelTools` manifest, or drop the `tools:` list entirely — an
+omitted list lets the session tools picker decide, which is the safe fallback.
 
 ## Ownership gate
 
