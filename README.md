@@ -15,6 +15,8 @@ accumulating instructions that were true once.
 ## What is here
 
 ```
+AGENTS.md          workspace contract: connection scope, access rules, session start
+INDEX.md           one-screen map of this repository and of where memory really lives
 agents/            custom agents with routing, safety and evidence gates
 skills/            hand-written skills (mcp-surface-audit)
 roster.json        delegation allowlist — read-only subagents only
@@ -22,7 +24,22 @@ hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
 config-templates/  mcp.json and settings fragments with placeholders
 memory-templates/  user profile template
+templates/         project and program README templates
+Projects/          convention only — local notebook, gitignored
 ```
+
+## One fact worth reading before anything else
+
+**SAP connections are user-scoped, not workspace-scoped.** MCP servers live in
+`%APPDATA%\Code\User\mcp.json`, ABAP FS destinations in `abapfs.remote` inside the user
+`settings.json`, and the ADT MCP server in `adt.mcpServer.*`. Opening a folder selects
+nothing: every configured server stays reachable from every folder, and several customers
+can be reachable at once.
+
+So a folder named after a project is documentation, not isolation. Confirm the system and
+client explicitly before a read or a write. The only real pin would be a workspace-scoped
+`.mcp.json` at the folder root, which means duplicating the server config — this repository
+does not do that on purpose. `AGENTS.md` carries the same warning for the agent.
 
 ## Hooks
 
@@ -109,7 +126,12 @@ strip the comments if your editor refuses them.
 **6. Profile (optional).** Copy `memory-templates/user-profile.md` to your Copilot memory folder
 and fill it in. Keep it under about 40 lines: user memory is loaded into every session.
 
-**7. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
+**7. Workspace contract (optional).** If you open this repository as a VS Code workspace
+folder, `AGENTS.md` is loaded into every request. It costs about 850 tokens at its current
+length, and it is the place to put the connection-scope warning where the agent cannot miss it.
+Drop the file if you use the repository only as a source of files to copy.
+
+**8. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
 `hooks/hooks.json.template` to `~/.copilot/hooks/hooks.json` and replace `{{COPILOT_HOME}}` with
 your Copilot folder path. Drop any event you do not want. Verify the scripts parse before
 relying on them:
@@ -130,6 +152,17 @@ For `sessionStart`, firing is provable: `surface.json` gets a new `takenAt` on e
 | `settings.json` | contains an ADT token |
 | `.skill-lock.json` | absolute paths and hashes from one machine |
 | Memory contents | may contain system identifiers and business data |
+| `Projects/<PROJECT>/…` | customer SID, client and transport numbers |
+| Live `hooks/*.json` | machine-specific absolute paths |
+
+**Clone and expect this:** a fresh clone gives you every file above plus `AGENTS.md`,
+`INDEX.md`, `templates/`, and `Projects/README.md` — about 26 files. It does **not** give
+you a working SAP connection, memory, or project records. Those are user-scoped and must be
+rebuilt per machine, which is why `config-templates/` and `memory-templates/` exist.
+
+Line endings are pinned to LF by `.gitattributes`. Without it, this machine's system
+`core.autocrlf=true` produced CRLF in a fresh clone while the mirrored source files were LF,
+so one commit had two byte representations on disk.
 
 ## Adapting it
 
