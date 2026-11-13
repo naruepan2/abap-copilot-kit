@@ -1,0 +1,33 @@
+{
+  // TEMPLATE — copy to ~/.copilot/hooks/lesson-capture.json
+  // (%USERPROFILE%\.copilot\hooks\ on Windows) and replace {{COPILOT_HOME}}.
+  //
+  // Windows:      "node \"C:\\Users\\<you>\\.copilot\\hooks\\lesson-capture.cjs\""
+  // macOS/Linux:  "node \"$HOME/.copilot/hooks/lesson-capture.cjs\""
+  //
+  // Fires after a tool call fails and appends one row to the session lesson ledger:
+  //   time | tool | outcome | error as returned | occurrence count
+  //
+  // It writes only what the event carried. It does not infer a cause and does not
+  // propose a fix; capture is evidence, not action.
+  //
+  // Context cost: the first and second occurrence of a failure return nothing. From the
+  // third identical failure the hook returns additionalContext, because a repeat is the
+  // signal worth acting on. Promotion into a rule stays a human decision.
+  //
+  // Ledger location, in order:
+  //   1. $SAP_AGENT_LESSONS_FILE
+  //   2. <APPDATA>/Code/User/globalStorage/github.copilot-chat/memory-tool/memories/session/lessons.md
+  //   3. <APPDATA>/Code - Insiders/... (same tail)
+  //   4. ~/.copilot/state/lessons.md
+  "version": 1,
+  "hooks": {
+    "postToolUseFailure": [
+      {
+        "type": "command",
+        "command": "node \"{{COPILOT_HOME}}\\hooks\\lesson-capture.cjs\"",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}

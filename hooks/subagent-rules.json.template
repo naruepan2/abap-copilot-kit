@@ -1,0 +1,32 @@
+{
+  // TEMPLATE — copy to ~/.copilot/hooks/subagent-rules.json
+  // (%USERPROFILE%\.copilot\hooks\ on Windows) and replace {{COPILOT_HOME}}.
+  //
+  // Windows:      "node \"C:\\Users\\<you>\\.copilot\\hooks\\subagent-rules.cjs\""
+  // macOS/Linux:  "node \"$HOME/.copilot/hooks/subagent-rules.cjs\""
+  //
+  // Fires before a subagent runs and prepends a rule block to its first message. A
+  // subagent works in its own context, so the coordinating agent's rules do not follow
+  // it automatically; this is how the Z*/Y* namespace rule and the evidence rules reach
+  // a delegated task.
+  //
+  // Classification comes from ~/.copilot/roster.json:
+  //   listed under "delegatable"      -> trusted block (still read-only)
+  //   listed under "not_delegatable"  -> restricted block, with the roster's own reason
+  //   not listed at all               -> restricted block
+  //   roster unreadable               -> restricted block
+  //   event payload unparseable       -> restricted block
+  //
+  // The default is always restrictive. An agent installed tomorrow is restricted until a
+  // human adds it to the roster.
+  "version": 1,
+  "hooks": {
+    "subagentStart": [
+      {
+        "type": "command",
+        "command": "node \"{{COPILOT_HOME}}\\hooks\\subagent-rules.cjs\"",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}

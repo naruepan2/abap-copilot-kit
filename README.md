@@ -18,10 +18,27 @@ accumulating instructions that were true once.
 agents/            custom agents with routing, safety and evidence gates
 skills/            hand-written skills (mcp-surface-audit)
 roster.json        delegation allowlist — read-only subagents only
+hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
 config-templates/  mcp.json and settings fragments with placeholders
 memory-templates/  user profile template
 ```
+
+## Hooks
+
+All three are detection only. None of them edits an agent, skill, or config file.
+
+| Event | Script | What it does | Context cost |
+| --- | --- | --- | --- |
+| `sessionStart` | `session-drift.cjs` | snapshots agents, both skill roots, MCP servers, extension tool counts; reports only what changed | `{}` when nothing changed |
+| `subagentStart` | `subagent-rules.cjs` | prepends the namespace and evidence rules to a delegated task; restricts any agent not in `roster.json` | once per subagent |
+| `postToolUseFailure` | `lesson-capture.cjs` | appends one evidence row per failed tool call | `{}` until the third identical failure |
+
+The subagent hook exists because a subagent runs in its own context: the coordinating
+agent's rules do not reach it. Without this, delegating a write would bypass the `Z*`/`Y*`
+namespace rule and the evidence gate. The default is restrictive, so an agent installed
+tomorrow is read-only until a human adds it to the roster.
+
 
 ## Design in one diagram
 
@@ -68,6 +85,18 @@ strip the comments if your editor refuses them.
 
 **6. Profile (optional).** Copy `memory-templates/user-profile.md` to your Copilot memory folder
 and fill it in. Keep it under about 40 lines: user memory is loaded into every session.
+
+**7. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
+each `hooks/*.json.template` to the same folder with the `.template` suffix removed and replace
+`{{COPILOT_HOME}}` with your Copilot folder path. All three are listed above; drop any you do
+not want. Verify the scripts parse before relying on them:
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.copilot\hooks\*.cjs" | ForEach-Object { node --check $_.FullName; "$($_.Name): $LASTEXITCODE" }
+```
+
+Hooks are a preview feature. Test one at a time and confirm it fires before adding the next;
+the Output channel for the Copilot extension reports hook errors.
 
 ## What is deliberately not here
 

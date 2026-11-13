@@ -57,5 +57,10 @@ tmp/
 *.tmp
 *.bak
 
-# Hook config with a machine-specific path
-hooks/session-drift.json
+# Hook config with a machine-specific absolute path.
+# Only the .template form is committed; the live config stays local.
+hooks/*.json
+!hooks/*.json.template
+
+# Hook runtime state
+state/
