@@ -10,6 +10,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `roster.json` | Which agents may be delegated to, and which may not |
 | `agents/*-by-pongg.agent.md` | The user's agents, editable |
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
+| `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `config-templates/` | `mcp.json` and `settings.json` skeletons |

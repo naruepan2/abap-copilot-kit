@@ -18,7 +18,7 @@ accumulating instructions that were true once.
 AGENTS.md          workspace contract: connection scope, access rules, session start
 INDEX.md           one-screen map of this repository and of where memory really lives
 agents/            custom agents with routing, safety and evidence gates
-skills/            hand-written skills (mcp-surface-audit)
+skills/            hand-written skills: mcp-surface-audit, capture-lesson
 roster.json        delegation allowlist — read-only subagents only
 hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
@@ -77,6 +77,9 @@ tomorrow is read-only until a human adds it to the roster.
 
 ## Design in one diagram
 
+The shape is deliberate: route, gate, capture, promote. The two memory layers are separate
+because they have different half-lives and different costs.
+
 ```mermaid
 flowchart TD
     U[your request] --> A
@@ -91,26 +94,38 @@ flowchart TD
     A -->|read-only only, allowlisted in roster.json| D2[se38-testing]
     A -->|read-only only, allowlisted in roster.json| D3[dump-analysis]
 
-    D1 --> L[lesson inbox<br/>evidence, no action]
+    D1 --> L[finding worth keeping<br/>still in context]
     D2 --> L
     D3 --> L
 
-    L -->|recurs and the user asks| G{HUMAN GATE<br/>which agent · which file}
-    G --> M[user memory<br/>durable environment fact]
+    L -->|skill: capture-lesson<br/>choose destination by half-life| G{HUMAN GATE<br/>exact diff · wait for approval}
+    G --> M[user memory<br/>~200 lines · loaded every request<br/>who the user is, universal rules]
+    G --> P[repo memory<br/>read on demand<br/>verified project facts]
     G --> F[agent file<br/>routing or safety rule]
     G --> K[new skill<br/>repeatable procedure]
+    G --> X[nothing<br/>ephemeral detail]
 
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
+    classDef mem fill:#e8f4ff,stroke:#2f6fa8,color:#000
     class G gate
+    class M,P mem
 ```
+
+**Both memory layers are outside this repository** and stay there: user memory is loaded from
+the VS Code user data folder, repo memory from the per-workspace folder. Copying either into the
+repository would create a second copy that nothing loads and nobody updates.
+
+**The capture step is a skill, not a hook, on purpose.** The detection hooks cannot fire in the
+Copilot harness, so a loop that depends on them never runs. `capture-lesson` drives the same loop
+on purpose, while the finding is still in context.
 
 ## Install
 
 **1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
 on Windows). Reload the window, then pick one from the agent dropdown.
 
-**2. Skills.** Copy `skills/mcp-surface-audit` into `~/.copilot/skills/`. Skills only load in a
-new chat session, so start a fresh chat after copying.
+**2. Skills.** Copy `skills/mcp-surface-audit` and `skills/capture-lesson` into
+`~/.copilot/skills/`. Skills only load in a new chat session, so start a fresh chat after copying.
 
 **3. Roster.** Copy `roster.json` to `~/.copilot/roster.json`. Edit the file names to match the
 agents you actually installed. An agent not listed there is not delegatable — that is the point
