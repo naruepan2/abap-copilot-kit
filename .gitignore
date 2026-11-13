@@ -64,3 +64,11 @@ hooks/*.json
 
 # Hook runtime state
 state/
+
+# ---------------------------------------------------------------------------
+# Project working area. Project files carry customer identifiers (SID, client,
+# transport) and this repository is public, so they stay local. Only the generic
+# conventions file is tracked.
+# ---------------------------------------------------------------------------
+Projects/*
+!Projects/README.md
