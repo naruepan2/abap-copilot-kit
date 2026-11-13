@@ -179,8 +179,10 @@ $j = Get-Content "$env:USERPROFILE\.copilot\roster.json" -Raw | ConvertFrom-Json
 ```
 
 **Both lists must be counted.** Checking only `delegatable` reports every installer-owned agent
-as new on every run, which trains the reader to ignore the warning. Verified 2026-11-13:
-16 known, 16 live, no drift.
+as new on every run, which trains the reader to ignore the warning. Expect `GONE: none` and
+`NEW: none`; the actual totals are whatever `roster.json` and the agents folder hold this time —
+read them from that output instead of quoting a number remembered from a previous run. A count
+written into prose here goes stale exactly like any other duplicated fact.
 
 **Run this manually.** In this VS Code build the Copilot harness does not fire hooks, so the
 `sessionStart` drift hook is silent; `chat.useHooks` and `chat.hookFilesLocation` are documented
