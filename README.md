@@ -155,6 +155,13 @@ For `sessionStart`, firing is provable: `surface.json` gets a new `takenAt` on e
 | `Projects/<PROJECT>/…` | customer SID, client and transport numbers |
 | Live `hooks/*.json` | machine-specific absolute paths |
 
+**One tracked file does contain system names.** The routing table in
+`agents/abap-developer-by-pongg.agent.md` lists which SAP system each MCP server reaches,
+because that is the whole point of the table. Nothing there is a credential — no user,
+password, token or host name — but it does name systems. Treat the repository as private
+unless you sanitize that table first. Making the repository public is not reversible in the
+sense that matters: history keeps what was published.
+
 **Clone and expect this:** a fresh clone gives you every file above plus `AGENTS.md`,
 `INDEX.md`, `templates/`, and `Projects/README.md` — about 26 files. It does **not** give
 you a working SAP connection, memory, or project records. Those are user-scoped and must be

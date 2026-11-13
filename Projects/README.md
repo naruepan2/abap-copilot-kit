@@ -8,8 +8,10 @@ Use it only to write down what you verified, so a later session does not have to
 it. If it ever disagrees with the SAP system, the SAP system is right.
 
 **Nothing under this folder is committed.** Project records carry customer identifiers
-(SID, client, transport) and this repository is public. Only this `README.md` is tracked,
-which also means project records have **no backup** unless you keep them somewhere else.
+(SID, client, transport), so they stay local regardless of repository visibility — a
+visibility change must never be the only thing protecting a customer name. Only this
+`README.md` is tracked, which also means project records have **no backup** unless you
+keep them somewhere else.
 
 ## Layout
 

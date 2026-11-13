@@ -67,8 +67,9 @@ state/
 
 # ---------------------------------------------------------------------------
 # Project working area. Project files carry customer identifiers (SID, client,
-# transport) and this repository is public, so they stay local. Only the generic
-# conventions file is tracked.
+# transport). They stay local because a customer identifier must not enter any
+# repository, whatever its visibility — the rule does not relax if the repository
+# is later made public. Only the generic conventions file is tracked.
 # ---------------------------------------------------------------------------
 Projects/*
 !Projects/README.md
