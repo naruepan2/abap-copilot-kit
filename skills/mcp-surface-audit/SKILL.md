@@ -159,7 +159,12 @@ $j = Get-Content "$env:USERPROFILE\.copilot\roster.json" -Raw | ConvertFrom-Json
 
 **Both lists must be counted.** Checking only `delegatable` reports every installer-owned agent
 as new on every run, which trains the reader to ignore the warning. Verified 2026-11-13:
-11 known, 11 live, no drift.
+16 known, 16 live, no drift.
+
+**Run this manually.** In this VS Code build the Copilot harness does not fire hooks, so the
+`sessionStart` drift hook is silent; `chat.useHooks` and `chat.hookFilesLocation` are documented
+as Local-harness only while `chat.defaultToCopilotHarness` defaults to `true`. Treat the drift
+check as an on-demand step, and never report a hook as having run until a firing is observed.
 
 Interpretation:
 

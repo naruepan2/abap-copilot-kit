@@ -31,7 +31,12 @@
                 "rap-service-developer",
                 "sap-integration-architect",
                 "sap-integration-developer",
-                "sap-solution-architect"
+                "sap-solution-architect",
+                "sap-btp-infrastructure-admin",
+                "sap-bw-datasphere-migration-specialist",
+                "sap-datasphere-developer",
+                "sap-devops-observability-specialist",
+                "sap-process-automation-developer"
             ],
             "reason": "installed by SAP AI Dev Toolkit; hash-tracked in .sap-ai-dev-toolkit-assets.json; they do not carry this workspace's Z*/Y* namespace rule or evidence discipline"
         },
