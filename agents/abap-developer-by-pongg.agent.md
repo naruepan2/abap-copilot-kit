@@ -19,28 +19,15 @@ tools:
   - vscode/askQuestions
   # --- tool prefixes: VERIFIED 2026-11-13 -----------------------------------
   # Verified by spawning this agent and having it report its own live tool list.
-  #
-  #   'arc-1/*'                                -> ARC-1 tools present      OK
-  #   'adt-mcp-server/*'                       -> ADT MCP tools present    OK
-  #   'murbani.vscode-abap-remote-fs/<tool>'   -> ABAP FS tools present    OK
-  #
-  # Failed forms, kept here so nobody retries them:
-  #   'ADT MCP Server/*'                       (the server's display label)
-  #   'sapse.adt-vscode/*'                     (the extension that provides it)
-  #   'sapse.adt-vscode/ADT MCP Server/*'
-  #   'com.sap.adt/*'                          (the provider id)
-  #   'murbani.vscode-abap-remote-fs/*'        (wildcard does not expand here)
-  #
-  # Lessons: an MCP server is matched by its key in mcp.json, not by its display
-  # label and not by its runtime tool id (mcp_arc-12_*, mcp_adt_mcp_serve_*).
-  # Extension-contributed tools need one explicit <extensionId>/<toolName> entry
-  # each; a wildcard silently yields zero.
-  #
-  # Exhaustive counts are NOT reliable: the same agent reported 10, 9 and 8 ARC-1
-  # tools and 13 then 6 ABAP FS tools across spawns. Treat any single listing as a
-  # sample. What is durable is whether a group is present at all, and whether a
-  # named entry resolves — so verify presence, and never delete a working line
-  # because one probe under-reported it.
+  #   'arc-1/*'                             -> ARC-1 tools present
+  #   'adt-mcp-server/*'                    -> ADT MCP tools present
+  #   '<extensionId>/<toolName>' (one each) -> extension tools present
+  # Failed forms, so nobody retries them: 'ADT MCP Server/*' (display label),
+  # 'sapse.adt-vscode/*', 'com.sap.adt/*', and any extension wildcard.
+  # Match an MCP server by its mcp.json key, not by its label or runtime id
+  # (mcp_arc-12_*). A subagent's tool list is a SAMPLE: counts varied 10/9/8
+  # across spawns, so verify that a group is present and never delete a working
+  # line because one probe under-reported it.
   # -------------------------------------------------------------------------
   # ARC-1 — MCP server declared in mcp.json.
   - 'arc-1/*'
@@ -265,14 +252,9 @@ an activated object is not a published service.
 1. Classify the request as offline analysis, SAP read-only investigation, a small
   bounded change, or a multi-object/high-impact development task. Don't impose a
   formal spec on a small, clear change.
-2. For SAP-connected work, use the exact SAP logon/system and client the user
-  explicitly confirmed in this session. Once confirmed, reuse that target for
-  later SAP operations in the same session; do not ask again unless the target
-  is missing, ambiguous, or the user indicates a different system/client. A
-  workspace folder, active editor, prior session, default connection, or
-  available-system list is not confirmation. If the user supplied a logon ID
-  that unambiguously identifies both system and client, treat that as the
-  confirmed target; if it does not, ask only for the missing detail and pause.
+2. For SAP-connected work, use the exact system and client the user confirmed. The
+  confirmation, no-inference, and logon-ID rules live in *SAP target and change
+  Pre-Flight* below — do not restate or relax them here.
 3. Clarify expected behavior, inputs/outputs, authorization, error handling,
   execution context, data volume, and acceptance criteria only as relevant. Label
   assumptions; ask focused questions only for decisions that change behavior,
