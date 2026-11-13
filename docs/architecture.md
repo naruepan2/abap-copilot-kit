@@ -45,7 +45,7 @@ first wins, and the other silently rots. One rule, one home.
 
 ```mermaid
 flowchart TD
-    T[tool fails or behaves unexpectedly] --> L[lesson inbox · layer 2<br/>written by a hook, not by the model]
+    T[tool fails or behaves unexpectedly] --> L[lesson inbox · layer 2<br/>written by a hook when hooks fire,<br/>otherwise recorded on request]
     L -->|recurs, and the user asks for a review| G{HUMAN GATE<br/>which agent? which file?}
     G --> M[user memory<br/>durable fact about the environment]
     G --> A[agent file<br/>routing or safety rule]
@@ -54,6 +54,13 @@ flowchart TD
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
     class G gate
 ```
+
+> **Harness caveat (measured 2026-11-13).** In this VS Code build the Copilot harness does not
+> fire hooks: `chat.useHooks` and `chat.hookFilesLocations` are documented as Local-harness only,
+> while `chat.defaultToCopilotHarness` defaults to `true`. A reload left
+> `~/.copilot/state/surface.json`'s `takenAt` unchanged. The layer-2 inbox therefore has two
+> producers: the hook when hooks fire, and a manual request otherwise. Keep this caveat until a
+> firing is actually observed.
 
 Two properties matter:
 
