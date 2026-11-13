@@ -56,3 +56,6 @@ docs/archive/
 tmp/
 *.tmp
 *.bak
+
+# Hook config with a machine-specific path
+hooks/session-drift.json

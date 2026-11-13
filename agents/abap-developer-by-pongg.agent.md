@@ -17,10 +17,31 @@ tools:
   - agent
   - todo
   - vscode/askQuestions
-  # ARC-1 — MCP server name exactly as declared in mcp.json ("arc-1").
+  # --- tool prefixes -------------------------------------------------------
+  # Observed in this machine's VS Code state (state.vscdb), 2026-11-13. What was
+  # observed is the RUNTIME tool id and the picker key; whether `tools:` matches
+  # against either of those remains UNVERIFIED. Do not change these values on a
+  # guess — verify first, then edit.
+  #
+  #   ARC-1        runtime tool id : mcp_arc-12_SAPRead ...  (not "arc-1")
+  #                picker key      : mcp.config.usrlocal.arc-1
+  #                note            : the "-12" suffix is unexplained. The plugin
+  #                                  declares "mcpServers": {} so it is not a
+  #                                  plugin collision. Stale keys ABAP-ARC-1 and
+  #                                  arc-1-gsd120 also exist in state.
+  #
+  #   SAP ADT MCP  runtime tool id : mcp_adt_mcp_serve_abap_atc_run_start ...
+  #                picker key      : sapse.adt-vscode/ADT MCP Server
+  #                source verified : McpHttpServerDefinition("ADT MCP Server", ...)
+  #                                  in the SAPSE.adt-vscode bundle
+  #
+  #   ABAP Remote  runtime tool id : abapfs_search_objects ... (no prefix)
+  #   FS           extension id    : murbani.vscode-abap-remote-fs
+  #                contributes     : 68 languageModelTools, NOT an mcpServerProvider
+  # -------------------------------------------------------------------------
+  # ARC-1 — server name as declared in mcp.json ("arc-1").
   - 'arc-1/*'
-  # SAP ADT MCP Server — MCP server label registered by SAPSE.adt-vscode.
-  # Verified in the extension bundle: new McpHttpServerDefinition("ADT MCP Server", ...)
+  # SAP ADT MCP Server — label registered by SAPSE.adt-vscode.
   - 'ADT MCP Server/*'
   # ABAP Remote FS contributes languageModelTools (68), not an MCP server, so this
   # wildcard uses the extension-ID form. VS Code documents `<server name>/*` for MCP
