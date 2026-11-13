@@ -21,4 +21,7 @@ One-line purpose of this project.
 <!--
 Fill every field from a verified source (the SAP logon, SE09, or the user's explicit
 statement). Leave a field empty rather than guessing. Do not paste ABAP source here.
+
+This file is a record, not a boundary: it does not select a SAP system and does not make
+the tools prefer this project. Confirm system and client explicitly before any SAP call.
 -->

@@ -27,4 +27,6 @@ One-line purpose.
 <!--
 Pointers, not copies: never paste ABAP source into this file. The SAP system owns the
 source; a pasted copy goes stale without anyone noticing.
+
+This file is a record, not a boundary. It does not pin the tools to this object's system.
 -->

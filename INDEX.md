@@ -36,7 +36,11 @@ seed only; a copy stored here would go stale and be loaded by nothing.
 
 ## Projects
 
-Not committed — project folders carry customer identifiers. Each project has
-`Projects\<PROJECT>\README.md`, `AGENTS.md`, and `project.yaml`; each program has
-`Projects\<PROJECT>\<PROGRAM>\README.md`, `AGENTS.md`, and `program.yaml`.
-Conventions are in `Projects/README.md`.
+**Not a boundary.** `Projects\` is a local notebook of verified facts; it does not select
+a SAP system or restrict any tool. Connections are user-scoped — see **Connections** in
+`AGENTS.md` before trusting any project-level assumption.
+
+Not committed — project records carry customer identifiers. A project has
+`Projects\<PROJECT>\README.md` and `project.yaml`; a program has
+`Projects\<PROJECT>\<PROGRAM>\README.md` and `program.yaml`. There is no per-level
+`AGENTS.md`, on purpose. Conventions are in `Projects/README.md`.
