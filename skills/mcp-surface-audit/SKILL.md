@@ -148,7 +148,32 @@ Verify a prefix without guessing: open the agent's tool picker and read the grou
 A group whose label matches the entry means the entry resolves; a different label means the
 entry is dead and the tools show unchecked.
 
+## Agent roster drift
+
+`~/.copilot/roster.json` is the delegation allowlist. Drift means the installed agents and
+the roster disagree. Run this as one line:
+
+```powershell
+$j = Get-Content "$env:USERPROFILE\.copilot\roster.json" -Raw | ConvertFrom-Json; $known = @(); foreach ($d in $j.delegatable) { $known += $d.file }; foreach ($g in $j.not_delegatable) { $known += $g.files }; $live = Get-ChildItem "$env:USERPROFILE\.copilot\agents" -Filter *.agent.md | ForEach-Object { $_.Name -replace '\.agent\.md$','' }; $new = $live | Where-Object { $known -notcontains $_ }; $gone = $known | Where-Object { $live -notcontains $_ }; "NEW: $(if ($new.Count -gt 0) { $new -join ', ' } else { 'none' })"; "GONE: $(if ($gone.Count -gt 0) { $gone -join ', ' } else { 'none' })"
+```
+
+**Both lists must be counted.** Checking only `delegatable` reports every installer-owned agent
+as new on every run, which trains the reader to ignore the warning. Verified 2026-11-13:
+11 known, 11 live, no drift.
+
+Interpretation:
+
+| Output | Meaning | Action |
+| --- | --- | --- |
+| `NEW: <name>` | an agent appeared that the roster does not classify | report it; a human decides whether to add it. It is **not** delegatable meanwhile |
+| `GONE: <name>` | the roster names an agent that no longer exists | report the dangling entry; do not substitute a similar agent |
+| both `none` | in sync | — |
+
+Do not add or remove roster entries yourself. The allowlist is only meaningful if a human
+maintains it.
+
 ## Installer-owned files
+
 
 Some files under `~/.copilot/agents` and `~/.copilot/skills` are installed by a package and
 tracked by hash in `~/.copilot/.sap-ai-dev-toolkit-assets.json`. Editing one is allowed but
