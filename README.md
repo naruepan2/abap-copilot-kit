@@ -1,4 +1,4 @@
-# abap-agent-workspace-vscode-github-copilot
+# abap-copilot-kit
 
 A reproducible VS Code Copilot setup for SAP/ABAP work, built on three rules:
 
