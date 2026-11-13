@@ -13,6 +13,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
+| `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract |
 | `config-templates/` | `mcp.json` and `settings.json` skeletons |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project-README.md`, `program-README.md` |
@@ -34,6 +35,11 @@ Repo memory is per-workspace:
 
 This repository deliberately does not duplicate either one. `memory-templates/` holds a
 seed only; a copy stored here would go stale and be loaded by nothing.
+
+**`docs/reference/` is the counterpart.** Detail that is needed occasionally rather than every
+session lives there, and memory carries one pointer line to it. Memory is the expensive place —
+roughly 200 lines load into every request — so a lookup table belongs in reference, and only the
+rule that governs behaviour belongs in memory.
 
 ## Projects
 
