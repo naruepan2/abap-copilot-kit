@@ -28,11 +28,29 @@ memory-templates/  user profile template
 
 All three are detection only. None of them edits an agent, skill, or config file.
 
+They live in **one** file, `~/.copilot/hooks/hooks.json`, in the Copilot CLI format:
+`"version": 1`, camelCase event names, one `{"type":"command","command":"…"}` entry per event.
+Three separate per-event files do not work — the loader requires a top-level `hooks` object.
+
+A hook that injects context must answer in this shape:
+
+```json
+{ "hookSpecificOutput": { "hookEventName": "SessionStart", "additionalContext": "…" } }
+```
+
+`hookEventName` must equal the event that fired. A top-level `additionalContext` is ignored,
+and a mismatched `hookEventName` is stripped.
+
 | Event | Script | What it does | Context cost |
 | --- | --- | --- | --- |
 | `sessionStart` | `session-drift.cjs` | snapshots agents, both skill roots, MCP servers, extension tool counts; reports only what changed | `{}` when nothing changed |
 | `subagentStart` | `subagent-rules.cjs` | prepends the namespace and evidence rules to a delegated task; restricts any agent not in `roster.json` | once per subagent |
 | `postToolUseFailure` | `lesson-capture.cjs` | appends one evidence row per failed tool call | `{}` until the third identical failure |
+
+> **Harness caveat.** VS Code documents `chat.useHooks` and `chat.hookFilesLocations` as
+> *Local agent harness only*, while `chat.defaultToCopilotHarness` defaults to `true`. Confirm a
+> hook actually fires in your harness before depending on it — `session-drift.cjs` rewrites
+> `~/.copilot/state/surface.json` on every run, so its `takenAt` is the proof.
 
 The subagent hook exists because a subagent runs in its own context: the coordinating
 agent's rules do not reach it. Without this, delegating a write would bypass the `Z*`/`Y*`
@@ -42,26 +60,31 @@ tomorrow is read-only until a human adds it to the roster.
 
 ## Design in one diagram
 
-```
-your request
-     │
-     ▼
-┌──────────────────────────────────────────────────────┐
-│ agent: routing table → which server for which task   │
-│        evidence gate → no unverified assertions      │
-│        safety gate   → namespace, pre-flight, ask    │
-└───────────────┬──────────────────────────────────────┘
-                │  read-only only, allowlisted in roster.json
-      ┌─────────┴─────────┬─────────────────┐
-      ▼                   ▼                 ▼
- reverse-engineering  se38-testing   dump-analysis
-      │                   │                 │
-      └─────────┬─────────┴─────────────────┘
-                ▼
-        lesson inbox (evidence, no action)
-                │
-                ▼  human gate: which agent, which file
-        user memory · agent rule · new skill
+```mermaid
+flowchart TD
+    U[your request] --> A
+
+    subgraph A[agent: ABAP Developer by Pongg]
+        R[routing table<br/>which server for which task]
+        E[evidence gate<br/>no unverified assertions]
+        S[safety gate<br/>Z*/Y* namespace · pre-flight · ask]
+    end
+
+    A -->|read-only only, allowlisted in roster.json| D1[reverse-engineering]
+    A -->|read-only only, allowlisted in roster.json| D2[se38-testing]
+    A -->|read-only only, allowlisted in roster.json| D3[dump-analysis]
+
+    D1 --> L[lesson inbox<br/>evidence, no action]
+    D2 --> L
+    D3 --> L
+
+    L -->|recurs and the user asks| G{HUMAN GATE<br/>which agent · which file}
+    G --> M[user memory<br/>durable environment fact]
+    G --> F[agent file<br/>routing or safety rule]
+    G --> K[new skill<br/>repeatable procedure]
+
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
+    class G gate
 ```
 
 ## Install
@@ -87,16 +110,16 @@ strip the comments if your editor refuses them.
 and fill it in. Keep it under about 40 lines: user memory is loaded into every session.
 
 **7. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
-each `hooks/*.json.template` to the same folder with the `.template` suffix removed and replace
-`{{COPILOT_HOME}}` with your Copilot folder path. All three are listed above; drop any you do
-not want. Verify the scripts parse before relying on them:
+`hooks/hooks.json.template` to `~/.copilot/hooks/hooks.json` and replace `{{COPILOT_HOME}}` with
+your Copilot folder path. Drop any event you do not want. Verify the scripts parse before
+relying on them:
 
 ```powershell
 Get-ChildItem "$env:USERPROFILE\.copilot\hooks\*.cjs" | ForEach-Object { node --check $_.FullName; "$($_.Name): $LASTEXITCODE" }
 ```
 
-Hooks are a preview feature. Test one at a time and confirm it fires before adding the next;
-the Output channel for the Copilot extension reports hook errors.
+Hooks are a preview feature. Test one at a time and confirm it fires before adding the next.
+For `sessionStart`, firing is provable: `surface.json` gets a new `takenAt` on every run.
 
 ## What is deliberately not here
 

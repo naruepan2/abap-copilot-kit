@@ -43,21 +43,16 @@ first wins, and the other silently rots. One rule, one home.
 
 ## The promotion path
 
-```
-tool fails / behaves unexpectedly
-        │
-        ▼
-  lesson inbox (layer 2)          ← written by a hook, not by the model
-        │
-        │  recurs, and the user asks for a review
-        ▼
-  ┌─────────────────────────────────────────┐
-  │ HUMAN GATE  which agent? which file?    │
-  └─────────────────────────────────────────┘
-        │
-        ├──▶ user memory      durable fact about the environment
-        ├──▶ agent file       routing or safety rule
-        └──▶ new skill        a procedure worth repeating
+```mermaid
+flowchart TD
+    T[tool fails or behaves unexpectedly] --> L[lesson inbox · layer 2<br/>written by a hook, not by the model]
+    L -->|recurs, and the user asks for a review| G{HUMAN GATE<br/>which agent? which file?}
+    G --> M[user memory<br/>durable fact about the environment]
+    G --> A[agent file<br/>routing or safety rule]
+    G --> S[new skill<br/>a procedure worth repeating]
+
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
+    class G gate
 ```
 
 Two properties matter:

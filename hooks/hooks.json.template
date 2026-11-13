@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "command": "node \"{{COPILOT_HOME}}/hooks/session-drift.cjs\"",
+        "timeoutSec": 20
+      }
+    ],
+    "subagentStart": [
+      {
+        "type": "command",
+        "command": "node \"{{COPILOT_HOME}}/hooks/subagent-rules.cjs\"",
+        "timeoutSec": 15
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "type": "command",
+        "command": "node \"{{COPILOT_HOME}}/hooks/lesson-capture.cjs\"",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}
