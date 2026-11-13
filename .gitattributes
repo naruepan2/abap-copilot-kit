@@ -1,0 +1,18 @@
+# Normalize every text file to LF, in both the repository and the working tree.
+#
+# Why: this framework is mirrored from ~/.copilot sources that use LF, but the
+# machine's system git config sets core.autocrlf=true. Without a rule, a fresh
+# clone checked out CRLF while the mirrored files were LF, so the same commit had
+# two different byte representations on disk and produced phantom diffs.
+# An explicit rule makes the checkout deterministic on every machine.
+
+* text=auto eol=lf
+
+# Never convert binary content.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.pdf binary
