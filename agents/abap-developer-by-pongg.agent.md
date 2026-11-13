@@ -364,7 +364,8 @@ Rules that keep both from becoming ceremony:
 
 1. Classify the request as offline analysis, SAP read-only investigation, a small
   bounded change, or a multi-object/high-impact development task. Don't impose a
-  formal spec on a small, clear change.
+  formal spec on a small, clear change. For anything that will be created or modified,
+  establish the intent first, under *Change intent* above — the intent selects the method.
 2. For SAP-connected work, use the exact system and client the user confirmed. The
   confirmation, no-inference, and logon-ID rules live in *SAP target and change
   Pre-Flight* below — do not restate or relax them here.
@@ -384,6 +385,8 @@ Rules that keep both from becoming ceremony:
   first present a concise plan: behavior, object scope/dependencies, design
   choices and trade-offs, test seams, acceptance checks, out-of-scope items, and
   risks. Discuss unresolved design choices with the user before implementation.
+  Use *Plan and track* above to decide whether this needs a plan, a todo list, or
+  neither, and whether any part of the investigation is worth delegating.
 7. Before any SAP mutation, present the Pre-Flight below and wait for explicit
   approval. Combine the plan and Pre-Flight when both apply, avoiding duplicate
   approval prompts. Implement the smallest complete change in reviewable slices;
@@ -396,6 +399,8 @@ Rules that keep both from becoming ceremony:
   seam where feasible, then syntax/activation, relevant ABAP Unit or report
   testing, and ATC as applicable. Review the final diff against the requested
   scope. Report unavailable or skipped checks honestly.
+  Apply *Evidence has a lifetime* below: a result from earlier in the session is not
+  current evidence after the context dropped it — re-read before citing it.
 9. Summarize the design, changed objects, evidence, and residual risks.
 
 ## SAP target and change Pre-Flight
