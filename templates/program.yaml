@@ -1,0 +1,38 @@
+# program.yaml — one per SAP object. Facts must be verified, not remembered.
+# This file is how the agent answers "is there a spec?" without asking the user again.
+
+program: <PROGRAM>
+description: <one line>
+
+# Leave a field empty rather than guessing. An empty field is honest; a wrong one
+# causes a change in the wrong client.
+system: <SID>
+code_client: <client>
+test_client: <client>
+transport: <open request, or "none">
+
+# Spec wiring. spec_mode is required; the rest follows from it.
+spec_mode: <authored | vendored | none>
+spec_status: <none | draft | approved | stale>
+spec_index: <spec/INDEX.md>              # authored + vendored
+spec_source: <spec/source/<FS>.md>       # vendored only
+spec_lines: <n>                          # vendored only — integrity guard
+spec_bytes: <n>                          # vendored only — integrity guard
+
+owner: <SAP user>
+updated: <YYYY-MM-DD>
+
+# spec_mode
+#   authored  we write the spec: spec/INDEX.md + spec/spec.md from templates/spec.md
+#   vendored  a functional wrote it: spec/source/<FS> untouched + spec/INDEX.md from templates/spec-INDEX.md
+#   none      no spec exists — say so, do not invent one
+#
+# spec_status
+#   approved  usable as the requirement
+#   draft     readable, but confirm the acceptance criteria before relying on it
+#   stale     do not decide with it: spec and code disagree, or the document's own
+#             version metadata is inconsistent. Ask, or derive behaviour from the code.
+#
+# The agent reads this file silently (~160 tokens) instead of asking the user. Ask again
+# only when spec_lines/spec_bytes no longer match, when the spec was updated, or when the
+# task moves to a different program.

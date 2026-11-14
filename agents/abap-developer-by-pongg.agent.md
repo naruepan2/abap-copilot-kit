@@ -85,9 +85,38 @@ Rules:
 Read-only analysis needs none of this. For any create or modify, settle three things
 before the first write. Ask them together, one line each — not a questionnaire.
 
-1. **Is there a functional spec?** If yes, read it and treat it as the requirement. If no,
-   say so plainly and derive the intent from the user in this session. A request without a
-   spec carries more interpretation risk, so restate what you understood before building.
+1. **Is there a functional spec?** Resolve this **silently first**. Read
+   `Projects\<PROJECT>\<PROGRAM>\program.yaml` — about 160 tokens, no interruption. `spec_mode`
+   and `spec_status` there are the answer, and they are also the answer next session: the file
+   is the memory, so never ask the user to restate what it already records, and never go
+   looking for a spec when `spec_mode: none`.
+
+   Use the question tool — with options, not free prose — **only when the file cannot answer**:
+
+   - no `program.yaml` for this program (first time this object is worked on)
+   - `spec_status` missing, or `draft`, and the task depends on the acceptance criteria
+   - more than one file under `spec/source/` could be the current one
+
+   Ask **once per program**, not once per task, and not once per session. A new session is not
+   by itself a reason to ask again — that would make the file pointless. Ask again only when
+   the spec's line or byte count no longer matches `spec_index`, when the user says the spec
+   was updated, or when the task moves to a different program.
+
+   | `spec_status` | What it means |
+   | --- | --- |
+   | `approved` | usable as the requirement |
+   | `draft` | readable, but confirm the acceptance criteria before treating it as settled |
+   | `stale` | do not use it to decide — the spec and the code disagree, or its own version metadata is inconsistent. Ask, or derive behaviour from the deployed code |
+   | `none` | no spec; say so rather than inventing one |
+
+   **Read the index, never the spec whole.** A functional specification runs 400–1,700 lines
+   (~4,000–22,000 tokens), so `spec/INDEX.md` maps each section to a line range and its token
+   cost. Read the Summary it carries, then at most the one slice this task actually touches.
+   Two hard rules: something under `spec/source/` is the functional's document and is never
+   edited — contradictions go to `spec/notes.md`; and if the spec's line or byte count no
+   longer matches the index, the index is stale, so rebuild the map before reading a slice,
+   because a stale range returns the wrong section silently. Bug fixes, read-only analysis,
+   and pure formatting changes do not need the spec at all.
 2. **If the object exists, which is it?** Bug fix / feature extension / change request.
    The answer selects the method:
 

@@ -73,6 +73,25 @@ cost; read the Summary, then at most the one slice the task touches. If the spec
 byte count no longer matches the index, the index is stale — rebuild the map first, because
 a stale range silently returns the wrong section.
 
+## Asking about the spec — the file answers, not the user
+
+`program.yaml` exists so nobody has to answer the same question twice. Reading it costs about
+160 tokens and interrupts no one, so the agent reads it **silently** and only asks the user
+when the file genuinely cannot answer:
+
+- no `program.yaml` for this program (first time this object is worked on)
+- `spec_status` missing or `draft`, and the task depends on the acceptance criteria
+- more than one file under `spec/source/` could be the current one — then ask **which**, since
+  that is the only thing the file cannot settle
+
+Ask **once per program**, not once per task and not once per session. A new session is not a
+reason to ask again: the file is the memory, and re-asking would make it pointless. Re-ask only
+when the spec's line or byte count no longer matches `spec_index`, when the user says the spec
+was updated, or when the work moves to a different program.
+
+When asking, ask with options rather than open prose — "no spec yet / FS exists in
+spec/source / FS is elsewhere and I will copy it in" — so the answer is one click.
+
 ## Adding a project record
 
 1. Create `Projects\<PROJECT>\`.
