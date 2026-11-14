@@ -24,7 +24,11 @@ Projects\
     ├── _sandbox\        scratch space, safe to delete
     └── <PROGRAM>\
         ├── README.md    verified facts for this object
-        └── program.yaml
+        ├── program.yaml  facts + spec wiring
+        └── spec\
+            ├── INDEX.md      section map — read this, not the spec
+            ├── notes.md      our questions and contradictions
+            └── source\       the functional's file, untouched
 ```
 
 - `<PROJECT>` — uppercase project code, e.g. `ABC`.
@@ -34,6 +38,40 @@ Projects\
 - No `AGENTS.md` at project or program level. The root `AGENTS.md` already states the
   access rules once, and a second copy would drift. This deliberately differs from the
   usual pattern of one `AGENTS.md` per level.
+
+## Specs — two modes, one rule
+
+A functional specification is large and mostly irrelevant to the task at hand. A 400-line FS
+costs ~4,000 tokens to read; a 1,700-line one costs ~22,000, which is three times the whole
+agent. So the spec is **never** auto-loaded and **never** read whole.
+
+| Mode | When | We own | File |
+|---|---|---|---|
+| `authored` | new program, no FS yet | the spec | `spec/INDEX.md` + `spec/spec.md` from `templates/spec.md` |
+| `vendored` | a functional already wrote the FS | only the index | `spec/source/<FS>.md` untouched + `spec/INDEX.md` from `templates/spec-INDEX.md` |
+| `none` | no spec exists | — | nothing; say so rather than inventing one |
+
+`program.yaml` decides whether the spec is opened at all:
+
+```yaml
+spec_mode: vendored       # authored | vendored | none
+spec_status: approved     # none | draft | approved | stale
+spec_index: spec/INDEX.md
+```
+
+- `approved` — usable as the requirement.
+- `draft` — readable, but confirm the acceptance criteria before treating it as settled.
+- `stale` — do **not** use it to decide anything. The spec and the code disagree, or the
+  document's own version metadata does not match the file. Ask, or derive the behaviour
+  from the deployed code.
+
+**Never edit anything under `spec/source/`.** It is the functional's document, versioned by
+them. Contradictions go to `spec/notes.md`, and the fix is reported back to them.
+
+**Never read the whole spec.** `INDEX.md` maps each section to a line range with its token
+cost; read the Summary, then at most the one slice the task touches. If the spec's line or
+byte count no longer matches the index, the index is stale — rebuild the map first, because
+a stale range silently returns the wrong section.
 
 ## Adding a project record
 
