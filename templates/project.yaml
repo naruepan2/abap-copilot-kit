@@ -1,0 +1,20 @@
+# project.yaml — one per project. Owns the system and clients so they exist once.
+# Transport is NOT here: it belongs to each program, because two programs in one
+# project are normally developed on different requests.
+
+project: <PROJECT>
+description: <one line>
+
+# Verified from the SAP logon or the user's explicit statement — never from another
+# file, a previous session, or a connection list. Leave empty rather than guessing:
+# an empty field is honest, a wrong one edits the wrong client.
+system: <SID>
+code_client: <client>      # ADT / development client
+test_client: <client>      # SAP GUI client, if it differs
+language: <EN>
+
+owner: <SAP user>
+updated: <YYYY-MM-DD>
+
+# A program overrides one of these only when it genuinely differs, in its own
+# program.yaml under `override:`. Anything copied down becomes a stale second copy.

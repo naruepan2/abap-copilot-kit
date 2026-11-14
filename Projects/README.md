@@ -39,6 +39,36 @@ Projects\
   access rules once, and a second copy would drift. This deliberately differs from the
   usual pattern of one `AGENTS.md` per level.
 
+## Who owns which fact
+
+One fact, one file. A value copied down becomes a second copy that goes stale without anyone
+noticing, so the split is deliberate:
+
+| Fact | Owner | Because |
+|---|---|---|
+| `system`, `code_client`, `test_client`, `language` | **`project.yaml`** | one landscape per project |
+| **`transport`** | **`program.yaml`** | two programs in one project are normally developed on different requests |
+| `spec_mode`, `spec_status`, spec paths | `program.yaml` | the spec belongs to the object, not the project |
+
+A program puts `project: <PROJECT>` and an **empty** `override:` block. It fills `override` only
+when it genuinely differs from the project — never by copying the project's values down.
+
+## Scaffolding a new project or program
+
+Load skill `new-program`. It decides whether a record should exist at all, asks once with
+options, scaffolds from the templates, and verifies the result with `git check-ignore`.
+
+The three situations it distinguishes, since they are worth knowing before you start:
+
+| Check | Situation | What it needs |
+|---|---|---|
+| `Projects/<PROJECT>/` missing | new project | system + clients from the user |
+| project exists, program folder missing | new program | inherits system + clients |
+| record missing but the object is in SAP | missing record | record the facts; do not ask what to build |
+
+It creates a record only when the object is about to be **created or changed**, or when you ask
+for one. Read-only analysis leaves no trace — otherwise `Projects/` becomes a log.
+
 ## Specs — two modes, one rule
 
 A functional specification is large and mostly irrelevant to the task at hand. A 400-line FS
@@ -94,12 +124,15 @@ spec/source / FS is elsewhere and I will copy it in" — so the answer is one cl
 
 ## Adding a project record
 
+Use skill `new-program` — it runs this sequence with the verification included. The manual
+steps, for reference:
+
 1. Create `Projects\<PROJECT>\`.
-2. Copy `templates\project-README.md` to `Projects\<PROJECT>\README.md` and fill in only
+2. Copy `templates\project.yaml` and fill in `system` and the clients from a verified source.
+3. Copy `templates\project-README.md` to `Projects\<PROJECT>\README.md` and fill in only
    what you verified.
-3. Create `project.yaml` from the block below.
-4. Add a program folder for each object worth remembering, using
-   `templates\program-README.md`.
+4. Add a program folder for each object you will create or change, using
+   `templates\program-README.md` and `templates\program.yaml`.
 
 ## `project.yaml` — verified facts only
 
@@ -108,10 +141,12 @@ project: <PROJECT>
 system: <SID>              # verified from the SAP logon, not remembered
 code_client: <client>      # ADT / development client
 test_client: <client>      # SAP GUI client, if different
-transport: <transport>     # current open request, or "none"
+language: <EN>
 owner: <SAP user>
 updated: <YYYY-MM-DD>
 ```
+
+No `transport` here — that belongs to each program.
 
 Leave a value empty rather than guessing. An empty field is honest; a wrong one causes a
 wrong change in the wrong client.

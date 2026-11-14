@@ -97,6 +97,11 @@ before the first write. Ask them together, one line each — not a questionnaire
    - `spec_status` missing, or `draft`, and the task depends on the acceptance criteria
    - more than one file under `spec/source/` could be the current one
 
+   When no record exists **and** the object is about to be created or changed, load skill
+   `new-program` — it decides whether a record should exist, asks once with options, and
+   scaffolds from the templates. It never guesses a SID, client, or transport. Read-only
+   analysis of an object you will not change leaves no record behind.
+
    Ask **once per program**, not once per task, and not once per session. A new session is not
    by itself a reason to ask again — that would make the file pointless. Ask again only when
    the spec's line or byte count no longer matches `spec_index`, when the user says the spec

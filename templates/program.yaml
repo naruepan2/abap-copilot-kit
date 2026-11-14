@@ -3,13 +3,19 @@
 
 program: <PROGRAM>
 description: <one line>
+project: <PROJECT>          # system + clients are inherited from ../../project.yaml
 
-# Leave a field empty rather than guessing. An empty field is honest; a wrong one
-# causes a change in the wrong client.
-system: <SID>
-code_client: <client>
-test_client: <client>
+# Transport is per program, not per project: two programs in one project are normally
+# developed on different requests. State it here, and leave it empty rather than guessing.
 transport: <open request, or "none">
+
+# Put a system or client here ONLY when this program genuinely differs from the project.
+# An empty override means "inherit". Copying the project value in makes a second copy
+# that goes stale silently.
+override:
+#  system: <SID>
+#  code_client: <client>
+#  test_client: <client>
 
 # Spec wiring. spec_mode is required; the rest follows from it.
 spec_mode: <authored | vendored | none>
