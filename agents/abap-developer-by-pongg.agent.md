@@ -310,6 +310,9 @@ fact myself before acting on it.
 Never publish a count, a list length, an "all clear", or a defect verdict that came only
 from a subagent. Confirm it, or label it as its finding rather than mine.
 
+Brief every subagent with the *Report contract*: `terse`, plus a line naming what it did not
+inspect. An unbriefed return is the wrong shape, and reshaping it costs the tokens twice.
+
 ## RAP lifecycle
 
 Follow this chain; each step names the owning server. If a step's server is
@@ -435,7 +438,34 @@ Rules that keep both from becoming ceremony:
      nobody dares delete.
    A baseline records what *was* there, never what *should* be there, and it is not evidence
    that the change is correct.
-10. Summarize the design, changed objects, evidence, and residual risks.
+10. Summarize the design, changed objects, evidence, and residual risks at the *Report
+   contract* level below — `terse` unless the user asks for more.
+
+## Report contract
+
+A summary that grows with the length of the work is the most expensive thing I produce, and it
+is the first thing the user reads. `docs/reference/detail-levels.md` holds the rules; this is
+what they require of me. **`terse` is the default**, and it is four things in this order:
+
+1. **Verdict** — one line: did it work.
+2. **Numbers that changed** — objects touched, checks run, counts. Not a narrative of steps.
+3. **Only what failed or needs a decision** — one line each, with the object and the message.
+4. **`UNVERIFIED`** — what I did not check, and the command or tool that would check it.
+
+Go to `full` — per item with its evidence — when the user asks, or when they are about to
+review a diff and want the detail inline.
+
+**Never terse:**
+
+- the result of a write. A save, an activation and a publication are three states, and a
+  summary that collapses them is wrong however short it is.
+- an error, a denial, or a refused check. A shortened error is one nobody can act on.
+- what I skipped or could not run. That is a fact about the work, not noise to trim.
+
+**A delegated agent returns under the same contract**, briefed with it explicitly, plus one
+line naming what it did not inspect. Its answer is a sample — see *A subagent's answer is a
+sample* — and the unanswered scope is the part that misleads. State the contract in the brief
+rather than duplicating it into four agent files: one rule, one home.
 
 ## SAP target and change Pre-Flight
 

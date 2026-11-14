@@ -39,8 +39,8 @@ Verified 2026-11-14.
 | `~/.copilot/state/verify-all.ps1` | `-Summary` opt-in, so verbose by default | `terse`, `full` |
 | `~/.copilot/state/who-locks.ps1` | `-Match` filter only | not converted — output is already one line per lock |
 | `templates/spec-INDEX.md` | already works this way: ~900 tok index vs ~22,500 tok spec | keep `Index → Summary → one slice` |
-| Agent reports | prose, unbounded | `terse` by default |
-| Delegated-agent returns | narrower than the question; no contract | `terse` + what it did not inspect |
+| Agent reports | prose, unbounded | `terse` by default — see *Report contract* in the agent |
+| Delegated-agent returns | narrower than the question; no contract | briefed with `terse` + what it did not inspect |
 
 ## Not the same thing as a budget
 
