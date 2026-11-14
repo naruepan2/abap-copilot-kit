@@ -18,13 +18,14 @@ accumulating instructions that were true once.
 AGENTS.md          workspace contract: connection scope, access rules, session start
 INDEX.md           one-screen map of this repository and of where memory really lives
 agents/            custom agents with routing, safety and evidence gates
-skills/            hand-written skills: mcp-surface-audit, capture-lesson
+skills/            hand-written skills: mcp-surface-audit, capture-lesson, new-program
 roster.json        delegation allowlist — read-only subagents only
 hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
+docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook contract
 config-templates/  mcp.json and settings fragments with placeholders
 memory-templates/  user profile template
-templates/         project and program README templates
+templates/         yaml + README + spec + changes templates for a project, program or spec
 Projects/          convention only — local notebook, gitignored
 ```
 
@@ -124,8 +125,9 @@ on purpose, while the finding is still in context.
 **1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
 on Windows). Reload the window, then pick one from the agent dropdown.
 
-**2. Skills.** Copy `skills/mcp-surface-audit` and `skills/capture-lesson` into
-`~/.copilot/skills/`. Skills only load in a new chat session, so start a fresh chat after copying.
+**2. Skills.** Copy `skills/mcp-surface-audit`, `skills/capture-lesson`, and
+`skills/new-program` into `~/.copilot/skills/`. Skills only load in a new chat session, so start
+a fresh chat after copying.
 
 **3. Roster.** Copy `roster.json` to `~/.copilot/roster.json`. Edit the file names to match the
 agents you actually installed. An agent not listed there is not delegatable — that is the point
@@ -177,10 +179,12 @@ password, token or host name — but it does name systems. Treat the repository 
 unless you sanitize that table first. Making the repository public is not reversible in the
 sense that matters: history keeps what was published.
 
-**Clone and expect this:** a fresh clone gives you every file above plus `AGENTS.md`,
-`INDEX.md`, `templates/`, and `Projects/README.md` — about 26 files. It does **not** give
-you a working SAP connection, memory, or project records. Those are user-scoped and must be
-rebuilt per machine, which is why `config-templates/` and `memory-templates/` exist.
+**Clone and expect this:** a fresh clone gives you every file named above plus `AGENTS.md`,
+`INDEX.md`, `templates/`, and `Projects/README.md`. It does **not** give you a working SAP
+connection, memory, or project records — those are user-scoped and must be rebuilt per machine,
+which is why `config-templates/` and `memory-templates/` exist. For the exact file list, run
+`git ls-files` rather than trusting a number written here: a count in prose goes stale the next
+time a file is added, and that has already happened once in this repository.
 
 Line endings are pinned to LF by `.gitattributes`. Without it, this machine's system
 `core.autocrlf=true` produced CRLF in a fresh clone while the mirrored source files were LF,

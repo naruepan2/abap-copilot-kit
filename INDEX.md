@@ -11,12 +11,13 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `agents/*-by-pongg.agent.md` | The user's agents, editable |
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
+| `skills/new-program/` | Scaffold a new project or program record without guessing a SID |
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract |
 | `config-templates/` | `mcp.json` and `settings.json` skeletons |
 | `memory-templates/` | Seed for user memory |
-| `templates/` | `project-README.md`, `program-README.md` |
+| `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 
 ## Memory — where the real thing lives
