@@ -109,14 +109,13 @@ before the first write. Ask them together, one line each — not a questionnaire
    | `stale` | do not use it to decide — the spec and the code disagree, or its own version metadata is inconsistent. Ask, or derive behaviour from the deployed code |
    | `none` | no spec; say so rather than inventing one |
 
-   **Read the index, never the spec whole.** A functional specification runs 400–1,700 lines
-   (~4,000–22,000 tokens), so `spec/INDEX.md` maps each section to a line range and its token
-   cost. Read the Summary it carries, then at most the one slice this task actually touches.
-   Two hard rules: something under `spec/source/` is the functional's document and is never
-   edited — contradictions go to `spec/notes.md`; and if the spec's line or byte count no
-   longer matches the index, the index is stale, so rebuild the map before reading a slice,
-   because a stale range returns the wrong section silently. Bug fixes, read-only analysis,
-   and pure formatting changes do not need the spec at all.
+   **Read `spec/INDEX.md`, never the spec whole.** Read its Summary, then at most the one
+   mapped slice this task touches; line ranges and the rationale for this rule are in
+   `Projects/README.md`. Three hard rules: never edit anything under `spec/source/` — it is the
+   functional's document, so contradictions go to `spec/notes.md`; if the spec's line or byte
+   count no longer matches the index, the index is stale, so rebuild the map before reading a
+   slice, because a stale range returns the wrong section silently; and bug fixes, read-only
+   analysis, and pure formatting changes do not need the spec at all.
 2. **If the object exists, which is it?** Bug fix / feature extension / change request.
    The answer selects the method:
 
@@ -153,36 +152,22 @@ clear, small request into a questionnaire.
 
 ## Development guidance
 
-For ABAP program development or changes, load `senior-abap-development` first.
-Then load only the technical Skill needed for the implementation:
+For ABAP program development or changes, load `senior-abap-development` first. Then load
+only the technical Skill the task needs — do not load every listed Skill by default. Each
+Skill's own description says what it covers, so this section states only the choices a
+description cannot make:
 
-- `sap-abap` for ABAP language, ABAP SQL, classes, function modules, DDIC, EML,
-  and unit testing.
-- `abap-code-review-helper` when reviewing correctness, runtime safety, SQL,
-  transaction handling, or performance risks in ABAP code.
-- `abap-performance-ecc` or `abap-performance-hana` for performance work, after
-  verifying the target database/system type.
-- `surgical-patch` for bug fixes or small behavior changes that must preserve
-  surrounding behavior; `safe-refactor` for structural changes that must preserve
-  behavior; `tdd` when the user asks for test-first development or the change has
-  a clear regression seam.
-- `sap-abap-cds` for CDS views/entities, DCL, annotations, and data semantics.
-- `clean-abap` for explicit Clean ABAP style or readability requests.
-- `sap-clean-core-atc` for package-wide Clean Core classification or audit.
-- `generate-rap-service` for a focused new RAP service; use
-  `generate-rap-service-researched` for production-grade design requiring deeper
-  system research and a plan before implementation.
-- `generate-rap-logic` for logic in an existing RAP behavior implementation.
-- `generate-abap-unit-test` for test generation.
-- `sap-se38-report-tester` for SE38 report replay and test scenarios.
-- `sap-abap-reverse-engineering` for strictly read-only dependency and behavior
-  analysis.
+- `abap-performance-ecc` vs `abap-performance-hana` — decide only after verifying the target
+  database/system type. Guessing wrong gives advice that is actively harmful.
+- `generate-rap-service` vs `generate-rap-service-researched` — the second only when the design
+  needs system research and an approved plan before code.
+- `surgical-patch` (bug fix) vs `safe-refactor` (structure) vs `tdd` (test-first) — follows the
+  intent chosen under *Change intent* above.
 - `sapui5` only when the scope includes SAPUI5/Fiori frontend work.
+- `sap-object-documenter`, `sap-transport-overview`, `sap-transport-review` only when
+  documentation or transport analysis is actually requested.
 
-Use `sap-object-documenter`, `sap-transport-overview`, or
-`sap-transport-review` only when documentation or transport analysis is requested.
-Do not load every listed Skill by default. If one is unavailable, continue with
-verified runtime capabilities and disclose the limitation.
+If a Skill is unavailable, continue with verified runtime capability and disclose the gap.
 
 ## MCP tool routing
 
