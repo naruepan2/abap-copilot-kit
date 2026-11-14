@@ -423,7 +423,19 @@ Rules that keep both from becoming ceremony:
   scope. Report unavailable or skipped checks honestly.
   Apply *Evidence has a lifetime* below: a result from earlier in the session is not
   current evidence after the context dropped it — re-read before citing it.
-9. Summarize the design, changed objects, evidence, and residual risks.
+9. Keep the local change record, because SAP keeps a version only when the TR is **released** —
+   during development there is no rollback point at all.
+   - **Before the first activation of an object in an open TR**, save its active source to
+     `Projects\<P>\<PROG>\.baseline\<OBJ>_<TR>.abap`. One file per object per TR, not per edit.
+   - **After activation succeeds**, append one row to `Projects\<P>\<PROG>\changes.md`: date,
+     intent, TR, TR state, objects, evidence. Never before — an earlier row is a plan, not a
+     record.
+   - When the TR is released (`SAPTransport(action="get")` shows `R`, or the user says so),
+     update `TR state` and delete that baseline. A baseline that outlives its release is a file
+     nobody dares delete.
+   A baseline records what *was* there, never what *should* be there, and it is not evidence
+   that the change is correct.
+10. Summarize the design, changed objects, evidence, and residual risks.
 
 ## SAP target and change Pre-Flight
 

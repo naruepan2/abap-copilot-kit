@@ -25,6 +25,8 @@ Projects\
     └── <PROGRAM>\
         ├── README.md    verified facts for this object
         ├── program.yaml  facts + spec wiring
+        ├── changes.md    one row per activated change
+        ├── .baseline\    pre-activation source, one file per object per TR
         └── spec\
             ├── INDEX.md      section map — read this, not the spec
             ├── notes.md      our questions and contradictions
@@ -38,6 +40,33 @@ Projects\
 - No `AGENTS.md` at project or program level. The root `AGENTS.md` already states the
   access rules once, and a second copy would drift. This deliberately differs from the
   usual pattern of one `AGENTS.md` per level.
+
+## Change history — the gap SAP leaves open
+
+SAP keeps a version only when a transport is **released**. Between activating a change and
+releasing its TR there is no rollback point at all — and that window is where nearly all work
+happens. Two lightweight artifacts close it:
+
+| Artifact | Purpose | Lifetime |
+|---|---|---|
+| `changes.md` | one row per activated change: intent, TR, TR state, objects, evidence | the life of the program |
+| `.baseline/<OBJ>_<TR>.abap` | the active source captured **before the first activation** in that TR | deleted when the TR is released |
+
+**Rollback authority is SAP, not these files.** When the TR is released, use
+`SAPRead(type="VERSIONS")` and `VERSION_SOURCE` / `action="diff"`. The baseline exists only for
+the window where SAP has nothing to offer.
+
+Rules that keep it from rotting:
+
+- **Write the row after activation succeeds**, never before — an earlier row is a plan.
+- **Keep `TR state` honest.** A baseline marked `open` after the release becomes permanent by
+  accident and nobody dares delete it. Update on the user's word, or when
+  `SAPTransport(action="get")` reports `R`, then delete the baseline.
+- **A baseline is "before", not "correct"** — it records what was there, not what should be.
+- **`changes.md` never replaces verification.** It says what changed, not that the change is right.
+
+Both live under `Projects/`, which is gitignored — so neither has a backup. That is deliberate:
+they are working notes, and the durable record is SAP's own version history plus the TR.
 
 ## Who owns which fact
 

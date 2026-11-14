@@ -71,7 +71,10 @@ New program inside an existing project:
 ```
 Projects/<PROJECT>/<PROGRAM>/program.yaml   from templates/program.yaml  (fill `project:`)
 Projects/<PROJECT>/<PROGRAM>/README.md      from templates/program-README.md
+Projects/<PROJECT>/<PROGRAM>/changes.md     from templates/changes.md
 ```
+
+`.baseline/` is not created here — it appears on the first activation, from `templates/changes.md`.
 
 Spec files:
 
