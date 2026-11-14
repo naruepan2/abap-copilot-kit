@@ -89,7 +89,10 @@ before the first write. Ask them together, one line each — not a questionnaire
    `Projects\<PROJECT>\<PROGRAM>\program.yaml` — about 160 tokens, no interruption. `spec_mode`
    and `spec_status` there are the answer, and they are also the answer next session: the file
    is the memory, so never ask the user to restate what it already records, and never go
-   looking for a spec when `spec_mode: none`.
+   looking for a spec when `spec_mode: none`. Its `system` and `code_client`, or the project's
+   `project.yaml` above it, may be **blank** — a blank field is a pending question, so ask or
+   read it from the SAP logon, and never infer it from another project, a folder name, or
+   `mcp.json`.
 
    Use the question tool — with options, not free prose — **only when the file cannot answer**:
 

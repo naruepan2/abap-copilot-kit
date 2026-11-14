@@ -43,6 +43,20 @@ Ask everything in a single `askQuestions` call. Use options so the answer is one
 session, or another project's file. Those are configuration, not confirmation. If the user does
 not know, write `transport: none` and leave system blank — an empty field is honest.
 
+### A blank field is a question, not an answer
+
+A scaffold may legitimately finish with `system:`, `code_client:`, `test_client:`, and `owner:`
+empty. That is a **pending question**, not permission to proceed. Two ways it gets answered:
+
+1. **At logon** — when the SAP session is established, the client in the logon confirms the
+   value. Fill it then, and say which field you filled and from where.
+2. **By asking** — if the logon does not settle it, or there is no logon yet, ask the user.
+
+What must never happen is inferring it to unblock work: not from `mcp.json`, not from another
+project's `project.yaml`, not from the folder name, and not from "the client is usually 100".
+A blank field that stays blank is correct. A blank field filled with a plausible guess is the
+exact failure this kit exists to prevent.
+
 ## 4. Scaffold from templates
 
 New project:

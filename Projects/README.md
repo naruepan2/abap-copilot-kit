@@ -53,6 +53,12 @@ noticing, so the split is deliberate:
 A program puts `project: <PROJECT>` and an **empty** `override:` block. It fills `override` only
 when it genuinely differs from the project — never by copying the project's values down.
 
+**A blank field is a pending question, not an answer.** A record may sit with `system:`,
+`code_client:`, `test_client:`, and `owner:` empty until the SAP logon confirms them, or the user
+states them. Fill them at logon, or ask — and never infer one to unblock a task. An empty field
+that stays empty is correct; an empty field filled with a plausible guess is the failure this
+whole structure exists to prevent.
+
 ## Scaffolding a new project or program
 
 Load skill `new-program`. It decides whether a record should exist at all, asks once with

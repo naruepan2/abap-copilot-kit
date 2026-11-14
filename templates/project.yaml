@@ -8,6 +8,10 @@ description: <one line>
 # Verified from the SAP logon or the user's explicit statement — never from another
 # file, a previous session, or a connection list. Leave empty rather than guessing:
 # an empty field is honest, a wrong one edits the wrong client.
+#
+# A blank field is not "proceed anyway" — it is an open question. Fill it when the SAP
+# logon confirms it, or ask the user before the first SAP call. Never infer it to unblock
+# a task.
 system: <SID>
 code_client: <client>      # ADT / development client
 test_client: <client>      # SAP GUI client, if it differs
