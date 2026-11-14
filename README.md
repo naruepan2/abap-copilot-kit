@@ -22,7 +22,8 @@ skills/            hand-written skills: mcp-surface-audit, capture-lesson, new-p
 roster.json        delegation allowlist — read-only subagents only
 hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
-docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook contract
+docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook contract,
+                   detail levels (how much any output should say)
 config-templates/  mcp.json and settings fragments with placeholders
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec

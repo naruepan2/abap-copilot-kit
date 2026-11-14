@@ -70,3 +70,9 @@ they can point at different landscapes.
   stripped first.
 - Long multi-line command pastes get truncated by the integrated terminal — run one line at a
   time, and pre-assign values instead of chaining `.Count` on a pipeline.
+- **Keep `.ps1` files pure ASCII.** A `.ps1` without a BOM is decoded as ANSI, so a non-ASCII
+  character corrupts into mojibake. This matters most in a quoted string: an em dash becomes
+  `â€"`, whose last byte is `”` — a right double quotation mark, which PowerShell accepts as the
+  string terminator and then reports as a parse error somewhere else entirely. In a `#` comment
+  the same bytes are harmless, which is why a stray accent can sit in a script for months. Verify
+  with `([regex]::Matches($raw,'[^\x00-\x7F]')).Count` and expect `0`.
