@@ -6,6 +6,8 @@
 # entry, addressed by the ARC-1 variable name.
 #
 #   -Set -Key NAME   prompt once and store (interactive; the value never enters a chat or a file)
+#   -Set -Gui -Key   same, but in a Windows dialog instead of the console. Use this when the
+#                    terminal that runs the script is not the one you can see.
 #   -Read -Key NAME   print it to stdout (the launcher captures it)
 #   -Test -Key NAME   report PRESENT/ABSENT and the length, without revealing the value
 #   -Remove -Key NAME delete the entry
@@ -21,6 +23,7 @@ param(
     [switch]$Remove,
     [switch]$Test,
     [switch]$List,
+    [switch]$Gui,
     [string]$Key
 )
 
@@ -131,11 +134,67 @@ public static class CredMan {
 
 if (-not ('CredMan' -as [type])) { Add-Type -TypeDefinition $sig -Language CSharp }
 
+# A modal dialog that returns the typed value, or $null if cancelled. The console prompt below is
+# invisible when this script is started from a terminal the user cannot see - which happened, and
+# read as "nothing is happening". A window cannot be missed.
+function Read-SecretGui([string]$Label) {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = 'ARC-1 credential'
+    $form.ClientSize = New-Object System.Drawing.Size(420, 130)
+    $form.StartPosition = 'CenterScreen'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.TopMost = $true
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = $Label
+    $lbl.Location = New-Object System.Drawing.Point(12, 12)
+    $lbl.Size = New-Object System.Drawing.Size(396, 36)
+    $form.Controls.Add($lbl)
+
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.UseSystemPasswordChar = $true
+    $tb.Location = New-Object System.Drawing.Point(12, 52)
+    $tb.Size = New-Object System.Drawing.Size(396, 23)
+    $tb.TabIndex = 0
+    $form.Controls.Add($tb)
+
+    $ok = New-Object System.Windows.Forms.Button
+    $ok.Text = 'Store'
+    $ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $ok.Location = New-Object System.Drawing.Point(252, 88)
+    $form.Controls.Add($ok)
+
+    $no = New-Object System.Windows.Forms.Button
+    $no.Text = 'Cancel'
+    $no.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $no.Location = New-Object System.Drawing.Point(333, 88)
+    $form.Controls.Add($no)
+
+    $form.AcceptButton = $ok
+    $form.CancelButton = $no
+    $form.Add_Shown({ $tb.Focus() })
+    $result = $form.ShowDialog()
+    $value = $tb.Text
+    $form.Dispose()
+    if ($result -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
+    return $value
+}
+
 if ($Set) {
-    $sec = Read-Host -AsSecureString "Value for $Key (stored as $Target)"
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-    try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
-    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+    if ($Gui) {
+        $plain = Read-SecretGui ("Value for " + $Key + " (stored as " + $Target + ")")
+        if ($null -eq $plain) { Write-Error 'Cancelled - nothing stored.'; exit 1 }
+    }
+    else {
+        $sec = Read-Host -AsSecureString "Value for $Key (stored as $Target)"
+        $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+        try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+    }
     if ([string]::IsNullOrEmpty($plain)) { Write-Error 'Empty value - nothing stored.'; exit 1 }
     if ([CredMan]::Write($Target, $Key, $plain)) { Write-Output "stored: $Target" }
     else { Write-Error ("CredWrite failed: " + [Runtime.InteropServices.Marshal]::GetLastWin32Error()); exit 1 }
