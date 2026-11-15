@@ -182,8 +182,9 @@ powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key gsd-11
 
 `-Set` prompts once and stores the value in Windows Credential Manager. To avoid a console window
 sitting next to the prompt, start it hidden: `Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','gsd-110_SAP_PASSWORD'`.
-Then point the CLI at the launcher — the password never appears in the config. The whole entry
-is in `config-templates/mcp-config.template.json`, ready to copy:
+Then point the client at the launcher — the password never appears in the config. Use the same
+entry for both harnesses; only the key above it differs (`mcpServers` for the Copilot CLI,
+`servers` for VS Code). The whole entry is in `config-templates/mcp-config.template.json`:
 
 ```json
 "arc-1": {
@@ -194,7 +195,8 @@ is in `config-templates/mcp-config.template.json`, ready to copy:
 ```
 
 Keep the policy variables (`SAP_ALLOW_WRITES`, `SAP_ALLOWED_PACKAGES`, …) in `env`; the launcher
-only fills in URL, client, user, language and password.
+only fills in URL, client, user, language and password. `verify-all.ps1` checks both files, so a
+config that drifts back to `npx` with a literal password is caught rather than discovered later.
 
 At start the launcher asks the system whether the stored password still authenticates
 (`sap-auth-probe.js`, run on Node so the verdict matches what ARC-1 would get):

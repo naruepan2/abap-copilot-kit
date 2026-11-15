@@ -320,45 +320,50 @@ if (-not (Test-Path $connFile)) {
     }
 }
 
-# The launcher is what keeps the Copilot CLI config free of a password, so the wiring matters as
-# much as the store. Two ways to lose it: the config goes back to a literal password, or it names a
+# The launcher is what keeps the MCP configs free of a password, so the wiring matters as much as
+# the store. Two ways to lose it: the config goes back to a literal password, or it names a
 # connection that no longer exists - in which case the server starts and fails at the first SAP call
 # instead of at startup, which is much harder to read.
-$cliCfg = "$env:USERPROFILE\.copilot\mcp-config.json"
-if (-not (Test-Path $cliCfg)) {
-    Write-Output '  launcher absent  (no mcp-config.json for the Copilot CLI)'
-} else {
-    try { $cli = [System.IO.File]::ReadAllText($cliCfg, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
-    catch { $cli = $null; Write-Output '  launcher ISSUE   mcp-config.json is not valid JSON' }
-    if ($cli) {
-        $arc = $cli.mcpServers.'arc-1'
-        if (-not $arc) { Write-Output '  launcher ISSUE   no arc-1 server in mcp-config.json' }
-        else {
-            $argLine = @($arc.args) -join ' '
-            $named = $null
-            if ($argLine -match 'sap-arc1-launcher\.ps1') {
-                if ($argLine -match '-Connection\s+"?([A-Za-z0-9][A-Za-z0-9_-]*)"?') { $named = $Matches[1] }
-            }
-            if (-not $named) {
-                Write-Output '  launcher ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>'
-            }
-            elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_PASSWORD') {
-                Write-Output '  launcher ISSUE   arc-1 still passes SAP_PASSWORD in env'
-            }
-            elseif (-not (Test-Path $connFile)) {
-                Write-Output ("  launcher ISSUE   names '$named' but there is no connection store")
-            }
-            else {
-                try { $lc = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json } catch { $lc = $null }
-                if (-not $lc) { Write-Output '  launcher ISSUE   connection store is not valid JSON' }
-                elseif (-not ($lc.connections.PSObject.Properties.Name -contains $named)) {
-                    Write-Output ("  launcher ISSUE   names a connection that does not exist: " + $named)
-                }
-                else { Write-Output ("  launcher OK      arc-1 -> launcher -> '" + $named + "', no password in the config") }
-            }
+#
+# Checked for both harnesses, with one implementation: the Copilot CLI reads mcp-config.json under
+# "mcpServers", VS Code reads mcp.json under "servers". The rule has one home.
+function Test-LauncherWiring($path, $rootKey, $label) {
+    if (-not (Test-Path $path)) {
+        Write-Output ("  {0,-8} absent  ({1})" -f $label, (Split-Path $path -Leaf))
+        return
+    }
+    try { $cfg = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    catch { Write-Output ("  {0,-8} ISSUE   {1} is not valid JSON" -f $label, (Split-Path $path -Leaf)); return }
+
+    $arc = $cfg.$rootKey.'arc-1'
+    if (-not $arc) { Write-Output ("  {0,-8} ISSUE   no arc-1 server in {1}" -f $label, (Split-Path $path -Leaf)); return }
+
+    $argLine = @($arc.args) -join ' '
+    $named = $null
+    if ($argLine -match 'sap-arc1-launcher\.ps1') {
+        if ($argLine -match '-Connection\s+"?([A-Za-z0-9][A-Za-z0-9_-]*)"?') { $named = $Matches[1] }
+    }
+    if (-not $named) {
+        Write-Output ("  {0,-8} ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>" -f $label)
+    }
+    elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_PASSWORD') {
+        Write-Output ("  {0,-8} ISSUE   arc-1 still passes SAP_PASSWORD in env" -f $label)
+    }
+    elseif (-not (Test-Path $connFile)) {
+        Write-Output ("  {0,-8} ISSUE   names '{1}' but there is no connection store" -f $label, $named)
+    }
+    else {
+        try { $lc = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json } catch { $lc = $null }
+        if (-not $lc) { Write-Output ("  {0,-8} ISSUE   connection store is not valid JSON" -f $label) }
+        elseif (-not ($lc.connections.PSObject.Properties.Name -contains $named)) {
+            Write-Output ("  {0,-8} ISSUE   names a connection that does not exist: {1}" -f $label, $named)
         }
+        else { Write-Output ("  {0,-8} OK      arc-1 -> launcher -> '{1}', no password in the config" -f $label, $named) }
     }
 }
+
+Test-LauncherWiring "$env:USERPROFILE\.copilot\mcp-config.json" 'mcpServers' 'launcher'
+Test-LauncherWiring "$env:APPDATA\Code\User\mcp.json" 'servers' 'launcher2'
 
 Line '8. Credentials in any tracked file'
 if (-not $repoOk) {
