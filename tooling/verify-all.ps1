@@ -169,7 +169,7 @@ $drift = @()
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
 # working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
 $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
-$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json')
+$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json', 'tooling\sap-secret.ps1', 'tooling\sap-arc1-launcher.ps1')
 foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
            elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }
@@ -183,6 +183,24 @@ foreach ($rel in $pairs) {
 }
 if (@($drift).Count -eq 0) { Write-Output '  repo mirrors live files: identical' } else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) } }
 Pop-Location
+
+Line '9. SAP password in any harness config: literal, or indirection?'
+# VS Code supports ${input:...} and ~/.copilot/mcp.json already uses it. The Copilot CLI accepts
+# only --env KEY=VALUE, so its config had the real password as plaintext - invisible to a scan
+# that only looks at the repository. A literal here is an ISSUE wherever the file lives.
+$configs = [ordered]@{
+    'vscode'   = "$env:APPDATA\Code\User\mcp.json"
+    'copilot'  = "$env:USERPROFILE\.copilot\mcp-config.json"
+}
+foreach ($k in $configs.Keys) {
+    $p = $configs[$k]
+    if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); continue }
+    $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
+    # A literal is a quoted value on a password-like key that is not ${input:...} and not <placeholder>.
+    $lit = [regex]::Matches($t, '"[A-Za-z_]*(?:PASSWORD|SECRET|TOKEN)[A-Za-z_]*"\s*:\s*"(?!\$\{input:)(?!<)[^"]{1,200}"')
+    if ($lit.Count -eq 0) { Write-Output ("  {0,-8} OK      no literal secret" -f $k) }
+    else { Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count) }
+}
 
 Line '8. Credentials in any tracked file'
 Push-Location $REPO

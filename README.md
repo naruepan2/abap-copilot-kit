@@ -27,7 +27,8 @@ docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook 
 config-templates/  mcp.json and settings fragments with placeholders
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
-tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot
+tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
+                   sap-secret + sap-arc1-launcher (password in Credential Manager)
 backup/            recovery snapshot of user memory (nothing loads it)
 Projects/          convention only — local notebook, gitignored
 ```

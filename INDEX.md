@@ -18,7 +18,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `config-templates/` | `mcp.json` and `settings.json` skeletons |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
-| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot |
+| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot. `sap-secret.ps1` + `sap-arc1-launcher.ps1` keep the SAP password in Windows Credential Manager for harnesses that cannot prompt |
 | `backup/` | A recovery snapshot of user memory. Not loaded by anything — see its README before restoring |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 
