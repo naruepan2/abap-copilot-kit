@@ -196,10 +196,16 @@ foreach ($k in $configs.Keys) {
     $p = $configs[$k]
     if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); continue }
     $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
-    # A literal is a quoted value on a password-like key that is not ${input:...} and not <placeholder>.
-    $lit = [regex]::Matches($t, '"[A-Za-z_]*(?:PASSWORD|SECRET|TOKEN)[A-Za-z_]*"\s*:\s*"(?!\$\{input:)(?!<)[^"]{1,200}"')
+    # A literal is a quoted value on a secret-bearing key that is not ${input:...} and not a
+    # placeholder. The key list covers what ARC-1 itself reads as a secret (SAP_PASSWORD,
+    # SAP_COOKIE_STRING, SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, ...) - a narrower list than that was
+    # measured to miss three of them. Keys ending _FILE hold a path, not a secret, so they are out.
+    $lit = [regex]::Matches($t, '"[A-Za-z0-9_]*(?:PASSWORD|SECRET|TOKEN|COOKIE|SERVICE_KEY|API_KEY|_KEYS|CRED)[A-Za-z0-9_]*(?<!_FILE)"\s*:\s*"(?!\$\{input:)(?!<)[^"]{1,200}"')
     if ($lit.Count -eq 0) { Write-Output ("  {0,-8} OK      no literal secret" -f $k) }
-    else { Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count) }
+    else {
+        Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count)
+        foreach ($m in $lit) { Write-Output ("           key: " + (($m.Value -split '"')[1])) }
+    }
 }
 
 Line '8. Credentials in any tracked file'
