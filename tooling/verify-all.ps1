@@ -320,6 +320,46 @@ if (-not (Test-Path $connFile)) {
     }
 }
 
+# The launcher is what keeps the Copilot CLI config free of a password, so the wiring matters as
+# much as the store. Two ways to lose it: the config goes back to a literal password, or it names a
+# connection that no longer exists - in which case the server starts and fails at the first SAP call
+# instead of at startup, which is much harder to read.
+$cliCfg = "$env:USERPROFILE\.copilot\mcp-config.json"
+if (-not (Test-Path $cliCfg)) {
+    Write-Output '  launcher absent  (no mcp-config.json for the Copilot CLI)'
+} else {
+    try { $cli = [System.IO.File]::ReadAllText($cliCfg, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    catch { $cli = $null; Write-Output '  launcher ISSUE   mcp-config.json is not valid JSON' }
+    if ($cli) {
+        $arc = $cli.mcpServers.'arc-1'
+        if (-not $arc) { Write-Output '  launcher ISSUE   no arc-1 server in mcp-config.json' }
+        else {
+            $argLine = @($arc.args) -join ' '
+            $named = $null
+            if ($argLine -match 'sap-arc1-launcher\.ps1') {
+                if ($argLine -match '-Connection\s+"?([A-Za-z0-9][A-Za-z0-9_-]*)"?') { $named = $Matches[1] }
+            }
+            if (-not $named) {
+                Write-Output '  launcher ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>'
+            }
+            elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_PASSWORD') {
+                Write-Output '  launcher ISSUE   arc-1 still passes SAP_PASSWORD in env'
+            }
+            elseif (-not (Test-Path $connFile)) {
+                Write-Output ("  launcher ISSUE   names '$named' but there is no connection store")
+            }
+            else {
+                try { $lc = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json } catch { $lc = $null }
+                if (-not $lc) { Write-Output '  launcher ISSUE   connection store is not valid JSON' }
+                elseif (-not ($lc.connections.PSObject.Properties.Name -contains $named)) {
+                    Write-Output ("  launcher ISSUE   names a connection that does not exist: " + $named)
+                }
+                else { Write-Output ("  launcher OK      arc-1 -> launcher -> '" + $named + "', no password in the config") }
+            }
+        }
+    }
+}
+
 Line '8. Credentials in any tracked file'
 if (-not $repoOk) {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'

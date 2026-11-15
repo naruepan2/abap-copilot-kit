@@ -1,0 +1,28 @@
+{
+    "_comment": "TEMPLATE for the Copilot CLI, which reads %USERPROFILE%\\.copilot\\mcp-config.json. It cannot use ${input:...} - it can only pass --env KEY=VALUE - and its folder is readable by another group on Windows, so a password here would not be private. Instead the server entry names a connection, and sap-arc1-launcher.ps1 resolves the password from Windows Credential Manager at start. Copy this block into the arc-1 entry of your mcp-config.json; keep your own policy variables.",
+    "_rule": "No SAP_PASSWORD in env. URL, client, user and language come from arc1-connections.json, so a second logon needs no edit here at all.",
+    "mcpServers": {
+        "arc-1": {
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1",
+                "-Connection",
+                "<connection name from arc1-connections.json>"
+            ],
+            "env": {
+                "SAP_INSECURE": "false",
+                "NODE_EXTRA_CA_CERTS": "C:\\path\\to\\ca-bundle.crt",
+                "SAP_ALLOW_WRITES": "true",
+                "SAP_ALLOWED_PACKAGES": "$TMP,Z*,Y*",
+                "SAP_ALLOW_TRANSPORT_WRITES": "true",
+                "SAP_ALLOW_DATA_PREVIEW": "false",
+                "SAP_ALLOW_FREE_SQL": "false",
+                "SAP_ALLOW_GIT_WRITES": "false"
+            }
+        }
+    }
+}

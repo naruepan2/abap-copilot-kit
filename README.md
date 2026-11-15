@@ -24,7 +24,8 @@ hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
 docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook contract,
                    detail levels (how much any output should say)
-config-templates/  mcp.json, settings.json, arc1.env and arc1-connections skeletons
+config-templates/  mcp.json, mcp-config.json (Copilot CLI), settings.json, arc1.env and
+                   arc1-connections skeletons
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
 tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
@@ -166,6 +167,48 @@ of an allowlist.
 **4. MCP servers.** Copy `config-templates/mcp.json.template` to
 `%APPDATA%\Code\User\mcp.json` and replace every `{{PLACEHOLDER}}`. The template is JSONC;
 strip the comments if your editor refuses them.
+
+**4b. One credential, two clients.** VS Code reads `~/.copilot/mcp.json`-style configs and
+supports `${input:...}`, so it can ask for the password in a Quick Input every time a server
+starts. The Copilot CLI has no such input — it can only pass `--env KEY=VALUE` — and its folder is
+readable by another group on Windows, so a password in that file is not private.
+
+The way out is to name a connection instead of listing credentials:
+
+```powershell
+tooling\sap-connection.ps1 -Add -Name gsd-110 -Url https://host:44381 -Client 110 -User <sap user>
+powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key gsd-110_SAP_PASSWORD
+```
+
+`-Set` prompts once and stores the value in Windows Credential Manager. To avoid a console window
+sitting next to the prompt, start it hidden: `Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','gsd-110_SAP_PASSWORD'`.
+Then point the CLI at the launcher — the password never appears in the config. The whole entry
+is in `config-templates/mcp-config.template.json`, ready to copy:
+
+```json
+"arc-1": {
+  "command": "powershell",
+  "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File",
+           "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1","-Connection","gsd-110"]
+}
+```
+
+Keep the policy variables (`SAP_ALLOW_WRITES`, `SAP_ALLOWED_PACKAGES`, …) in `env`; the launcher
+only fills in URL, client, user, language and password.
+
+At start the launcher asks the system whether the stored password still authenticates
+(`sap-auth-probe.js`, run on Node so the verdict matches what ARC-1 would get):
+
+| Verdict | Meaning | What the launcher does |
+|---|---|---|
+| `OK` | credentials accepted | start |
+| `STALE` | 401 — password changed or expired | open the Windows credential dialog, store the new value, probe once more |
+| `UNKNOWN` | no route, TLS, server down, odd status | say so once and start anyway — a network fault is not a bad password |
+
+The dialog is Windows' own (`CredUIPromptForWindowsCredentials`), so it looks native, honours DPI
+and works with a screen reader. The wait is bounded by `-PromptTimeoutSec` (default 180), and on
+timeout the window it caused is closed, because that dialog belongs to `CredentialUIBroker` and
+would otherwise outlive the process that asked for it.
 
 **5. Settings.** Merge the keys in `config-templates/settings.json.template` into your
 `settings.json`. Do not paste over your existing file.
