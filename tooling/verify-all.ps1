@@ -456,7 +456,13 @@ $drift = @()
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
 # working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
 $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
-$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'skills\new-program\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
+# Skills are derived from the repository, not listed by hand. The list was hardcoded at three names
+# and stayed at three while a fourth and fifth skill were added, so a new skill was installed and
+# never drift-checked - the exact failure the agent mirror list was made dynamic to avoid.
+$skillMirrors = @(Get-ChildItem "$REPO\skills" -Directory -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') } |
+    ForEach-Object { 'skills\' + $_.Name + '\SKILL.md' })
+$pairs = @() + $agentMirrors + $skillMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
 # tooling\surface.json is deliberately absent from the list. It is runtime state: the sessionStart
 # hook rewrites the LIVE copy on every run, so comparing it against the repository snapshot would
 # report DRIFT forever, from the first session in which the hook fires. A check that can only fail is

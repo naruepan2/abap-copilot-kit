@@ -24,7 +24,8 @@ portable; the tooling is not.
 AGENTS.md          workspace contract: connection scope, access rules, session start
 INDEX.md           one-screen map of this repository and of where memory really lives
 agents/            custom agents with routing, safety and evidence gates
-skills/            hand-written skills: mcp-surface-audit, capture-lesson, new-program
+skills/            hand-written skills: mcp-surface-audit, capture-lesson, new-program,
+                   rap-lifecycle, long-task-control
 roster.json        delegation allowlist — read-only subagents only
 hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
@@ -172,9 +173,10 @@ probe that reports success without evidence is worse than no probe.
 **1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
 on Windows). Reload the window, then pick one from the agent dropdown.
 
-**2. Skills.** Copy `skills/mcp-surface-audit`, `skills/capture-lesson`, and
-`skills/new-program` into `~/.copilot/skills/`. Skills only load in a new chat session, so start
-a fresh chat after copying.
+**2. Skills.** Copy every directory under `skills/` — `mcp-surface-audit`, `capture-lesson`,
+`new-program`, `rap-lifecycle`, `long-task-control` — into `~/.copilot/skills/`. Skills only load
+in a new chat session, so start a fresh chat after copying. Or let `install-kit.ps1` do it; it
+enumerates the folder rather than a list, so a skill added later is picked up without an edit here.
 
 **3. Roster.** Copy `roster.json` to `~/.copilot/roster.json`. Edit the file names to match the
 agents you actually installed. An agent not listed there is not delegatable — that is the point
@@ -263,7 +265,7 @@ For `sessionStart`, firing is provable: `surface.json` gets a new `takenAt` on e
 
 ### Skills without cloning
 
-For a collaborator with repository access, the `skills` CLI can install the three skills without a
+For a collaborator with repository access, the `skills` CLI can install this kit's skills without a
 clone. The kit already has the layout it expects:
 
 ```powershell

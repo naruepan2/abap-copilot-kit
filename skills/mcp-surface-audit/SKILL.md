@@ -169,6 +169,16 @@ consecutive spawns. Verify **presence of a group** and **whether a named entry r
 Do not delete a working line because one probe under-reported it, and do not publish counts
 as facts.
 
+### When an entry stops resolving
+
+Do not widen it to a wildcard. Either name the exact tool from the extension's
+`languageModelTools` manifest, or drop the `tools:` list entirely — an omitted list lets the
+session tools picker decide, which is the safe fallback.
+
+The 13 ABAP Remote FS entries are written out in `tools:` because a wildcard does not expand
+for extension-contributed tools (verified above). Ask the agent for a count rather than
+trusting a one-time listing, for the reason in the previous section.
+
 ## Agent roster drift
 
 `~/.copilot/roster.json` is the delegation allowlist. Drift means the installed agents and

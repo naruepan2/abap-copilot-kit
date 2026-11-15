@@ -12,6 +12,8 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
 | `skills/new-program/` | Scaffold a new project or program record without guessing a SID |
+| `skills/rap-lifecycle/` | The nine-step RAP create-and-publish chain, with the owning server per step |
+| `skills/long-task-control/` | Stop condition, handoff, and why evidence expires |
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |

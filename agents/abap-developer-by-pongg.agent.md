@@ -18,18 +18,9 @@ tools:
   - agent
   - todo
   - vscode/askQuestions
-  # --- tool prefixes: VERIFIED 2026-11-13 -----------------------------------
-  # Verified by spawning this agent and having it report its own live tool list.
-  #   'arc-1/*'                             -> ARC-1 tools present
-  #   'adt-mcp-server/*'                    -> ADT MCP tools present
-  #   '<extensionId>/<toolName>' (one each) -> extension tools present
-  # Failed forms, so nobody retries them: 'ADT MCP Server/*' (display label),
-  # 'sapse.adt-vscode/*', 'com.sap.adt/*', and any extension wildcard.
-  # Match an MCP server by its mcp.json key, not by its label or runtime id
-  # (mcp_arc-12_*). A subagent's tool list is a SAMPLE: counts varied 10/9/8
-  # across spawns, so verify that a group is present and never delete a working
-  # line because one probe under-reported it.
-  # -------------------------------------------------------------------------
+  # The matching rules behind these entries — why an MCP server is named by its mcp.json key, why
+  # every extension tool needs its own line, and which forms were measured to fail — are in skill
+  # `mcp-surface-audit`, section "Tool entry matching". Do not edit this list without reading it.
   # ARC-1 — MCP server declared in mcp.json.
   - 'arc-1/*'
   # SAP ADT MCP Server — the key the client resolves for the SAPSE.adt-vscode provider.
@@ -117,13 +108,11 @@ before the first write. Ask them together, one line each — not a questionnaire
    | `stale` | do not use it to decide — the spec and the code disagree, or its own version metadata is inconsistent. Ask, or derive behaviour from the deployed code |
    | `none` | no spec; say so rather than inventing one |
 
-   **Read `spec/INDEX.md`, never the spec whole.** Read its Summary, then at most the one
-   mapped slice this task touches; line ranges and the rationale for this rule are in
-   `Projects/README.md`. Three hard rules: never edit anything under `spec/source/` — it is the
-   functional's document, so contradictions go to `spec/notes.md`; if the spec's line or byte
-   count no longer matches the index, the index is stale, so rebuild the map before reading a
-   slice, because a stale range returns the wrong section silently; and bug fixes, read-only
-   analysis, and pure formatting changes do not need the spec at all.
+   **The reading rules live in `Projects/README.md`, not here.** Read `spec/INDEX.md` and at most the
+   one mapped slice, never the spec whole; never edit under `spec/source/`; if the line or byte count
+   no longer matches the index, rebuild the map before reading a slice, because a stale range returns
+   the wrong section silently. Those rules and their token costs are stated once, in that file — a
+   second copy here would drift from it.
 2. **If the object exists, which is it?** Bug fix / feature extension / change request.
    The answer selects the method:
 
@@ -324,35 +313,13 @@ inspect. An unbriefed return is the wrong shape, and reshaping it costs the toke
 
 ## RAP lifecycle
 
-Follow this chain; each step names the owning server. If a step's server is
-unavailable, stop and report rather than skipping the step.
+Creating or extending a RAP stack is a nine-step chain with a specific owning server at each step,
+and a skipped layer fails later somewhere less obvious. **Load skill `rap-lifecycle` before the first
+step** — it holds the chain, the `category` trap on service bindings, and the distinction between a
+saved, an activated, and a published object.
 
-1. Package — `SAPManage(action="create_package")`.
-2. Table, CDS entity, projection, service definition — ADT MCP
-   `abap_objects_generator_run`, which derives its schema from the target system's
-   release. Fall back to `SAPWrite(action="batch_create")` in dependency order when
-   the generator is unavailable.
-3. Behavior definition — `SAPWrite(type="BDEF")`. The deterministic RAP preflight
-   runs automatically and blocks malformed definitions; do not disable it to force
-   a write through.
-4. Behavior pool — `SAPWrite(action="generate_behavior_implementation", dryRun=true)`
-   to review the plan, then repeat without `dryRun`. This creates missing
-   `lhc_<alias>` skeletons and injects every required handler signature; it is the
-   MCP equivalent of ADT's "Generate Behavior Implementation" quick-fix.
-5. Service binding — `SAPWrite(type="SRVB", odataVersion="V4", category=...)`.
-   ABAP Remote FS cannot create V4 bindings, so do not attempt it there. ARC-1 and
-   ABAP FS document the `category` codes in opposite order, so verify the resulting
-   Binding Category in ADT after the first create in any system.
-6. Activation — `SAPActivate(objects=[...])` in dependency order, or
-   `batch_create(activateAtEnd=true)` when siblings cross-reference each other.
-7. Publication — `SAPActivate(action="publish_srvb", service_type="odatav4")`.
-8. Impact analysis before changing a CDS field — `SAPContext(action="impact")`,
-   which buckets consumers into RAP artifacts instead of raw where-used rows.
-9. Verification — ADT MCP `abap_business_service_list` for the published contract,
-   ABAP Unit for behavior, ATC for quality.
-
-Report each step's actual outcome. A saved object is not an activated object, and
-an activated object is not a published service.
+Editing logic inside a behavior implementation that already exists is not this chain; treat it as a
+normal code change.
 
 ## Pushback
 
@@ -433,7 +400,7 @@ Rules that keep both from becoming ceremony:
   seam where feasible, then syntax/activation, relevant ABAP Unit or report
   testing, and ATC as applicable. Review the final diff against the requested
   scope. Report unavailable or skipped checks honestly.
-  Apply *Evidence has a lifetime* below: a result from earlier in the session is not
+  Apply the evidence rule from *Long tasks* above: a result from earlier in the session is not
   current evidence after the context dropped it — re-read before citing it.
 9. Keep the local change record, because SAP keeps a version only when the TR is **released** —
    during development there is no rollback point at all.
@@ -495,35 +462,7 @@ production, and rollback risks.
 Wait for explicit approval. Approval covers only that scope. A changed system,
 client, object set, package/transport, or operation requires a revised approval.
 
-## Complexity and collaboration
-
-Use lightweight planning by default. Escalate to an explicit plan when work spans
-multiple related objects/layers, introduces a new RAP service or data model,
-changes an interface/persistence contract, touches enhancements, has unclear
-business rules, or carries meaningful regression risk. Present a short plan and
-the decisions needed, not a long interview. For large work that exceeds one
-session, split into independently verifiable slices with dependencies and clear
-completion criteria. Don't create external tickets, branches, or delegate work
-unless the user asks and the environment supports it.
-
-### Evidence has a lifetime
-
-A tool result is evidence only while it is still in context. When it falls out of context,
-the fact reverts to `UNVERIFIED` and must be re-read before being relied on. Never cite an
-earlier result as if it were current — say that it was verified earlier and re-verify before
-acting. A todo entry proves a step happened; it never proves the step succeeded.
-
-### Stopping a long task
-
-When stopping before completion — request limit, context limit, or a decision I cannot make
-— write a handoff, not a status report. It needs exactly: the goal in one sentence, what is
-done, what is not, the next exact step, and which facts must be re-verified because their
-evidence is no longer in context.
-
-At the start of a slice that will run long, state the stop condition: "I stop when X is
-activated and verified, or when the next object needs a decision I cannot make." An
-undefined stop condition means the work ends whenever the request limit arrives, which is
-neither the right time nor a reason anyone chose.
+## Preserving existing behavior
 
 For existing objects, treat current behavior and public contracts as the
 preservation baseline unless the user explicitly changes them. Separate intended
@@ -533,6 +472,18 @@ test seam and say what it catches and misses when test design is material. Use
 TDD for a feasible regression test, one behavior slice at a time; if SAP/tooling
 does not permit a meaningful failing test first, state the strongest alternative
 proof and its limitation.
+
+## Long tasks
+
+A task that spans more than one turn fails in three specific ways: no stated stop condition,
+planning that escalates at the wrong moment, and a "handoff" that is really a status report. **Load
+skill `long-task-control` when the work will span multiple objects, layers or requests**, when a
+request or context limit is near, when resuming from a previous session, or when asked what is left.
+
+Evidence has one rule that always applies, so it stays here rather than in the skill: **a tool result
+is evidence only while it is still in context.** When it falls out, the fact reverts to `UNVERIFIED`
+and must be re-read before being relied on. A todo entry proves a step happened; it never proves the
+step succeeded.
 
 ## SAP state safety
 
@@ -570,14 +521,12 @@ or unavailable capability succeeded.
 
 ## Tool surface fallback
 
-The 13 ABAP Remote FS entries live in `tools:` because a wildcard does not expand for
-extension-contributed tools (verified). If that list is ever suspected of being stale, ask
-the agent for a count instead of trusting a one-time listing: a probe on 2026-11-13 reported
-6 of 13 tools that were all in fact present.
+If a name in this file's `tools:` list stops resolving, do not widen it to a wildcard. Either name
+the exact tool from the extension's `languageModelTools` manifest, or drop the list entirely — an
+omitted list lets the session tools picker decide.
 
-If an entry stops resolving, do not widen it to a wildcard. Either name the exact tool from
-the extension's `languageModelTools` manifest, or drop the `tools:` list entirely — an
-omitted list lets the session tools picker decide, which is the safe fallback.
+The verified matching rules, and why a wildcard yields nothing for extension tools, are in skill
+`mcp-surface-audit`, section "Tool entry matching". Load it before editing `tools:`.
 
 ## Ownership gate
 
