@@ -77,8 +77,12 @@ foreach ($f in Get-ChildItem (Join-Path $KitRoot 'agents') -File -Filter '*.agen
 }
 # Every file in tooling, not only *.ps1: sap-auth-probe.js is part of the launcher and was silently
 # left behind by a *.ps1 filter, which made the launcher report "no node" instead of probing.
+#
+# surface.json is excluded. It is runtime state: the sessionStart hook writes it on every run, so
+# installing a copy of the repository snapshot only plants a file that is wrong the moment a session
+# starts. The drift probe skipped it for the same reason; both sides now agree.
 foreach ($f in Get-ChildItem (Join-Path $KitRoot 'tooling') -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.Extension -in @('.ps1', '.js', '.json') }) {
+    Where-Object { $_.Extension -in @('.ps1', '.js', '.json') -and $_.Name -ne 'surface.json' }) {
     $plan += [pscustomobject]@{ Kind = 'tooling'; Name = $f.Name; Src = $f.FullName; Dest = (Join-Path $dest.tooling $f.Name) }
 }
 foreach ($d in Get-ChildItem (Join-Path $KitRoot 'skills') -Directory -ErrorAction SilentlyContinue) {

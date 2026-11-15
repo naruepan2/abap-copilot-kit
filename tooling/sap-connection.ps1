@@ -65,6 +65,15 @@ function Read-Store {
     if ($names -notcontains 'connections' -or $null -eq $j.connections) {
         $j | Add-Member -NotePropertyName connections -NotePropertyValue ([pscustomobject]@{}) -Force
     }
+    elseif ($j.connections -isnot [System.Management.Automation.PSCustomObject]) {
+        # "connections": "oops" parsed fine and passed through. Add-Member then wrote into a string's
+        # member table, the change was lost on save, and the list rendered a phantom entry named
+        # "Length" - the string's own property. A store whose connections member is not an object is
+        # reported rather than repaired in place, because a silent repair hides the real problem.
+        [Console]::Error.WriteLine("connection store: 'connections' is not an object - refusing to use it")
+        [Console]::Error.WriteLine('  Expected: { "active": "<name>", "connections": { "<name>": { ... } } }')
+        exit 1
+    }
     if ($names -notcontains 'active') {
         $j | Add-Member -NotePropertyName active -NotePropertyValue $null -Force
     }
@@ -83,12 +92,24 @@ function Get-Names($data) {
 
 function Secret-Key($n) { return $n + '_SAP_PASSWORD' }
 
-function Secret-Present($n) {
+# Returns one of 'PRESENT', 'ABSENT', 'ERROR' - a string, never a boolean.
+#
+# A boolean return looked fine and was wrong: `$r -eq 'ERROR'` with $r = $true coerces the right side
+# to a boolean, and any non-empty string is $true, so a healthy secret compared EQUAL to 'ERROR'.
+# Measured. One type for every outcome removes the coercion trap instead of working around it.
+function Secret-State($n) {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $o = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Test -Key (Secret-Key $n) 2>$null
+    $rc = $LASTEXITCODE
     $ErrorActionPreference = $prev
-    return (($o -join '') -match '^PRESENT')
+    # Exit 1 means "nothing stored". Anything else is this script's own problem, and is reported as
+    # such rather than as a missing credential: a helper that fails to start printed nothing, which
+    # used to be read as ABSENT, so every connection showed MISSING and the advice was to store a
+    # password that was already stored.
+    if ($rc -ne 0 -and $rc -ne 1) { return 'ERROR' }
+    if (($o -join '') -match '^PRESENT') { return 'PRESENT' }
+    return 'ABSENT'
 }
 
 $data = Read-Store
@@ -116,7 +137,12 @@ if ($Add) {
     if (-not $data.active) { $data.active = $Name }
     Write-Store $data
     Write-Output "added: $Name  ($Url client $Client, user $User)"
-    if (-not (Secret-Present $Name)) {
+    $sp = Secret-State $Name
+    if ($sp -eq 'ERROR') {
+        [Console]::Error.WriteLine('  warning: sap-secret.ps1 did not run - cannot tell whether a secret is stored')
+        exit 0
+    }
+    if ($sp -eq 'ABSENT') {
         Write-Output ''
         Write-Output 'Next: store its password (you type it; it is not echoed):'
         Write-Output ("  powershell -ExecutionPolicy Bypass -File `"$SecretScript`" -Set -Key " + (Secret-Key $Name))
@@ -166,7 +192,9 @@ if ($Show) {
     Write-Output ("user      : " + $c.user)
     Write-Output ("language  : " + $c.language)
     Write-Output ("password  : " + $(if ($c.password -eq '@secret') { 'in the credential store' } elseif ([string]::IsNullOrEmpty($c.password)) { 'not set' } else { 'PLAINTEXT IN FILE' }))
-    Write-Output ("secret key: " + (Secret-Key $Name) + "  " + $(if (Secret-Present $Name) { 'PRESENT' } else { 'ABSENT' }))
+    $sp = Secret-State $Name
+    $state = if ($sp -eq 'ERROR') { 'UNKNOWN (helper failed)' } else { $sp }
+    Write-Output ("secret key: " + (Secret-Key $Name) + "  " + $state)
     exit 0
 }
 
@@ -182,7 +210,8 @@ Write-Output ("  {0,-16} {1,-8} {2,-42} {3}" -f 'NAME', 'CLIENT', 'URL', 'SECRET
 foreach ($n in $names) {
     $c = $data.connections.$n
     $mark = if ($data.active -eq $n) { '*' } else { ' ' }
-    $sec = if (Secret-Present $n) { 'stored' } elseif ($c.password -eq '@secret') { 'MISSING' } else { 'PLAINTEXT' }
+    $sp = Secret-State $n
+    $sec = if ($sp -eq 'ERROR') { 'UNKNOWN' } elseif ($sp -eq 'PRESENT') { 'stored' } elseif ($c.password -eq '@secret') { 'MISSING' } else { 'PLAINTEXT' }
     Write-Output ("{0} {1,-16} {2,-8} {3,-42} {4}" -f $mark, $n, $c.client, $c.url, $sec)
 }
 Write-Output ''

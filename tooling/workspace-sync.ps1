@@ -226,6 +226,15 @@ foreach ($proj in $projectDirs) {
                 if ([string]$bytes -ne [string]$meta['spec_bytes']) {
                     $sourceWarn += ($key + ': source is ' + $bytes + ' bytes, program.yaml says ' + $meta['spec_bytes'])
                 }
+                # Both numbers, not just bytes. A rewrite that swaps every CRLF for LF keeps the byte
+                # count within a rounding error of the original while every line number in the section
+                # map shifts, so bytes alone can pass on a document that no longer matches the index.
+                if ($meta['spec_lines']) {
+                    $lines = (Get-LineCount $srcFile)
+                    if ([string]$lines -ne [string]$meta['spec_lines']) {
+                        $sourceWarn += ($key + ': source is ' + $lines + ' lines, program.yaml says ' + $meta['spec_lines'])
+                    }
+                }
             }
         }
 
