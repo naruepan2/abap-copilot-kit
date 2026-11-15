@@ -1,0 +1,36 @@
+# Routing on this machine
+
+Which MCP server reaches which SAP system, and which one is allowed to do it. Copy this file to
+`Projects/_routing.local.md` and fill it in. That path is gitignored, because a system id, a client
+number and a customer name are exactly what must not enter the repository.
+
+The agent reads this file before its first SAP call in a session. If it is missing, or does not
+cover the system you are asking about, the agent must ask rather than guess.
+
+## Systems
+
+| System | Client | What it is | Notes |
+| --- | --- | --- | --- |
+| <name> | <client> | dev / test / prod | |
+| <name> | <client> | dev / test / prod | |
+
+## Which server reaches which system
+
+| Server | Reaches | Authorized for |
+| --- | --- | --- |
+| `arc-1` | <system> | read and write |
+| `adt-mcp-server` | <system> | read and ATC only; **not** authorized for <other system> |
+| `abap-fs` | <system>, <system> | read-only inspection |
+
+## Fallbacks
+
+When the first-choice server is not authorized for the target client, name the substitute here so
+the agent switches deliberately instead of improvising:
+
+- <client> → use <server> instead of <server>, because <reason>
+
+## Keeping this current
+
+The connection list (`~/.copilot/state/arc1-connections.json`) and the ABAP FS destinations in
+`settings.json` are the machines' own records. This file only explains them; when they change,
+update this file in the same sitting, or the agent will route by a stale map.

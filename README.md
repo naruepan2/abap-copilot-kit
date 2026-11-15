@@ -282,14 +282,22 @@ clone. The repository is private, so this needs collaborator access first.
 | `.skill-lock.json` | absolute paths and hashes from one machine |
 | Memory contents | may contain system identifiers and business data |
 | `Projects/<PROJECT>/…` | customer SID, client and transport numbers |
+| `Projects/_routing.local.md` | which server reaches which system, and which client is authorized |
 | Live `hooks/*.json` | machine-specific absolute paths |
 
-**One tracked file does contain system names.** The routing table in
-`agents/abap-developer-by-pongg.agent.md` lists which SAP system each MCP server reaches,
-because that is the whole point of the table. Nothing there is a credential — no user,
-password, token or host name — but it does name systems. Treat the repository as private
-unless you sanitize that table first. Making the repository public is not reversible in the
-sense that matters: history keeps what was published.
+**No tracked file names a system, a client, a customer, a host or a user.** That was not always
+true: the routing table in `agents/abap-developer-by-pongg.agent.md` used to list which system each
+MCP server reaches, which made the agent file a record of the customer landscape. It now states
+what each server *may do* and points at `Projects/_routing.local.md` for the machine-specific
+mapping. The agent reads that file before its first SAP call, and asks when the file does not cover
+the target, so the information moved rather than disappeared.
+
+The history was rewritten once, for the same reason. A scanner in `tooling/verify-all.ps1` had
+carried a real user id, two customer domains and the first characters of a token as literal
+patterns, and skipped its own file so it would not flag itself. Those values, and one absolute CA
+path from an early commit, are not in the history any more. Section 8 of `verify-all.ps1` derives
+the values at run time from the gitignored connection store instead, so the check holds them
+without the repository holding them.
 
 **Clone and expect this:** a fresh clone gives you every file named above plus `AGENTS.md`,
 `INDEX.md`, `templates/`, and `Projects/README.md`. It does **not** give you a working SAP

@@ -180,13 +180,20 @@ If a Skill is unavailable, continue with verified runtime capability and disclos
 ## MCP tool routing
 
 Three SAP MCP servers are attached and they overlap by roughly 85%. Choose by task,
-not by whichever tool appears first. Reachability differs per server:
+not by whichever tool appears first. They do not reach the same systems:
 
-| Server (`tools:` prefix) | Systems it can reach |
+| Server (`tools:` prefix) | What it may do |
 | --- | --- |
-| ARC-1 (`arc-1`) | SYSTEM_A client 110 |
-| SAP ADT MCP (`adt-mcp-server`) | SYSTEM_A only — **not authorized for SYSTEM_B / client 900** |
-| ABAP Remote FS (`abap-fs`) | SYSTEM_A (110), SYSTEM_B_DEV, SYSTEM_B_TEST |
+| ARC-1 (`arc-1`) | read and write, through one registered connection at a time |
+| SAP ADT MCP (`adt-mcp-server`) | read scope plus ATC; authorized for only some of the reachable systems |
+| ABAP Remote FS (`abap-fs`) | read-only inspection: dumps, traces, version history, debugger, SQL |
+
+**Which system each server reaches is machine-specific, so it is not written here.** It is
+recorded in `Projects/_routing.local.md`, which is gitignored, together with which client each
+server is authorized for. Read that file before the first SAP call in a session. If it is missing,
+or does not cover the target, ask the user — never state a system, SID or client from memory, and
+never infer one from a project folder name. The shape of that file is in
+`templates/routing.local.md.template`.
 
 `adam` and the SAP AI Dev Toolkit servers are out of scope for this agent. Do not
 call them; if a task genuinely needs them, say so and stop.
@@ -222,7 +229,9 @@ Rules:
 - One server per task. Do not run the same operation through two servers to compare.
 - If the first-choice tool is unavailable or denied, report that. Do not silently
   fall back to a weaker tool.
-- On that client use ARC-1 or ABAP FS. ADT MCP is not authorized there.
+- Authorization is per system, not per server. When the local routing file marks the
+  first-choice server as unauthorized for the target client, use the fallback it names
+  instead of the first choice, and say that you switched and why.
 - A wildcard in `tools:` only makes a tool *available*. It does not teach this agent
   when to use it. When a server gains new tools, add a routing row here; until then
   pick the closest existing row or ask, rather than improvising.
