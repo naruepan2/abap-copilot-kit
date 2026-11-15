@@ -17,8 +17,45 @@ $ErrorActionPreference = 'Continue'
 $AG   = "$env:USERPROFILE\.copilot\agents"
 $SK   = "$env:USERPROFILE\.copilot\skills"
 $MEM  = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
-$REPO = "D:\abap-copilot-kit"
-$AWS  = "$env:APPDATA\Code\User\workspaceStorage\fbc6ae2e6722b1312ffc2700081aeccb\GitHub.copilot-chat\memory-tool\memories\repo"
+
+# Kit root. This script runs from two places: the repository (tooling\) and the live copy
+# (~/.copilot/state\). Resolve it instead of hardcoding, so a clone on another machine works.
+# Order: $env:ABAP_KIT_ROOT, then the pin file install-kit.ps1 writes beside the copied scripts,
+# then one level up from this script.
+$REPO = $env:ABAP_KIT_ROOT
+if (-not $REPO -or -not (Test-Path (Join-Path $REPO 'INDEX.md'))) {
+    $pin = Join-Path $PSScriptRoot 'kit-root.txt'
+    if (Test-Path $pin) {
+        $pinned = ([System.IO.File]::ReadAllText($pin, [System.Text.Encoding]::UTF8)).Trim()
+        if ($pinned -and (Test-Path (Join-Path $pinned 'INDEX.md'))) { $REPO = $pinned }
+    }
+}
+if (-not $REPO -or -not (Test-Path (Join-Path $REPO 'INDEX.md'))) {
+    $up = Split-Path $PSScriptRoot -Parent
+    if ($up -and (Test-Path (Join-Path $up 'INDEX.md'))) { $REPO = $up }
+}
+$repoOk = [bool]($REPO -and (Test-Path (Join-Path $REPO 'INDEX.md')))
+
+# Repo memory sits under a per-workspace folder named by a hash of the workspace path, so the name
+# differs per machine - the hardcoded hash only ever worked on one install. Pick the folder that
+# actually holds notes; override with $env:ABAP_REPO_MEMORY when several workspaces have them.
+$AWS = $env:ABAP_REPO_MEMORY
+if (-not $AWS -or -not (Test-Path $AWS)) {
+    $wsBase = "$env:APPDATA\Code\User\workspaceStorage"
+    $picks = @()
+    if (Test-Path $wsBase) {
+        foreach ($d in Get-ChildItem $wsBase -Directory -ErrorAction SilentlyContinue) {
+            $p = Join-Path $d.FullName 'GitHub.copilot-chat\memory-tool\memories\repo'
+            if (Test-Path $p) {
+                $n = @(Get-ChildItem $p -Recurse -File -Filter *.md -ErrorAction SilentlyContinue).Count
+                $picks += [pscustomobject]@{ Path = $p; Notes = $n }
+            }
+        }
+    }
+    $top = $picks | Sort-Object Notes -Descending | Select-Object -First 1
+    if ($top) { $AWS = $top.Path }
+}
+$awsOk = [bool]($AWS -and (Test-Path $AWS))
 
 function Line($t) { if (-not $Summary) { Write-Output ""; Write-Output ("=== " + $t + " ===") } }
 function Ok($t)   { Write-Output ("  OK      " + $t) }
@@ -127,6 +164,9 @@ if (-not (Test-Path $TK)) {
 
 Line '6. Repo memory: does it duplicate the agent?'
 $rmN = 0; $rmMirror = 0
+if (-not $awsOk) {
+    Write-Output '  SKIP    repo memory not found (set $env:ABAP_REPO_MEMORY, or open a workspace with notes)'
+} else {
 foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
     $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
     $mirror = ($t -match '^\|.*ARC-1.*\|') -or ($t -match '^\|.*ADT MCP.*\|')
@@ -160,8 +200,12 @@ if (Test-Path $rmIndex) {
 } else {
     Write-Output '  ISSUE   repo memory has no INDEX.md'
 }
+}
 
 Line '7. Git state of the kit'
+if (-not $repoOk) {
+    Write-Output '  SKIP    kit repository not found (clone it, or set $env:ABAP_KIT_ROOT)'
+} else {
 Push-Location $REPO
 Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f (git rev-parse --short HEAD), (git rev-parse --short origin/main), ((git rev-parse HEAD) -eq (git rev-parse origin/main)), @(git status --porcelain).Count)
 $drift = @()
@@ -169,7 +213,7 @@ $drift = @()
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
 # working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
 $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
-$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json', 'tooling\sap-secret.ps1', 'tooling\sap-arc1-launcher.ps1')
+$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\install-kit.ps1')
 foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
            elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }
@@ -183,6 +227,7 @@ foreach ($rel in $pairs) {
 }
 if (@($drift).Count -eq 0) { Write-Output '  repo mirrors live files: identical' } else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) } }
 Pop-Location
+}
 
 Line '9. SAP password in any harness config: literal, or indirection?'
 # VS Code supports ${input:...} and ~/.copilot/mcp.json already uses it. The Copilot CLI accepts
@@ -276,6 +321,9 @@ if (-not (Test-Path $connFile)) {
 }
 
 Line '8. Credentials in any tracked file'
+if (-not $repoOk) {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+} else {
 Push-Location $REPO
 $hits = 0
 # This file is the scanner, so it necessarily contains the patterns and would flag itself. Skip it
@@ -289,3 +337,4 @@ foreach ($f in git ls-files) {
 }
 Write-Output ("  credential hits = {0}  (scanner itself excluded: {1})" -f $hits, $scanSelf)
 Pop-Location
+}

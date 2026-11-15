@@ -90,9 +90,13 @@ Never copy a system or client into `program.yaml`. It carries `project:` and an 
 ## 5. Verify before reporting
 
 ```powershell
-# the record must never reach the repository
-git -C D:\abap-copilot-kit check-ignore -v "Projects/<PROJECT>/<PROGRAM>/program.yaml"
+# the record must never reach the repository (run from the kit root)
+git check-ignore -v "Projects/<PROJECT>/<PROGRAM>/program.yaml"
 ```
+
+If the shell is not already in the kit root, prefix the command with
+`git -C <kit root>`, taking the root from `$env:ABAP_KIT_ROOT` or `install-kit.ps1 -ShowPaths`.
+Do not write a drive letter into this file: the kit is cloned to a different path on each machine.
 
 - `check-ignore` must report IGNORED. If it does not, stop — a customer identifier is about to
   be committed.

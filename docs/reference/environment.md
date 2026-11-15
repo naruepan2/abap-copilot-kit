@@ -24,7 +24,7 @@ fbc6ae2e6722b1312ffc2700081aeccb
 
 | What | Where |
 |---|---|
-| Framework repo (agents, skills, hooks, templates, reference) | `D:\abap-copilot-kit` |
+| Framework repo (agents, skills, hooks, templates, reference) | wherever you cloned it — `$env:ABAP_KIT_ROOT`, else the parent of `tooling\` |
 | GitHub | `naruepan2/abap-copilot-kit` — **private**, on purpose |
 | MCP servers (all of them) | `%APPDATA%\Code\User\mcp.json` — user scope |
 | ABAP FS destinations | `%APPDATA%\Code\User\settings.json` → `abapfs.remote` — user scope |

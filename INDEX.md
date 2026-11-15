@@ -18,7 +18,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `config-templates/` | `mcp.json`, `settings.json` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
-| `tooling/` | Audit scripts that measure context and check consistency. `sap-connection.ps1` is the logon list (add/remove/list, like ABAP FS's Connection Manager); `sap-secret.ps1` holds each password in DPAPI; `sap-arc1-launcher.ps1` starts `-Connection <name>` |
+| `tooling/` | Audit scripts that measure context and check consistency. `sap-connection.ps1` is the logon list (add/remove/list, like ABAP FS's Connection Manager); `sap-secret.ps1` holds each password in DPAPI; `sap-arc1-launcher.ps1` starts `-Connection <name>`; `install-kit.ps1` copies agents, tooling and skills into place and refuses to overwrite a newer live file |
 | `backup/` | A recovery snapshot of user memory. Not loaded by anything — see its README before restoring |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 

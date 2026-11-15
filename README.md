@@ -28,7 +28,8 @@ config-templates/  mcp.json, settings.json, arc1.env and arc1-connections skelet
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
 tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
-                   sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher
+                   sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher,
+                   install-kit (copy agents/tooling/skills into place on a machine)
 backup/            recovery snapshot of user memory (nothing loads it)
 Projects/          convention only — local notebook, gitignored
 ```
@@ -128,6 +129,30 @@ on purpose, while the finding is still in context.
 
 **1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
 on Windows). Reload the window, then pick one from the agent dropdown.
+
+**Or do steps 1-2 with one command.** `tooling/install-kit.ps1` copies `agents/*.agent.md`,
+`tooling/*.ps1` and this kit's own three skills into place. It is idempotent, and it refuses to
+overwrite a live file that differs — because the live copy has been newer than the clone before,
+and a blind copy would quietly undo that. `-Check` reports without copying; `-Force` overwrites
+after you have decided the clone is the newer one.
+
+```powershell
+powershell -File tooling\install-kit.ps1 -Check     # what would change
+powershell -File tooling\install-kit.ps1           # copy what is missing
+```
+
+On a second machine, clone anywhere and run it: the kit root is resolved from
+`$env:ABAP_KIT_ROOT`, else the parent of `tooling\`, so no drive letter is baked in.
+
+**Skills from GitHub, for anyone with repository access.** The kit already has the layout the
+`skills` CLI expects, so a collaborator can install the three skills without cloning:
+
+```powershell
+npx skills add naruepan2/abap-copilot-kit -s capture-lesson -g
+```
+
+That is skills only — it cannot place agents, tooling or templates. Those still come from the
+clone. Note the repository is private, so this needs collaborator access first.
 
 **2. Skills.** Copy `skills/mcp-surface-audit`, `skills/capture-lesson`, and
 `skills/new-program` into `~/.copilot/skills/`. Skills only load in a new chat session, so start

@@ -24,19 +24,29 @@ intent visible: one is authored tooling, the other is a snapshot of something el
 
 ## Restore
 
-```powershell
-# memory: overwrite the live copy (this is the destructive step — check first)
-$src = 'D:\abap-copilot-kit\backup\user-memory'
-$dst = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
-Copy-Item "$src\*.md" $dst -Force
+Set `$kit` once, so this works wherever the repository was cloned.
 
-# scripts
-$src = 'D:\abap-copilot-kit\tooling'
+```powershell
+$kit = if ($env:ABAP_KIT_ROOT) { $env:ABAP_KIT_ROOT } else { Split-Path $PSScriptRoot -Parent }
+
+# memory: overwrite the live copy (this is the destructive step — check first)
+$dst = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
+Copy-Item "$kit\backup\user-memory\*.md" $dst -Force
+
+# scripts, plus the loan of the kit root that the live copies need in order to find the clone
 $dst = "$env:USERPROFILE\.copilot\state"
-Copy-Item "$src\*.ps1" $dst -Force
+Copy-Item "$kit\tooling\*.ps1" $dst -Force
 Copy-Item "$env:USERPROFILE\.copilot\roster.json" "$env:USERPROFILE\.copilot\roster.json.bak" -Force
-Copy-Item 'D:\abap-copilot-kit\roster.json' "$env:USERPROFILE\.copilot\roster.json" -Force
+Copy-Item "$kit\roster.json" "$env:USERPROFILE\.copilot\roster.json" -Force
+powershell -ExecutionPolicy Bypass -File "$kit\tooling\install-kit.ps1" -Force
 ```
+
+The memory snapshot is faithful to the machine it was taken on: paths inside those notes name the
+old clone location. Re-read them after restoring on a different machine rather than trusting them.
+
+Note that `install-kit.ps1` also writes `~/.copilot/state/kit-root.txt`, which is how a live copy
+finds the clone. Without it, `verify-all.ps1` reports `SKIP kit repository not found` for the two
+sections that read the repository.
 
 Then run `verify-all.ps1` — it reports drift between this repository and the live copies, so a
 restore that went wrong shows up as `DRIFT`.
