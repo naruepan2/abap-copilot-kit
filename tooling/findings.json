@@ -1,4 +1,4 @@
-{
+﻿{
     "$comment":  "Every finding from every audit, with a status. verify-all.ps1 fails while any entry is \u0027open\u0027. This file exists because one finding - the allow-before-deny bug in hooks/subagent-rules.cjs - was found by an audit, reported, and then never re-read by four later audits, so it shipped for two days. An audit that reports into a chat log cannot remember; an audit that reports into a file that gates the build cannot forget.",
     "version":  1,
     "rules":  {
@@ -77,12 +77,12 @@
                      },
                      {
                          "id":  "F-009",
-                         "title":  "subagent-rules.cjs matched only file stems while the harness sends the frontmatter display name, so every allowlisted agent was classified 'not listed in roster.json' and restricted",
+                         "title":  "subagent-rules.cjs matched only file stems while the harness sends the frontmatter display name, so every allowlisted agent was classified \u0027not listed in roster.json\u0027 and restricted",
                          "where":  "hooks/subagent-rules.cjs:47-90, roster.json",
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "deep audit 2026-11-15, then QA round",
-                         "note":  "Proved from this machine's own hook log, which recorded 'restricted SAP ABAP Reverse Engineering Analyst by Pongg' on the day the agent was allowed. The roster now carries display/displays, and the hook also matches the display name without its ' by <author>' suffix."
+                         "note":  "Proved from this machine\u0027s own hook log, which recorded \u0027restricted SAP ABAP Reverse Engineering Analyst by Pongg\u0027 on the day the agent was allowed. The roster now carries display/displays, and the hook also matches the display name without its \u0027 by \u003cauthor\u003e\u0027 suffix."
                      },
                      {
                          "id":  "F-010",
@@ -91,7 +91,7 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "QA round 1, 2026-11-15",
-                         "note":  "Introduced by the fix for F-012 and caught by QA, not by the audit: section 1b only runs node --check, and a missing identifier parses cleanly. The hook's own header calls a silent no-op the worst failure mode."
+                         "note":  "Introduced by the fix for F-012 and caught by QA, not by the audit: section 1b only runs node --check, and a missing identifier parses cleanly. The hook\u0027s own header calls a silent no-op the worst failure mode."
                      },
                      {
                          "id":  "F-011",
@@ -100,11 +100,11 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "deep audit 2026-11-15",
-                         "note":  "Reproduced by trimming PATH: the same '332 verified' printed with node invisible. Now prints SKIP and excludes the files from Ran."
+                         "note":  "Reproduced by trimming PATH: the same \u0027332 verified\u0027 printed with node invisible. Now prints SKIP and excludes the files from Ran."
                      },
                      {
                          "id":  "F-012",
-                         "title":  "verify-all.ps1 section 1 accepted any later '---' as a frontmatter fence, so a file whose frontmatter an edit had destroyed still passed",
+                         "title":  "verify-all.ps1 section 1 accepted any later \u0027---\u0027 as a frontmatter fence, so a file whose frontmatter an edit had destroyed still passed",
                          "where":  "tooling/verify-all.ps1:137",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -120,7 +120,7 @@
                      },
                      {
                          "id":  "F-014",
-                         "title":  "Ran 'parked', Ran 'toolkit' and Ran 'mcp-sources' were registered for sections that examined nothing, which made a clean run unreachable (exit 2) on machines without those inputs",
+                         "title":  "Ran \u0027parked\u0027, Ran \u0027toolkit\u0027 and Ran \u0027mcp-sources\u0027 were registered for sections that examined nothing, which made a clean run unreachable (exit 2) on machines without those inputs",
                          "where":  "tooling/verify-all.ps1:327,491,1044",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -129,7 +129,7 @@
                      },
                      {
                          "id":  "F-015",
-                         "title":  "verify-all.ps1 discarded git grep's exit code, so a failed history scan printed 'history clean across N commit(s)'",
+                         "title":  "verify-all.ps1 discarded git grep\u0027s exit code, so a failed history scan printed \u0027history clean across N commit(s)\u0027",
                          "where":  "tooling/verify-all.ps1:1170",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -142,20 +142,20 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "deep audit 2026-11-15 and QA round 1",
-                         "note":  "Measured cause of a live subagent-rules.cjs that was a full version behind the clone. Nine tracked files were CRLF in the working tree despite eol=lf, which is what kept the 'line-ending only' counter at five forever."
+                         "note":  "Measured cause of a live subagent-rules.cjs that was a full version behind the clone. Nine tracked files were CRLF in the working tree despite eol=lf, which is what kept the \u0027line-ending only\u0027 counter at five forever."
                      },
                      {
                          "id":  "F-017",
-                         "title":  "sap-connection.ps1 derived PRESENT/ABSENT from the helper's exit code, so a helper that crashed was reported as 'no password stored'",
+                         "title":  "sap-connection.ps1 derived PRESENT/ABSENT from the helper\u0027s exit code, so a helper that crashed was reported as \u0027no password stored\u0027",
                          "where":  "tooling/sap-connection.ps1:100-113",
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "deep audit 2026-11-15",
-                         "note":  "An uncaught terminating error in a -File script exits 1, which is also what a deliberate 'nothing stored' exit looks like. The verdict now comes from the output token."
+                         "note":  "An uncaught terminating error in a -File script exits 1, which is also what a deliberate \u0027nothing stored\u0027 exit looks like. The verdict now comes from the output token."
                      },
                      {
                          "id":  "F-018",
-                         "title":  "lesson-capture.cjs treated any occurrence of 'aborted' as a user cancel, discarding real network failures",
+                         "title":  "lesson-capture.cjs treated any occurrence of \u0027aborted\u0027 as a user cancel, discarding real network failures",
                          "where":  "hooks/lesson-capture.cjs:69",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -168,7 +168,7 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "deep audit 2026-11-15",
-                         "note":  "A missing skill root printed 'skills 0 files' and exit 0; an unreadable pid printed nothing; a -Check without -RepoMemory said 'mirror matches the source' for a folder it never read."
+                         "note":  "A missing skill root printed \u0027skills 0 files\u0027 and exit 0; an unreadable pid printed nothing; a -Check without -RepoMemory said \u0027mirror matches the source\u0027 for a folder it never read."
                      },
                      {
                          "id":  "F-020",
@@ -177,11 +177,11 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "measured 2026-11-15 from the shipped VS Code 1.146 bundle",
-                         "note":  "Pyo sets copilot discovery on by default and chat.mcp.collisionBehavior defaults to 'disable'. Fixed by setting chat.mcp.discovery.enabled.copilot=false, and gated by verify-all section 8b, which fails while duplicates remain and the source is on."
+                         "note":  "Pyo sets copilot discovery on by default and chat.mcp.collisionBehavior defaults to \u0027disable\u0027. Fixed by setting chat.mcp.discovery.enabled.copilot=false, and gated by verify-all section 8b, which fails while duplicates remain and the source is on."
                      },
                      {
                          "id":  "F-021",
-                         "title":  "The agent's ownership gate forbade and permitted the same act eleven lines apart, and claimed only one skill was editable while the kit ships five",
+                         "title":  "The agent\u0027s ownership gate forbade and permitted the same act eleven lines apart, and claimed only one skill was editable while the kit ships five",
                          "where":  "agents/abap-developer-by-pongg.agent.md:538-570",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -189,7 +189,7 @@
                      },
                      {
                          "id":  "F-022",
-                         "title":  "The routing tie-break told the agent to 'attempt the call' to test ARC-1 callability, which authorised a SAP call before the pre-flight target gate",
+                         "title":  "The routing tie-break told the agent to \u0027attempt the call\u0027 to test ARC-1 callability, which authorised a SAP call before the pre-flight target gate",
                          "where":  "agents/abap-developer-by-pongg.agent.md:241",
                          "status":  "fixed",
                          "evidence":  "080ce20",
@@ -211,7 +211,7 @@
                          "status":  "fixed",
                          "evidence":  "080ce20",
                          "verified_by":  "measured 2026-11-15",
-                         "note":  "Invisible to git, visible to install-kit's byte comparison. Renormalised; a fresh install now converges at 22 identical on the second run."
+                         "note":  "Invisible to git, visible to install-kit\u0027s byte comparison. Renormalised; a fresh install now converges at 22 identical on the second run."
                      },
                      {
                          "id":  "F-025",
@@ -219,7 +219,7 @@
                          "where":  "agents/sap-se38-report-tester-by-pongg.agent.md, agents/sap-abap-reverse-engineer-by-pongg.agent.md",
                          "status":  "wontfix",
                          "verified_by":  "deep audit 2026-11-15",
-                         "reason":  "A tools: list cannot express 'read-only SAP': 'arc-1/*' is one entry covering SAPWrite and SAPActivate as well, which is how the other read-only agent (ST22) is configured already. Narrowing the list without narrowing ARC-1 would move the restriction from prose to nothing, and a list that omits a tool the agent needs fails mid-task. The real control is ARC-1's own SAP_ALLOW_WRITES and SAP_ALLOWED_PACKAGES, plus the prose gate."
+                         "reason":  "A tools: list cannot express \u0027read-only SAP\u0027: \u0027arc-1/*\u0027 is one entry covering SAPWrite and SAPActivate as well, which is how the other read-only agent (ST22) is configured already. Narrowing the list without narrowing ARC-1 would move the restriction from prose to nothing, and a list that omits a tool the agent needs fails mid-task. The real control is ARC-1\u0027s own SAP_ALLOW_WRITES and SAP_ALLOWED_PACKAGES, plus the prose gate."
                      },
                      {
                          "id":  "F-026",
@@ -228,6 +228,174 @@
                          "status":  "wontfix",
                          "verified_by":  "deep audit 2026-11-15",
                          "reason":  "The token is a field of the SAPSE.adt-vscode extension (adt.mcpServer.token), which offers no ${input:...} or credential-store indirection, so no rewrite removes it. The file lives outside every repository and is never tracked, and the token value is already covered in tracked files by the local pattern list. Adding settings.json to the literal-secret scan would fail every run for a value that has no supported alternative, which is the false-positive class this audit is trying to eliminate."
+                     },
+                     {
+                         "id":  "F-027",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "Measured 44.8 ms per process, vs 50 ms total for one git cat-file --batch-check fed all refs on stdin. A/B over 4 alternating runs: 3,449 -\u003e 2,344 ms (-32%). The batch form also reports the object type, so evidence resolving to a blob or tree is now rejected instead of accepted for existing.",
+                         "where":  "tooling/verify-all.ps1 section 10",
+                         "title":  "Section 10 spawned one git process per evidence ref: 23 refs cost 1,030 ms of a 3,400 ms audit",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-028",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "(git rev-parse HEAD) -eq (git rev-parse origin/main) compares null with null, and $null -eq $null is True; @(git status --porcelain).Count is 0 when the command failed. Both now read the exit code first. Demonstrated against a directory with no .git: rev-parse rc=128, previously reported as the good state.",
+                         "where":  "tooling/verify-all.ps1 section 7",
+                         "title":  "Section 7 printed synced=True and dirty=0 when git itself failed",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-029",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "Those scripts inherit Continue, the mode that lets a read fail silently. who-locks.ps1 was outside the gate while the summary claimed to cover M continue-on-error scripts. Population is now every script that has not opted into Stop: 2 -\u003e 3 scripts, 30 reads. Negative-tested with a synthetic script holding an unguarded ReadAllText and no EAP line.",
+                         "where":  "tooling/verify-all.ps1 section 1c",
+                         "title":  "Section 1c selected its population by looking for a literal EAP=Continue declaration, excluding every script that never mentions the variable",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-030",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "The JSON-shape regex needs \"KEY\": and section 9 needs a quote after =, so the identical secret scored 1 as an object and 0 in both sections as an argument pair, with the run printing OK and exiting 0. A second regex now covers KEY=VALUE and skips indirections; both regexes are self-tested on four synthetic inputs before use.",
+                         "where":  "tooling/verify-all.ps1 section 8 and the shape regex in section 9",
+                         "title":  "Section 8 could not see a secret passed as --env KEY=VALUE, the form its own header cites as the reason it exists; section 9 could not see it either",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-031",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "In a double-quoted string ${input:...} is a variable and expanded to empty; in a single-quoted string passed to -f, {input:...} is a format placeholder and -f throws, which under EAP=Continue is statement-terminating. Both were introduced and caught in the same session. The section now counts one verdict per config and reports an ISSUE if any config produced none, so a swallowed finding cannot pass silently again.",
+                         "where":  "tooling/verify-all.ps1 section 8",
+                         "title":  "Two versions of section 8 reporting line swallowed the finding it had just detected",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-032",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "The other two roots were guarded and warned; the memory folder was not, so a redirected APPDATA gave memory 0 files, a smaller TOTAL and exit 0 with no warning. Measured 31,625 -\u003e 25,574 chars and zero warnings before the fix.",
+                         "where":  "tooling/measure-context.ps1 (three Get-ChildItem sites)",
+                         "title":  "measure-context printed a healthy zero when the memory folder did not exist",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-033",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "path.join(process.env.APPDATA || , ...) yields Code\\\\User\\\\mcp.json; the read fails, the snapshot stores an empty list, and the next session reports all five servers as newly added. lesson-capture.cjs already had the homedir fallback.",
+                         "where":  "hooks/session-drift.cjs",
+                         "title":  "session-drift built a relative mcp.json path when APPDATA was unset, then recorded zero servers as fact",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-034",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "if (prev) treats a truncated snapshot as a first run, so drift detection is silently off for that session and the truncated file is then overwritten. The snapshot is now written to a temporary file and renamed, and an unreadable previous snapshot produces an explicit line instead of silence.",
+                         "where":  "hooks/session-drift.cjs",
+                         "title":  "session-drift could not distinguish a first run from an unreadable snapshot, and its non-atomic write destroyed the evidence",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-035",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "keys() reads entry.files and entry.displays and the deny list is built with them, so a delegatable entry written in the sibling shape was classified not listed and its agent was restricted. Demonstrated: old code restricted a files:[...] entry, new code trusts it, and a look-alike name is still restricted.",
+                         "where":  "hooks/subagent-rules.cjs",
+                         "title":  "subagent-rules projected the allow list to {file, display, role}, dropping the files/displays spellings its own keys() supports",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-036",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "0.84 MB after 10,000 events, growing for the life of the machine. Capped at 64 KB by keeping the newest 250 lines when the cap is crossed. session-drift already rotated its snapshot; this hook had no equivalent.",
+                         "where":  "hooks/subagent-rules.cjs",
+                         "title":  "subagent-rules appended to its log forever: 88 bytes per subagent start, no cap, rotation or truncation path",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-037",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "The directory loop runs before the per-file -Check tests. Demonstrated with a clean fake home: -Check created agents/, hooks/, skills/ and state/. Now guarded, and the same test creates zero directories.",
+                         "where":  "tooling/install-kit.ps1",
+                         "title":  "install-kit -Check promised to copy nothing but created all four destination directories",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-038",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "The installer tooling filter takes every .ps1/.js/.json except surface.json, so the ledger became a live file no section compared; measured live 14,721 bytes against 17,834 in the clone with no DRIFT line, and -Force would have replaced the live one silently. findings.json is now in the pair list.",
+                         "where":  "tooling/verify-all.ps1 section 7 pair list",
+                         "title":  "install-kit copies tooling\\\\findings.json into the live state folder, but section 7 never compared it",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-039",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "Secret-State in the same script correctly reports UNKNOWN for the same failure. Demonstrated with a nonexistent helper: old code claimed success and exited 0; new code warns and prints the command that would remove it.",
+                         "where":  "tooling/sap-connection.ps1",
+                         "title":  "sap-connection -Remove -AlsoSecret printed that the stored secret was removed without checking the helper exit code",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-040",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "Zero rows was indistinguishable from a completed check that found no holder. It now says which case happened: no such process, no matching directory, or no candidate process.",
+                         "where":  "tooling/who-locks.ps1",
+                         "title":  "who-locks printed nothing and exited 0 for a nonexistent -Pid or a -Match that matched nothing",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-041",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "67,477 bytes under Microsoft\\\\Windows\\\\PowerShell\\\\, created when a child powershell.exe ran with LOCALAPPDATA unset or redirected, which is what a sandboxed parent does. Microsoft/ and **/ModuleAnalysisCache are ignored and the folder was deleted; verified that the ignore rule hides a recreated copy.",
+                         "where":  ".gitignore",
+                         "title":  "PowerShell ModuleAnalysisCache appeared inside the repository, untracked and not ignored",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-042",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "evidence":  "8157b9e",
+                         "notes":  "Evidence: ~/.copilot/state/subagent-rules.log gained five entries during one session. The blanket claim came from one event (surface.json takenAt unchanged after a reload) and was generalised. Replaced with a dated per-event table: subagentStart fires, sessionStart writes the snapshot but the event name is unverified, postToolUseFailure has produced no ledger. The surviving rule is that no hook is reported as having run without a log line or a changed file.",
+                         "where":  "docs/reference/environment.md, docs/architecture.md, README.md, skills/mcp-surface-audit, skills/capture-lesson, user memory memory-setup.md",
+                         "title":  "Six places stated that hooks never fire in the Copilot harness; subagentStart is observed firing",
+                         "status":  "fixed"
+                     },
+                     {
+                         "id":  "F-043",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "where":  "tooling/sap-arc1-launcher.ps1",
+                         "reason":  "Demonstrated: killing only the launcher powershell leaves the npx cmd.exe and its node child alive 2.5 s later, because the grandchild inherits the client pipe and never sees EOF. Fixing it needs a Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, which means P/Invoke plus control of the child creation instead of \u0026 $exe @rest - and a mistake there breaks the JSON-RPC stdio channel, which is a worse failure than an orphan. The harness normally kills the whole tree, and the cost is one idle node process per abandoned session.",
+                         "title":  "The launcher leaves an orphaned cmd.exe and node.exe behind when only the launcher process is killed",
+                         "status":  "wontfix"
+                     },
+                     {
+                         "id":  "F-044",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "where":  "tooling/verify-all.ps1 section 1b",
+                         "reason":  "Measured: one node process using vm.Script for all four files takes 47 ms against 200 ms, saving 153 ms. vm.Script does not accept ESM syntax that node --check accepts for .mjs and ESM .js, so a future file would be reported as broken while it runs. A false positive in the parse gate is worse than 153 ms, which is why the batched form was measured and rejected rather than adopted.",
+                         "title":  "Section 1b spends about 200 ms on four node --check processes, and the obvious speedup carries a false-positive risk",
+                         "status":  "wontfix"
+                     },
+                     {
+                         "id":  "F-045",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "where":  "hooks/lesson-capture.cjs",
+                         "reason":  "Measured 125 bytes per row and a full read plus rewrite at lines 141 and 157: about 6.2 GB cumulative after 10,000 events (ESTIMATE from the per-row measurement). Per-event wall time is still nearly flat at this size (88 ms at one row, 91 ms at 8,000), so the cost is not yet real. Switching to append-only would mean the row format has to survive partial writes, which is a design change to the lesson ledger rather than a fix.",
+                         "title":  "lesson-capture rewrites the whole ledger for every event, so cumulative I/O grows with the square of the row count",
+                         "status":  "wontfix"
                      }
                  ]
 }

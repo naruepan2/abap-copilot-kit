@@ -1385,7 +1385,7 @@ if (-not $repoOk) {
                     if ($f.evidence -match '^[0-9a-f]{7,40}$') {
                         $etype = [string]$evTypes[[string]$f.evidence]
                         if ($etype -ne 'commit') {
-                            $why = if ([string]::IsNullOrEmpty($etype)) { 'ref not resolved' } else { 'resolves to a ' + $etype + ', not a commit' }
+                            $why = if ([string]::IsNullOrEmpty($etype) -or $etype -eq 'missing') { 'no such object' } else { 'resolves to a ' + $etype + ', not a commit' }
                             $staleRef += ($f.id + ' -> ' + $f.evidence + ' (' + $why + ')')
                         }
                     }
