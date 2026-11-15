@@ -1,4 +1,4 @@
-﻿{
+{
     "$comment":  "Every finding from every audit, with a status. verify-all.ps1 fails while any entry is \u0027open\u0027. This file exists because one finding - the allow-before-deny bug in hooks/subagent-rules.cjs - was found by an audit, reported, and then never re-read by four later audits, so it shipped for two days. An audit that reports into a chat log cannot remember; an audit that reports into a file that gates the build cannot forget.",
     "version":  1,
     "rules":  {
