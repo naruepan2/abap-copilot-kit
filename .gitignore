@@ -76,3 +76,9 @@ Projects/*
 
 # ARC-1 connection list: one block per SAP logon, with usernames
 arc1-connections.json
+
+# Local list of values to look for in tracked files: customer names, system ids, token
+# fragments. verify-all.ps1 reads it at run time and derives the rest from the connection
+# store. It is ignored because the file records exactly what must never be committed -
+# which makes the file itself the first thing that must not be committed.
+tooling/verify-patterns.local.txt

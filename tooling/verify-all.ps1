@@ -378,21 +378,83 @@ function Test-LauncherWiring($path, $rootKey, $label) {
 Test-LauncherWiring "$env:USERPROFILE\.copilot\mcp-config.json" 'mcpServers' 'launcher'
 Test-LauncherWiring "$env:APPDATA\Code\User\mcp.json" 'servers' 'launcher2'
 
-Line '8. Credentials in any tracked file'
+Line '8. Sensitive values in any tracked file'
 if (-not $repoOk) {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
 } else {
 Push-Location $REPO
-$hits = 0
-# This file is the scanner, so it necessarily contains the patterns and would flag itself. Skip it
-# by relative path rather than weakening the patterns - a scan that ignores its own list is still a
-# scan, and keeping the list literal keeps it greppable by a human.
-$scanSelf = 'tooling/verify-all.ps1'
-foreach ($f in git ls-files) {
-    if ($f -eq $scanSelf) { continue }
-    $m = Select-String -Path (Join-Path $REPO $f) -Pattern 'Z0000000|example-corp|example\.com|REDACTED|PRIVATE KEY|BEGIN RSA' -ErrorAction SilentlyContinue
-    if ($m) { foreach ($x in $m) { Write-Output ("  HIT " + $f + ":" + $x.LineNumber); $hits++ } }
+
+# Two kinds of pattern, and only one of them may be literal.
+#
+# Generic shapes are identical on every machine, so they belong in the script: a private-key header
+# or a credential-shaped assignment looks the same wherever it appears.
+#
+# Machine-specific values are different. This check used to carry them literally - a real SAP user
+# id, two customer domains, the first characters of a token - and then skipped its own file so it
+# would not flag itself. That is a scanner that ships what it is meant to find: a second copy of the
+# secret, in the one file nobody reads as a secret, and structurally unable to detect its own leak.
+# The values are now derived at run time from sources that are already gitignored, so this script
+# holds none of them and no longer needs to look away from itself.
+$patterns = @('-----BEGIN [A-Z ]*PRIVATE KEY-----')
+
+$derivedFrom = @()
+if (Test-Path $connFile) {
+    try {
+        $lc = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        foreach ($p in @($lc.connections.PSObject.Properties)) {
+            if ($p.Value.user) { $patterns += [regex]::Escape([string]$p.Value.user); $derivedFrom += 'user' }
+            if ($p.Value.url -match '^https?://([^/:]+)') {
+                $hostName = $Matches[1]
+                $patterns += [regex]::Escape($hostName); $derivedFrom += 'host'
+                # One hostname is often the only place a customer name appears; split it so
+                # "host.sap.customer.com" also catches a bare "customer" dropped into a doc.
+                foreach ($label in ($hostName -split '\.')) {
+                    if ($label.Length -ge 5 -and $label -notmatch '^(https?|local|localhost|sap)$') {
+                        $patterns += [regex]::Escape($label); $derivedFrom += 'label'
+                    }
+                }
+            }
+        }
+    } catch { }
 }
-Write-Output ("  credential hits = {0}  (scanner itself excluded: {1})" -f $hits, $scanSelf)
+
+# Hand-written extras, also local and also gitignored: a service key, a token fragment, a system id
+# the connection store cannot know about.
+$extraFile = Join-Path $PSScriptRoot 'verify-patterns.local.txt'
+$extraCount = 0
+if (Test-Path $extraFile) {
+    foreach ($raw in [System.IO.File]::ReadAllLines($extraFile, [System.Text.Encoding]::UTF8)) {
+        $t = $raw.Trim()
+        if ($t -eq '' -or $t.StartsWith('#')) { continue }
+        $patterns += [regex]::Escape($t); $extraCount++
+    }
+}
+
+# A credential-shaped assignment, minus the placeholders that fill the templates. Reported apart
+# from the derived identifiers, because the signal is weaker and the fixes are different.
+$shape = '(?i)(password|secret|token|api[_-]?key|service[_-]?key)\s*[:=]\s*["'']([^"'']{8,})["'']'
+$placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.'
+
+$hits = 0
+$shapes = 0
+foreach ($f in git ls-files) {
+    $m = Select-String -Path (Join-Path $REPO $f) -Pattern $patterns -ErrorAction SilentlyContinue
+    if ($m) { foreach ($x in $m) { Write-Output ("  HIT   " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $hits++ } }
+
+    $s = Select-String -Path (Join-Path $REPO $f) -Pattern $shape -ErrorAction SilentlyContinue
+    if ($s) {
+        foreach ($x in $s) {
+            if ($x.Line -match $placeholder) { continue }
+            Write-Output ("  SHAPE " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $shapes++
+        }
+    }
+}
+
+if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
+    Write-Output '  values   none derived - no connection store yet, so only generic shapes are checked'
+} else {
+    Write-Output ("  values   {0} pattern(s): {1} derived (connections), {2} from verify-patterns.local.txt" -f $patterns.Count, $derivedFrom.Count, $extraCount)
+}
+Write-Output ("  sensitive = {0} value hit(s), {1} credential-shaped line(s)" -f $hits, $shapes)
 Pop-Location
 }
