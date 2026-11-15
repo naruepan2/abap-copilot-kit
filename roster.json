@@ -1,57 +1,57 @@
 {
-    "$comment": "Delegation allowlist for the ABAP Developer by Pongg agent. ALLOWLIST, not denylist: an agent not listed under 'delegatable' may not be delegated to, including any agent installed after this file was last verified. Only a human edits this file.",
-    "version": 1,
-    "verified": "2026-11-14",
-    "delegatable": [
-        {
-            "file": "sap-abap-reverse-engineer-by-pongg",
-            "role": "reverse-engineering",
-            "scope": "read-only inspection of ABAP, CDS, RAP, and services",
-            "why_allowed": "read-only by design; carries its own evidence and safety gates"
-        },
-        {
-            "file": "sap-se38-report-tester-by-pongg",
-            "role": "se38-testing",
-            "scope": "replay SE38 report logic without SAP GUI; read-only SQL channel",
-            "why_allowed": "read-only by design; default-deny tool matrix"
-        },
-        {
-            "file": "sap-st22-dump-analysis-by-pongg",
-            "role": "dump-analysis",
-            "scope": "ST22 dump listing and analysis via ARC-1 SAPDiagnose",
-            "why_allowed": "read-only; restricted to ARC-1 read tools"
-        }
-    ],
-    "not_delegatable": [
-        {
-            "files": [
-                "abap-developer",
-                "abap-runtime-debugger",
-                "hana-cloud-hdi-specialist",
-                "rap-service-developer",
-                "sap-integration-architect",
-                "sap-integration-developer",
-                "sap-solution-architect",
-                "sap-btp-infrastructure-admin",
-                "sap-bw-datasphere-migration-specialist",
-                "sap-datasphere-developer",
-                "sap-devops-observability-specialist",
-                "sap-process-automation-developer",
-                "sap-advanced-event-mesh-administrator"
-            ],
-            "reason": "installed by SAP AI Dev Toolkit; hash-tracked in .sap-ai-dev-toolkit-assets.json; they do not carry this workspace's Z*/Y* namespace rule or evidence discipline. This list is not exhaustive by design: the toolkit installs a new agent when it is upgraded (sap-advanced-event-mesh-administrator arrived with 0.9.9925), so an agent it installs that is missing here is still non-delegatable by default-deny. Run verify-all.ps1 section 5b, which derives the expectation from the toolkit manifest instead of this list."
-        },
-        {
-            "files": [
-                "abap-developer-by-pongg"
-            ],
-            "reason": "self; the coordinator does not delegate to itself"
-        }
-    ],
-    "hard_rules": [
-        "Delegate read-only work only. Never delegate create, update, delete, activate, publish, or any transport write.",
-        "An agent absent from 'delegatable' is not delegatable. Report it and ask; do not use it.",
-        "Do not add an agent to this file yourself. A human reviews and edits it.",
-        "If a listed file no longer exists, report the dangling entry rather than substituting a similar agent."
-    ]
+    "$comment":  "Delegation allowlist for the ABAP Developer by Pongg agent. ALLOWLIST, not denylist: an agent not listed under \u0027delegatable\u0027 may not be delegated to, including any agent installed after this file was last verified. Only a human edits this file.",
+    "version":  1,
+    "verified":  "2026-11-15",
+    "delegatable":  [
+                        {
+                            "file":  "sap-abap-reverse-engineer-by-pongg",
+                            "role":  "reverse-engineering",
+                            "scope":  "read-only inspection of ABAP, CDS, RAP, and services",
+                            "why_allowed":  "read-only by design; carries its own evidence and safety gates"
+                        },
+                        {
+                            "file":  "sap-se38-report-tester-by-pongg",
+                            "role":  "se38-testing",
+                            "scope":  "replay SE38 report logic without SAP GUI; read-only SQL channel",
+                            "why_allowed":  "read-only by design; default-deny tool matrix"
+                        },
+                        {
+                            "file":  "sap-st22-dump-analysis-by-pongg",
+                            "role":  "dump-analysis",
+                            "scope":  "ST22 dump listing and analysis via ARC-1 SAPDiagnose",
+                            "why_allowed":  "read-only; restricted to ARC-1 read tools"
+                        }
+                    ],
+    "not_delegatable":  [
+                            {
+                                "files":  [
+                                              "abap-developer",
+                                              "abap-runtime-debugger",
+                                              "hana-cloud-hdi-specialist",
+                                              "rap-service-developer",
+                                              "sap-integration-architect",
+                                              "sap-integration-developer",
+                                              "sap-solution-architect",
+                                              "sap-btp-infrastructure-admin",
+                                              "sap-bw-datasphere-migration-specialist",
+                                              "sap-datasphere-developer",
+                                              "sap-devops-observability-specialist",
+                                              "sap-process-automation-developer",
+                                              "sap-advanced-event-mesh-administrator"
+                                          ],
+                                "reason":  "installed by SAP AI Dev Toolkit; hash-tracked in .sap-ai-dev-toolkit-assets.json; they do not carry this workspace\u0027s Z*/Y* namespace rule or evidence discipline. This list is not exhaustive by design: the toolkit installs a new agent when it is upgraded (sap-advanced-event-mesh-administrator arrived with 0.9.9925), so an agent it installs that is missing here is still non-delegatable by default-deny. Run verify-all.ps1 section 5b, which derives the expectation from the toolkit manifest instead of this list."
+                            },
+                            {
+                                "files":  [
+                                              "abap-developer-by-pongg"
+                                          ],
+                                "reason":  "self; the coordinator does not delegate to itself"
+                            }
+                        ],
+    "hard_rules":  [
+                       "Delegate read-only work only. Never delegate create, update, delete, activate, publish, or any transport write.",
+                       "An agent absent from \u0027delegatable\u0027 is not delegatable. Report it and ask; do not use it.",
+                       "Do not add an agent to this file yourself. A human reviews and edits it.",
+                       "If a listed file no longer exists, report the dangling entry rather than substituting a similar agent."
+                   ]
 }

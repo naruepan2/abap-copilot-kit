@@ -43,35 +43,45 @@ if (target.protocol !== 'https:' && target.protocol !== 'http:') {
     done('UNKNOWN ARC1_PROBE_URL must be http or https', 2);
 }
 
+// The module has to match the URL. Asking https.request for an http: URL throws
+// ERR_INVALID_PROTOCOL synchronously, outside any callback - and because the process then dies
+// with exit code 1, a crash looked exactly like the documented STALE verdict. The launcher would
+// have asked for a new password when the only thing wrong was the scheme.
+const transport = target.protocol === 'http:' ? require('http') : require('https');
+
 const auth = 'Basic ' + Buffer.from(user + ':' + pass, 'utf8').toString('base64');
 
-const req = https.request(
-    {
-        protocol: target.protocol,
-        hostname: target.hostname,
-        port: target.port,
-        path: target.pathname + target.search,
-        method: 'GET',
-        timeout: 15000,
-        headers: {
-            authorization: auth,
-            accept: 'application/atomsvc+xml',
-            'x-csrf-token': 'fetch',
-            'sap-client': process.env.ARC1_PROBE_CLIENT || '',
-            'user-agent': 'arc1-auth-probe'
+let req;
+try {
+    req = transport.request(
+        {
+            hostname: target.hostname,
+            port: target.port,
+            path: target.pathname + target.search,
+            method: 'GET',
+            timeout: 15000,
+            headers: {
+                authorization: auth,
+                accept: 'application/atomsvc+xml',
+                'x-csrf-token': 'fetch',
+                'sap-client': process.env.ARC1_PROBE_CLIENT || '',
+                'user-agent': 'arc1-auth-probe'
+            }
+        },
+        (res) => {
+            // Drain the body so the socket can close; we only care about the status.
+            res.resume();
+            res.on('end', () => {
+                const s = res.statusCode;
+                if (s >= 200 && s < 300) done('OK ' + s, 0);
+                if (s === 401) done('STALE ' + s, 1);
+                done('UNKNOWN ' + s, 2);
+            });
         }
-    },
-    (res) => {
-        // Drain the body so the socket can close; we only care about the status.
-        res.resume();
-        res.on('end', () => {
-            const s = res.statusCode;
-            if (s >= 200 && s < 300) done('OK ' + s, 0);
-            if (s === 401) done('STALE ' + s, 1);
-            done('UNKNOWN ' + s, 2);
-        });
-    }
-);
+    );
+} catch (e) {
+    done('UNKNOWN ' + (e.code || e.message), 2);
+}
 
 req.on('timeout', () => {
     req.destroy();

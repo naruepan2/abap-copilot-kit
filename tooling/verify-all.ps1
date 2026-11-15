@@ -14,6 +14,17 @@ param(
 $Summary = ($Detail -eq 'terse')
 
 $ErrorActionPreference = 'Continue'
+
+# The audit must be able to fail. Until this existed every finding was printed and the exit code was
+# 0 regardless, so a caller could not tell a clean run from a private key in history - the two
+# sibling scripts (install-kit, workspace-sync) both exit 1, and README calls this one the audit the
+# repository is held to. Each section adds what it detected to this counter while the data is still
+# in hand, rather than the verdict being re-derived later from the printed text: prose can contain
+# the word "missing" without meaning a failure.
+$script:issues = 0
+$script:issueKinds = [ordered]@{}
+$script:verified = 0
+$script:ran = [ordered]@{}
 $AG   = "$env:USERPROFILE\.copilot\agents"
 $SK   = "$env:USERPROFILE\.copilot\skills"
 $MEM  = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
@@ -58,11 +69,56 @@ if (-not $AWS -or -not (Test-Path $AWS)) {
 $awsOk = [bool]($AWS -and (Test-Path $AWS))
 
 function Line($t) { if (-not $Summary) { Write-Output ""; Write-Output ("=== " + $t + " ===") } }
-function Ok($t)   { Write-Output ("  OK      " + $t) }
-function Bad($t)  { Write-Output ("  ISSUE   " + $t) }
+
+# Counters. `issues` is what the exit code reads; the dictionary keeps the kinds so the closing line
+# can name them instead of pointing at a token that may not have been printed. `verified` counts the
+# inputs a section actually examined, because "clean" and "nothing to check" were the same output
+# before: no agents, no skills, no roster and no memory produced six zero lines and exit 0.
+#
+# Two PowerShell 5.1 traps fixed here, both measured:
+#   - [ordered]@{} is an OrderedDictionary and has NO ContainsKey method; it has Contains. The first
+#     version called ContainsKey, so every real finding threw "Method invocation failed" to stderr
+#     while the counts survived by accident (the increment ran before the throw). A guard that only
+#     appears to work is worse than no guard, because the next reader trusts it.
+#   - a parameter typed [int] throws when handed an empty array, which is what
+#     @($items | Where-Object {...}) produces when nothing matches. The parameter is untyped and
+#     coerced here instead.
+function Note([string]$kind, $n) {
+    $count = 0
+    if ($null -ne $n) {
+        if ($n -is [array] -or $n -is [System.Collections.ICollection]) {
+            # An array means "this many findings", so its length is the count. Summing the elements
+            # was wrong and was measured wrong: @(1,2,3) added 6. An empty array is the normal
+            # result of a Where-Object that matched nothing and must add nothing.
+            foreach ($x in @($n)) { if ($null -ne $x) { $count++ } }
+        }
+        else { $count = [int]$n }
+    }
+    if ($count -le 0) { return }
+    $script:issues += $count
+    if ($script:issueKinds.Contains($kind)) { $script:issueKinds[$kind] += $count }
+    else { $script:issueKinds[$kind] = $count }
+}
+function Skip($t) { Write-Output ("  SKIP    " + $t) }
+
+# Records how many inputs a section actually examined. A section that saw nothing is either a SKIP
+# (its input is optional and absent) or a silent failure, and the two were indistinguishable before.
+function Ran([string]$name, $n) {
+    $c = 0
+    if ($null -ne $n) { if ($n -is [array]) { $c = @($n).Count } else { $c = [int]$n } }
+    # Accumulates. Two skill roots report under the same name, and assigning overwrote the first
+    # root's count with the second's: a clean profile whose second root was empty reported
+    # "inconclusive - skills" while three skills had in fact been read.
+    if ($script:ran.Contains($name)) { $script:ran[$name] += $c } else { $script:ran[$name] = $c }
+    $script:verified += $c
+}
 
 Line '1. Agent files: structure and encoding'
 $agBad = 0; $agCount = 0
+if (-not (Test-Path $AG)) {
+    Write-Output ("  ISSUE   agent folder not found: " + $AG)
+    Note 'ISSUE' 1
+} else {
 foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Sort-Object Name) {
     $b = [System.IO.File]::ReadAllBytes($f.FullName)
     $u = [System.Text.Encoding]::UTF8.GetString($b)
@@ -79,32 +135,78 @@ foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Sort-Object Name) {
     }
 }
 if ($Summary) { Write-Output ("  {0} agent files checked, {1} with issues" -f $agCount, $agBad) }
+Ran 'agents' $agCount
+Note 'ISSUE' $agBad
+}
 
 Line '2. Skill frontmatter parses (both roots)'
 foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
+    if (-not (Test-Path $root)) {
+        # A root that should exist and does not is a defect, not a skip: every skill under it is
+        # silently absent, and the run would otherwise report a healthy zero.
+        Write-Output ("  ISSUE   skill root not found: " + $root)
+        Note 'ISSUE' 1
+        continue
+    }
     $n = 0; $bad = 0
     foreach ($d in Get-ChildItem $root -Directory) {
         $s = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path $s)) { continue }
         $n++
-        $t = [System.IO.File]::ReadAllText($s, [System.Text.Encoding]::UTF8)
+        # An unreadable file aborted the loop and the summary still printed a healthy count, so a
+        # locked or half-copied SKILL.md looked like a pass. Reading is guarded and counted instead.
+        $t = $null
+        try { $t = [System.IO.File]::ReadAllText($s, [System.Text.Encoding]::UTF8) }
+        catch { Write-Output ("    BAD  " + $d.Name + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); $bad++; continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
         if (-not $m.Success -or $t -notmatch 'name:' -or $t -notmatch 'description:') { $bad++; Write-Output ("    BAD  " + $d.Name) }
     }
     $label = (Split-Path $root -Parent | Split-Path -Leaf) + ':' + (Split-Path $root -Leaf)
     Write-Output ("  {0,-30} skills={1,3}  bad_frontmatter={2}" -f $label, $n, $bad)
+    Ran 'skills' $n
+    Note 'BAD' $bad
 }
 
 Line '3. Cross-file rule duplication (a rule must have one home)'
-$agent = [System.IO.File]::ReadAllText("$AG\abap-developer-by-pongg.agent.md", [System.Text.Encoding]::UTF8)
+# Every file a probe reads is guarded. A missing skill file used to throw inside the ordered
+# literal, which left $probes null and printed "0 of 0 flagged" - a pass-shaped line for a check
+# that had run nothing at all.
+$agentFile = "$AG\abap-developer-by-pongg.agent.md"
+$auditSkill = "$SK\mcp-surface-audit\SKILL.md"
+$lessonSkill = "$SK\capture-lesson\SKILL.md"
+$missingProbeInputs = @()
+foreach ($p in @($agentFile, $auditSkill, $lessonSkill)) { if (-not (Test-Path $p)) { $missingProbeInputs += $p } }
+if ($missingProbeInputs.Count -gt 0) {
+    foreach ($m in $missingProbeInputs) { Write-Output ("  ISSUE   duplication probe input missing: " + $m) }
+    Note 'ISSUE' $missingProbeInputs.Count
+} else {
+$agent = [System.IO.File]::ReadAllText($agentFile, [System.Text.Encoding]::UTF8)
 # Each probe is TRUE when the duplication EXISTS - that is the failure state.
 $probes = [ordered]@{
     'agent hardcodes a roster count'      = $agent -match '\b\d+ (known|not delegatable|delegatable\b)'
-    'audit skill hardcodes a roster count' = ([System.IO.File]::ReadAllText("$SK\mcp-surface-audit\SKILL.md")) -match '\b\d+ (known|live)\b'
-    'capture-lesson restates the evidence rule' = ([System.IO.File]::ReadAllText("$SK\capture-lesson\SKILL.md")) -match 'never guess'
+    'audit skill hardcodes a roster count' = ([System.IO.File]::ReadAllText($auditSkill)) -match '\b\d+ (known|live)\b'
+    'capture-lesson restates the evidence rule' = ([System.IO.File]::ReadAllText($lessonSkill)) -match 'never guess'
     'agent restates the delegation table' = ($agent -split 'roster.json').Count -gt 3
     'agent lost the detail-levels pointer' = $agent -notmatch 'detail-levels\.md'
     'agent copies the detail-level rules' = $agent -match 'enum is closed|terse is deterministic'
+}
+# A variable used under two different capitalisations is the same variable in PowerShell, and a type
+# constraint or a null assignment then silently clobbers the other use. It cost two debug cycles in
+# this file alone ($store/[string]$Store, and $TK/$tk), so it is detected rather than remembered.
+$selfPath = $PSCommandPath
+if ($selfPath -and (Test-Path $selfPath)) {
+    $seen = @{}
+    $clash = @()
+    foreach ($line in [System.IO.File]::ReadAllLines($selfPath, [System.Text.Encoding]::UTF8)) {
+        if ($line.TrimStart().StartsWith('#')) { continue }
+        foreach ($m in [regex]::Matches($line, '\$([A-Za-z_][A-Za-z0-9_]*)')) {
+            $n = $m.Groups[1].Value
+            $lower = $n.ToLower()
+            if ($seen.ContainsKey($lower)) { if ($seen[$lower] -cne $n) { $clash += ($seen[$lower] + '/' + $n) } }
+            else { $seen[$lower] = $n }
+        }
+    }
+    $probes['a variable is used under two capitalisations (' + (@($clash | Sort-Object -Unique) -join ', ') + ')'] = (@($clash).Count -gt 0)
 }
 foreach ($k in $probes.Keys) {
     if (-not $Summary -or $probes[$k]) {
@@ -112,8 +214,14 @@ foreach ($k in $probes.Keys) {
     }
 }
 if ($Summary) { Write-Output ("  duplication probes: {0} of {1} flagged" -f @($probes.Keys | Where-Object { $probes[$_] }).Count, $probes.Count) }
+Ran 'probes' $probes.Count
+Note 'DUP' @($probes.Keys | Where-Object { $probes[$_] }).Count
+}
 
 Line '4. Memory budget and shape'
+if (-not (Test-Path $MEM)) {
+    Write-Output ("  SKIP    user memory folder not found: " + $MEM)
+} else {
 $tot = 0; $rules = 0; $facts = 0
 foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
     $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
@@ -123,43 +231,103 @@ foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
         elseif ($l -match '^\s*[-*]\s') { $facts++ }
     }
 }
-Write-Output ("  used={0}/200 lines  headroom={1}  rule-bullets={2}  fact-bullets={3}" -f $tot, (200 - $tot), $rules, $facts)
+$over = $tot - 200
+Write-Output ("  used={0}/200 lines  headroom={1}  rule-bullets={2}  fact-bullets={3}" -f $tot, (0 - $over), $rules, $facts)
+# The budget is the one number in this file that is a limit rather than a report. Exceeding it used to
+# print a negative headroom and still exit 0, which is a check that cannot fail.
+if ($over -gt 0) {
+    Write-Output ("  ISSUE   user memory exceeds the 200-line budget by {0}" -f $over)
+    Note 'ISSUE' 1
+}
+}
 
 Line '5. Repo facts: counts that could rot'
-$roster = Get-Content "$env:USERPROFILE\.copilot\roster.json" -Raw | ConvertFrom-Json
-$known = @(); foreach ($d in $roster.delegatable) { $known += $d.file }; foreach ($g in $roster.not_delegatable) { $known += $g.files }
-$live = Get-ChildItem $AG -Filter *.agent.md | ForEach-Object { $_.Name -replace '\.agent\.md$', '' }
+$rosterPath = "$env:USERPROFILE\.copilot\roster.json"
+# Defined before the roster is read. It used to be created only inside the success branch, so a
+# roster that failed to parse left it undefined and section 5b reported every installed toolkit
+# agent as "not in roster" - one parse error became N spurious findings.
+$known = @()
+$rosterOk = $false
+if (-not (Test-Path $rosterPath)) {
+    Write-Output ("  ISSUE   roster not found: " + $rosterPath)
+    Note 'ISSUE' 1
+} else {
+$roster = $null
+try { $roster = Get-Content $rosterPath -Raw | ConvertFrom-Json }
+catch { Write-Output '  ISSUE   roster.json is not valid JSON'; Note 'ISSUE' 1 }
+# `false`, `0`, `""` and `[]` all parse without error and are falsy, and null never has the two
+# arrays. The test is on the shape, not on truthiness: only something carrying `delegatable` or
+# `not_delegatable` can answer the question this section asks.
+if ($null -eq $roster) {
+    if (Test-Path $rosterPath) { Write-Output '  ISSUE   roster.json parsed to nothing' }
+}
+elseif (-not ($roster.PSObject.Properties.Name -contains 'delegatable') -and -not ($roster.PSObject.Properties.Name -contains 'not_delegatable')) {
+    Write-Output '  ISSUE   roster.json has neither delegatable nor not_delegatable'
+    Note 'ISSUE' 1
+}
+else {
+foreach ($d in $roster.delegatable) { if ($d -and $d.file) { $known += $d.file } }
+foreach ($g in $roster.not_delegatable) { if ($g -and $g.files) { $known += $g.files } }
+$rosterOk = $true
+$live = @(Get-ChildItem $AG -Filter *.agent.md -ErrorAction SilentlyContinue | ForEach-Object { $_.Name -replace '\.agent\.md$', '' })
 Write-Output ("  roster known={0} live={1} NEW={2} GONE={3}" -f $known.Count, $live.Count, @($live | Where-Object { $known -notcontains $_ }).Count, @($known | Where-Object { $live -notcontains $_ }).Count)
+# GONE is a defect: the roster names an agent that is not installed. NEW is a decision pending -
+# a human has to classify it - so it is reported but does not fail the run.
+Ran 'roster' $live.Count
+Note 'ISSUE' @($known | Where-Object { $live -notcontains $_ }).Count
+}
+}
 
 Line '5b. SAP AI Dev Toolkit: does the roster still cover what it installs?'
 # The toolkit gains agents and skills when it is upgraded, so a number written in prose goes
 # stale on its own. Derive everything from its own manifest instead of assuming a count.
+#
+# The local is $tkDoc, not $tk: PowerShell variable names are case-insensitive, so `$tk` and `$TK`
+# are the SAME variable. `$tk = $null` therefore cleared the path before it was read, every run, and
+# the section reported "toolkit manifest is not valid JSON" for a file that parses perfectly. That
+# trap is listed in this repository's own guidance and it still cost a debug cycle.
 $TK = "$env:USERPROFILE\.copilot\.sap-ai-dev-toolkit-assets.json"
 if (-not (Test-Path $TK)) {
     Write-Output '  no toolkit manifest - nothing to reconcile'
+    Ran 'toolkit' 0
 } else {
-    $tk = Get-Content $TK -Raw | ConvertFrom-Json
-    $map = @($tk.files)[0]
+    $tkDoc = $null
+    try { $tkDoc = Get-Content $TK -Raw | ConvertFrom-Json }
+    catch { Write-Output '  ISSUE   toolkit manifest is not valid JSON'; Note 'ISSUE' 1 }
+    $map = if ($tkDoc) { @($tkDoc.files)[0] } else { $null }
     $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @()
-    foreach ($p in $map.PSObject.Properties) {
+    foreach ($p in @(if ($map) { $map.PSObject.Properties })) {
         if ($p.Name -like 'agents\*') { $tkAgents += ($p.Name -replace '^agents\\', '' -replace '\.agent\.md$', '') }
         elseif ($p.Name -like 'skills\*') { $tkSkills += @(($p.Name -split '\\')[1]) }
         $f = Join-Path "$env:USERPROFILE\.copilot" $p.Name
-        if (-not (Test-Path $f)) { $gone += $p.Name }
-        elseif ((Get-FileHash $f -Algorithm SHA256).Hash.ToLower() -ne $p.Value) { $hashDrift += $p.Name }
+        if (-not (Test-Path $f)) { $gone += $p.Name; continue }
+        # An unreadable file threw here and left the drift count at zero, so a locked file read as
+        # "not edited since install". Reading is guarded and reported as drift instead.
+        try { $actual = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
+        catch { $hashDrift += ($p.Name + ' (unreadable)'); continue }
+        if ($actual -ne $p.Value) { $hashDrift += $p.Name }
     }
     # An agent the toolkit installs that the roster has not decided about is the failure case:
-    # it stays non-delegatable by default-deny, so nobody notices it is undocumented.
-    $undecided = @($tkAgents | Where-Object { $known -notcontains $_ })
+    # it stays non-delegatable by default-deny, so nobody notices it is undocumented. When the
+    # roster itself could not be read, comparing against an empty list would blame the toolkit for
+    # the roster's defect, so the comparison is skipped and said to be skipped.
     Write-Output ("  toolkit installs: {0} agents, {1} skills" -f $tkAgents.Count, $tkSkills.Count)
-    if ($undecided.Count -eq 0) {
-        Write-Output '  OK      every toolkit agent appears in the roster'
+    if (-not $rosterOk) {
+        Skip 'roster unreadable - cannot tell which toolkit agents are undecided'
     } else {
-        foreach ($u in $undecided) { Write-Output ("  ISSUE   toolkit agent not in roster: " + $u) }
+        $undecided = @($tkAgents | Where-Object { $known -notcontains $_ })
+        if ($undecided.Count -eq 0) {
+            Write-Output '  OK      every toolkit agent appears in the roster'
+        } else {
+            foreach ($u in $undecided) { Write-Output ("  ISSUE   toolkit agent not in roster: " + $u) }
+        }
+        Note 'ISSUE' $undecided.Count
     }
     Write-Output ("  {0} toolkit files edited since install, {1} missing" -f $hashDrift.Count, $gone.Count)
     foreach ($h in $hashDrift) { Write-Output ("          EDITED  " + $h) }
     foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
+    Ran 'toolkit' $tkAgents.Count
+    Note 'ISSUE' ($hashDrift.Count + $gone.Count)
 }
 
 Line '6. Repo memory: does it duplicate the agent?'
@@ -177,6 +345,10 @@ foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
     }
 }
 if ($Summary) { Write-Output ("  {0} repo-memory files, {1} mirror the agent table" -f $rmN, $rmMirror) }
+Ran 'memory' $rmN
+# A memory file that restates the routing table is a second home for a rule that already lives in
+# the agent. It was detected and then dropped on the floor: the number was printed, nothing counted it.
+Note 'ISSUE' $rmMirror
 
 # A note that nothing points at is the same as no note. Measured 2026-11-15: the most expensive
 # file in this folder (a 14.5 KB reverse-engineering deliverable) was named in no index and read by
@@ -197,8 +369,10 @@ if (Test-Path $rmIndex) {
     } else {
         foreach ($o in $orphans) { Write-Output ("  ISSUE   repo-memory file not in INDEX.md: " + $o) }
     }
+    Note 'ISSUE' $orphans.Count
 } else {
     Write-Output '  ISSUE   repo memory has no INDEX.md'
+    Note 'ISSUE' 1
 }
 }
 
@@ -213,19 +387,37 @@ $drift = @()
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
 # working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
 $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
-$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
+$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'skills\new-program\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
+# tooling\surface.json is deliberately absent from the list. It is runtime state: the sessionStart
+# hook rewrites the LIVE copy on every run, so comparing it against the repository snapshot would
+# report DRIFT forever, from the first session in which the hook fires. A check that can only fail is
+# as useless as one that can only pass.
+$missingLive = @()
+$compared = 0
 foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
            elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }
            elseif ($rel -like 'tooling*') { Join-Path "$env:USERPROFILE\.copilot\state" (Split-Path $rel -Leaf) }
            else { Join-Path $SK ($rel -replace 'skills\\', '') }
-    if ((Test-Path (Join-Path $REPO $rel)) -and (Test-Path $src)) {
+    if (-not (Test-Path (Join-Path $REPO $rel))) { $missingLive += ($rel + ' (absent from the repository)'); continue }
+    if (-not (Test-Path $src)) { $missingLive += ($rel + ' (not installed on this machine)'); continue }
+    # Both reads are guarded. An unreadable source file used to throw here and leave $b holding the
+    # PREVIOUS pair's text, so the comparison was against the wrong file and the verdict was whatever
+    # that produced.
+    try {
         $a = [System.IO.File]::ReadAllText((Join-Path $REPO $rel), [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
         $b = [System.IO.File]::ReadAllText($src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
-        if ($a -ne $b) { $drift += $rel }
     }
+    catch { $missingLive += ($rel + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); continue }
+    $compared++
+    if ($a -ne $b) { $drift += $rel }
 }
-if (@($drift).Count -eq 0) { Write-Output '  repo mirrors live files: identical' } else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) } }
+if (@($drift).Count -eq 0 -and $missingLive.Count -eq 0) { Write-Output '  repo mirrors live files: identical' }
+else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) }
+       foreach ($m in $missingLive) { Write-Output ("  MISSING: " + $m) } }
+Ran 'mirror' $compared
+Note 'DRIFT' @($drift).Count
+Note 'MISSING' $missingLive.Count
 Pop-Location
 }
 
@@ -237,9 +429,11 @@ $configs = [ordered]@{
     'vscode'   = "$env:APPDATA\Code\User\mcp.json"
     'copilot'  = "$env:USERPROFILE\.copilot\mcp-config.json"
 }
+$credChecked = 0
 foreach ($k in $configs.Keys) {
     $p = $configs[$k]
     if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); continue }
+    $credChecked++
     $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
     # A literal is a quoted value on a secret-bearing key that is not ${input:...} and not a
     # placeholder. The key list covers what ARC-1 itself reads as a secret (SAP_PASSWORD,
@@ -250,6 +444,7 @@ foreach ($k in $configs.Keys) {
     else {
         Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count)
         foreach ($m in $lit) { Write-Output ("           key: " + (($m.Value -split '"')[1])) }
+        Note 'HIT' $lit.Count
     }
 }
 
@@ -273,7 +468,10 @@ if (-not (Test-Path $envFile)) {
         }
     }
     if ($plainSecrets.Count -eq 0) { Write-Output '  envfile  OK      every secret line uses @secret' }
-    else { foreach ($s in $plainSecrets) { Write-Output ("  envfile  ISSUE   plaintext secret or bad line: " + $s) } }
+    else {
+        foreach ($s in $plainSecrets) { Write-Output ("  envfile  ISSUE   plaintext secret or bad line: " + $s) }
+        Note 'HIT' $plainSecrets.Count
+    }
 
     # And it must not sit inside a repository, where a stray `git add -f` could publish it.
     $dir = Split-Path $envFile -Parent
@@ -282,7 +480,7 @@ if (-not (Test-Path $envFile)) {
         if (Test-Path (Join-Path $dir '.git')) { $inRepo = $dir; break }
         $dir = Split-Path $dir -Parent
     }
-    if ($inRepo) { Write-Output ("  envfile  ISSUE   arc1.env is inside a repository: " + $inRepo) }
+    if ($inRepo) { Write-Output ("  envfile  ISSUE   arc1.env is inside a repository: " + $inRepo); $script:issues++ }
     else { Write-Output '  envfile  OK      outside every repository' }
 }
 
@@ -294,7 +492,7 @@ if (-not (Test-Path $connFile)) {
     Write-Output '  conns    absent  (arc1-connections.json not created yet)'
 } else {
     try { $cj = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
-    catch { $cj = $null; Write-Output '  conns    ISSUE   arc1-connections.json is not valid JSON' }
+    catch { $cj = $null; Write-Output '  conns    ISSUE   arc1-connections.json is not valid JSON'; $script:issues++ }
     if ($cj) {
         $bad = @()
         foreach ($p in $cj.connections.PSObject.Properties) {
@@ -304,11 +502,25 @@ if (-not (Test-Path $connFile)) {
             if ($p.Value.url -notmatch '^https?://') { $bad += ($p.Name + ' (bad url)') }
             if ($p.Value.client -notmatch '^\d{2,3}$') { $bad += ($p.Name + ' (bad client)') }
         }
-        $n = @($cj.connections.PSObject.Properties).Count
-        if ($bad.Count -eq 0) { Write-Output ("  conns    OK      {0} connection(s), every password is @secret" -f $n) }
-        else { foreach ($b in $bad) { Write-Output ("  conns    ISSUE   " + $b) } }
-        if ($cj.active -and -not ($cj.connections.PSObject.Properties.Name -contains $cj.active)) {
+        # A null connections object and an empty one both used to reach the OK branch: the foreach
+        # above ran zero times, and @($null.PSObject.Properties).Count is 1, not 0, so the line read
+        # "1 connection(s), every password is @secret" for a store with nothing in it. Measured.
+        $conns = @($cj.connections.PSObject.Properties | Where-Object { $_ })
+        $n = $conns.Count
+        if ($n -eq 0) {
+            Write-Output '  conns    ISSUE   the store holds no connections'
+            $script:issues++
+        }
+        elseif ($bad.Count -eq 0) { Write-Output ("  conns    OK      {0} connection(s), every password is @secret" -f $n) }
+        else {
+            foreach ($b in $bad) { Write-Output ("  conns    ISSUE   " + $b) }
+            # One connection can be wrong in three ways, and three lines were counted as three
+            # problems. A reader needs the count of connections to fix, not of complaints.
+            Note 'ISSUE' 1
+        }
+        if ($cj.active -and -not ($conns.Name -contains $cj.active)) {
             Write-Output ("  conns    ISSUE   active names a missing connection: " + $cj.active)
+            $script:issues++
         }
         $dir = Split-Path $connFile -Parent
         $inRepo = $null
@@ -316,8 +528,16 @@ if (-not (Test-Path $connFile)) {
             if (Test-Path (Join-Path $dir '.git')) { $inRepo = $dir; break }
             $dir = Split-Path $dir -Parent
         }
-        if ($inRepo) { Write-Output ("  conns    ISSUE   inside a repository: " + $inRepo) }
+        if ($inRepo) { Write-Output ("  conns    ISSUE   inside a repository: " + $inRepo); $script:issues++ }
     }
+}
+
+# Coverage for the whole credential section. Every line above can print "absent"/"no config" and
+# reach the verdict having inspected nothing, which reads the same as a pass.
+Ran 'credentials' ($credChecked + $(if (Test-Path $connFile) { 1 } else { 0 }))
+if ($credChecked -eq 0 -and -not (Test-Path $envFile) -and -not (Test-Path $connFile)) {
+    Write-Output '  ISSUE   no credential source found - mcp.json, mcp-config.json, arc1.env and the connection store are all absent'
+    Note 'ISSUE' 1
 }
 
 # The launcher is what keeps the MCP configs free of a password, so the wiring matters as much as
@@ -333,10 +553,10 @@ function Test-LauncherWiring($path, $rootKey, $label) {
         return
     }
     try { $cfg = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
-    catch { Write-Output ("  {0,-8} ISSUE   {1} is not valid JSON" -f $label, (Split-Path $path -Leaf)); return }
+    catch { Write-Output ("  {0,-8} ISSUE   {1} is not valid JSON" -f $label, (Split-Path $path -Leaf)); $script:issues++; return }
 
     $arc = $cfg.$rootKey.'arc-1'
-    if (-not $arc) { Write-Output ("  {0,-8} ISSUE   no arc-1 server in {1}" -f $label, (Split-Path $path -Leaf)); return }
+    if (-not $arc) { Write-Output ("  {0,-8} ISSUE   no arc-1 server in {1}" -f $label, (Split-Path $path -Leaf)); $script:issues++; return }
 
     $argLine = @($arc.args) -join ' '
     $named = $null
@@ -351,25 +571,25 @@ function Test-LauncherWiring($path, $rootKey, $label) {
     $cmdIsAbsolute = $cmd -match '^([A-Za-z]:\\|\\\\)'
 
     if (-not $named) {
-        Write-Output ("  {0,-8} ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>" -f $label)
+        Write-Output ("  {0,-8} ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>" -f $label); $script:issues++
     }
     elseif (-not $cmdIsAbsolute) {
-        Write-Output ("  {0,-8} ISSUE   arc-1 command '{1}' depends on PATH - use the absolute interpreter path" -f $label, $cmd)
+        Write-Output ("  {0,-8} ISSUE   arc-1 command '{1}' depends on PATH - use the absolute interpreter path" -f $label, $cmd); $script:issues++
     }
     elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_PASSWORD') {
-        Write-Output ("  {0,-8} ISSUE   arc-1 still passes SAP_PASSWORD in env" -f $label)
+        Write-Output ("  {0,-8} ISSUE   arc-1 still passes SAP_PASSWORD in env" -f $label); $script:issues++
     }
     elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_URL') {
-        Write-Output ("  {0,-8} ISSUE   arc-1 still sets SAP_URL in env - the connection store owns that value" -f $label)
+        Write-Output ("  {0,-8} ISSUE   arc-1 still sets SAP_URL in env - the connection store owns that value" -f $label); $script:issues++
     }
     elseif (-not (Test-Path $connFile)) {
-        Write-Output ("  {0,-8} ISSUE   names '{1}' but there is no connection store" -f $label, $named)
+        Write-Output ("  {0,-8} ISSUE   names '{1}' but there is no connection store" -f $label, $named); $script:issues++
     }
     else {
         try { $lc = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json } catch { $lc = $null }
-        if (-not $lc) { Write-Output ("  {0,-8} ISSUE   connection store is not valid JSON" -f $label) }
+        if (-not $lc) { Write-Output ("  {0,-8} ISSUE   connection store is not valid JSON" -f $label); $script:issues++ }
         elseif (-not ($lc.connections.PSObject.Properties.Name -contains $named)) {
-            Write-Output ("  {0,-8} ISSUE   names a connection that does not exist: {1}" -f $label, $named)
+            Write-Output ("  {0,-8} ISSUE   names a connection that does not exist: {1}" -f $label, $named); $script:issues++
         }
         else { Write-Output ("  {0,-8} OK      arc-1 -> launcher -> '{1}', no password in the config" -f $label, $named) }
     }
@@ -447,7 +667,9 @@ $placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.'
 
 $hits = 0
 $shapes = 0
+$scanned = 0
 foreach ($f in git ls-files) {
+    $scanned++
     $m = Select-String -Path (Join-Path $REPO $f) -Pattern $patterns -ErrorAction SilentlyContinue
     if ($m) { foreach ($x in $m) { Write-Output ("  HIT   " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $hits++ } }
 
@@ -479,9 +701,18 @@ if ($revs.Count -gt 0) {
     try {
         [System.IO.File]::WriteAllLines($rxFile, $patterns, (New-Object System.Text.UTF8Encoding($false)))
         $found = @(git grep -I -E -f $rxFile $revs 2>$null | Where-Object { $_ })
-        $histHits = $found.Count
-        $found | Select-Object -First 5 | ForEach-Object { Write-Output ("  HISTORY " + $_) }
-        if ($found.Count -gt 5) { Write-Output ("  HISTORY ... and {0} more" -f ($found.Count - 5)) }
+        # git grep prints "<sha>:<path>:<content>". The same bad line survives in every later commit,
+        # so counting the raw output reported one leaked value as three problems when it had been
+        # committed three times. A leak is a location, not a commit: dedupe on path + content.
+        $locations = @{}
+        foreach ($line in $found) {
+            $parts = $line -split ':', 3
+            if ($parts.Count -lt 3) { continue }
+            $locations[$parts[1] + '|' + $parts[2]] = $true
+        }
+        $histHits = $locations.Count
+        $locations.Keys | Select-Object -First 5 | ForEach-Object { Write-Output ("  HISTORY " + $_) }
+        if ($histHits -gt 5) { Write-Output ("  HISTORY ... and {0} more" -f ($histHits - 5)) }
     }
     finally { Remove-Item $rxFile -Force -ErrorAction SilentlyContinue }
 }
@@ -492,5 +723,66 @@ if ($histHits -gt 0) {
     Write-Output ("  history  clean across {0} commit(s)" -f $revs.Count)
 }
 Write-Output ("  sensitive = {0} value hit(s), {1} credential-shaped line(s), {2} in history" -f $hits, $shapes, $histHits)
+# Coverage, not just findings. With INDEX.md present but no git metadata - a copied kit, a damaged
+# .git, a worktree - the scan examined zero files and zero commits and still printed a clean summary.
+# The one check that exists to catch leaked credentials must never report success from an empty set.
+Ran 'secrets.scan' $scanned
+Ran 'secrets.history' $revs.Count
+if ($scanned -eq 0) {
+    Write-Output '  ISSUE   no tracked files to scan - the repository has no git index'
+    Note 'ISSUE' 1
+}
+if ($revs.Count -eq 0) {
+    Write-Output '  ISSUE   no commits to scan - git rev-list --all is empty'
+    Note 'ISSUE' 1
+}
+# Two categories, not one total. A value still in the working tree is also in history - the commit
+# that introduced it is part of `git rev-list --all` - so adding the two counters reported one leak
+# twice. They are separate fixes anyway: a working-tree hit is edited, a history hit is rewritten.
+Note 'HIT' $hits
+Note 'SHAPE' $shapes
+Note 'HISTORY' $histHits
 Pop-Location
 }
+
+# The verdict. Two things it must distinguish, because this check exists to be trusted:
+#
+#   1. Whether anything is wrong. Exit 1 means at least one check found something a human must act
+#      on.
+#   2. Whether anything was actually verified. Before this, "clean" and "nothing to look at" were
+#      the same output: no agents, no skills, no roster and no memory produced six zero lines and
+#      exit 0. So a run that verified too little is a third verdict, not a pass - it means the audit
+#      could not see the thing it was asked to audit.
+#
+# A SKIP is neither: the audit runs on machines that do not have every part installed, and a missing
+# optional part is not a defect. It is printed, so silence and success are never the same line.
+if ($script:issues -gt 0) {
+    # Some increments raise the total without naming a kind, because naming it at fifteen call sites
+    # is fifteen chances to add a sixteenth that forgets. Whatever the kinds do not account for is
+    # attributed here instead, so the bracket can never print empty while the count is non-zero.
+    $named = 0
+    foreach ($k in @($script:issueKinds.Keys)) { $named += $script:issueKinds[$k] }
+    if ($named -lt $script:issues) {
+        # Add, do not replace: an 'ISSUE' kind may already exist, and assigning would have reported
+        # one problem for six.
+        $extra = $script:issues - $named
+        if ($script:issueKinds.Contains('ISSUE')) { $script:issueKinds['ISSUE'] += $extra } else { $script:issueKinds['ISSUE'] = $extra }
+    }
+    $kinds = @($script:issueKinds.Keys | ForEach-Object { "$_=$($script:issueKinds[$_])" }) -join ' '
+    Write-Output ''
+    Write-Output ("RESULT: {0} problem(s) [{1}] - see the lines above" -f $script:issues, $kinds)
+    exit 1
+}
+# The threshold is not a number of items but a list of sections that must have examined something.
+# A count could be met by one talkative section while the rest saw nothing, and the floor of a real
+# clean run was exactly the old constant, so it could never fire on a machine that mostly worked.
+$silent = @($script:ran.Keys | Where-Object { $script:ran[$_] -eq 0 })
+if ($silent.Count -gt 0) {
+    Write-Output ''
+    Write-Output ("RESULT: inconclusive - these sections examined nothing: {0}" -f ($silent -join ', '))
+    Write-Output '  A pass here would mean the audit could not see its inputs, not that they are correct.'
+    exit 2
+}
+Write-Output ''
+Write-Output ("RESULT: clean - {0} item(s) verified across {1} section(s)" -f $script:verified, $script:ran.Count)
+exit 0
