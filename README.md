@@ -299,6 +299,17 @@ path from an early commit, are not in the history any more. Section 8 of `verify
 the values at run time from the gitignored connection store instead, so the check holds them
 without the repository holding them.
 
+**A working-tree scan cannot find this class of mistake, because the mistake is usually already
+gone from the working tree.** The leak above survived sixteen commits while every check passed.
+Section 8 now scans every commit as well as every tracked file, which costs about a tenth of a
+second at this size and reports the commit, the path and the line. If it ever finds something, the
+only fix is a rewritten history — so the check exists to make that rare enough to stay cheap.
+
+Before committing, the rule is one line: **if a value identifies a customer, a system, a person or
+a session, it belongs in a gitignored file, and the tracked file should say where to find it.**
+`tooling/verify-patterns.local.txt` is how a value the connection store cannot know about gets
+checked anyway: one value per line, ignored, never installed.
+
 **Clone and expect this:** a fresh clone gives you every file named above plus `AGENTS.md`,
 `INDEX.md`, `templates/`, and `Projects/README.md`. It does **not** give you a working SAP
 connection, memory, or project records — those are user-scoped and must be rebuilt per machine,

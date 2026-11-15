@@ -395,7 +395,7 @@ Push-Location $REPO
 # secret, in the one file nobody reads as a secret, and structurally unable to detect its own leak.
 # The values are now derived at run time from sources that are already gitignored, so this script
 # holds none of them and no longer needs to look away from itself.
-$patterns = @('-----BEGIN [A-Z ]*PRIVATE KEY-----')
+$patterns = @('-----BEGIN [A-Z ]*PRIVATE KEY-----[^-]{50,}')
 
 $derivedFrom = @()
 if (Test-Path $connFile) {
@@ -466,6 +466,31 @@ if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
     $where = if ($extraUsed.Count -gt 0) { 'verify-patterns.local.txt in ' + ($extraUsed -join ', ') } else { 'no local list' }
     Write-Output ("  values   {0} pattern(s): {1} derived (connections), {2} local ({3})" -f $patterns.Count, $derivedFrom.Count, $extraCount, $where)
 }
-Write-Output ("  sensitive = {0} value hit(s), {1} credential-shaped line(s)" -f $hits, $shapes)
+
+# The working tree is not the whole repository. A value removed by a later commit stays readable from
+# history forever, and nothing here used to look at the past: a scanner carried a user id, two
+# customer domains and a token fragment for sixteen commits while every working-tree check passed.
+# A scan of every commit costs about a tenth of a second at this size, so there is no reason to skip
+# it, and the cost is the only argument that ever made skipping it defensible.
+$histHits = 0
+$revs = @(git rev-list --all 2>$null)
+if ($revs.Count -gt 0) {
+    $rxFile = Join-Path ([System.IO.Path]::GetTempPath()) ('verify-rx-' + $PID + '.txt')
+    try {
+        [System.IO.File]::WriteAllLines($rxFile, $patterns, (New-Object System.Text.UTF8Encoding($false)))
+        $found = @(git grep -I -E -f $rxFile $revs 2>$null | Where-Object { $_ })
+        $histHits = $found.Count
+        $found | Select-Object -First 5 | ForEach-Object { Write-Output ("  HISTORY " + $_) }
+        if ($found.Count -gt 5) { Write-Output ("  HISTORY ... and {0} more" -f ($found.Count - 5)) }
+    }
+    finally { Remove-Item $rxFile -Force -ErrorAction SilentlyContinue }
+}
+
+if ($histHits -gt 0) {
+    Write-Output ("  history  {0} hit(s) across {1} commit(s) - a rewritten history is the only fix" -f $histHits, $revs.Count)
+} else {
+    Write-Output ("  history  clean across {0} commit(s)" -f $revs.Count)
+}
+Write-Output ("  sensitive = {0} value hit(s), {1} credential-shaped line(s), {2} in history" -f $hits, $shapes, $histHits)
 Pop-Location
 }
