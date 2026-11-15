@@ -6,7 +6,7 @@ Which files you may change, and how to prove it rather than guess.
 
 | Class | How to recognise it | Editing |
 | --- | --- | --- |
-| **User-owned** | filename ends `-by-pongg.agent.md`; or the skill is `mcp-surface-audit` | freely |
+| **User-owned** | filename ends `-by-pongg.agent.md`; or the skill lives in this kit's `skills/` folder | freely |
 | **Lock-tracked** | listed in `~/.agents/.skill-lock.json` | allowed, but the next `skills update` overwrites it |
 | **Installer-owned** | listed in `~/.copilot/.sap-ai-dev-toolkit-assets.json` | do not; a reinstall replaces the file and stops updating it once modified |
 
@@ -46,7 +46,7 @@ customise a lock-tracked skill, copy it to a new folder name and treat the copy 
 
 | Group | Edit |
 | --- | --- |
-| `mcp-surface-audit` | yes |
+| Skills in this kit's `skills/` folder | yes — the folder is the list, so a new skill needs no registry edit |
 | Skills with no upstream source | yes — nothing overwrites them |
 | Lock-tracked skills | editable, overwritten on update |
 | Installer-owned skills (SAP AI Dev Toolkit) | no — a reinstall replaces them |

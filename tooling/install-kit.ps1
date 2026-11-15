@@ -69,7 +69,9 @@ if (-not $Check) {
 }
 
 # What gets copied, and what is deliberately left alone.
-#   skills: only this kit's own three. Third-party skills come from `npx skills add <owner>/<repo>`,
+#   skills: every directory under skills\ that holds a SKILL.md - the folder is enumerated, not a
+#           list, so a skill added later is installed without editing this script. Third-party skills
+#           come from `npx skills add <owner>/<repo>`, never from here.
 #           and copying them here would fight their own update path.
 $plan = @()
 foreach ($f in Get-ChildItem (Join-Path $KitRoot 'agents') -File -Filter '*.agent.md' -ErrorAction SilentlyContinue) {

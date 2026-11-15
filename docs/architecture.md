@@ -74,7 +74,7 @@ Files are classified by who can safely edit them, not by where they sit.
 
 | Class | How to recognise it | Editing it |
 | --- | --- | --- |
-| User-owned | filename ends `-by-pongg`; skill `mcp-surface-audit` | freely |
+| User-owned | filename ends `-by-pongg`; a skill in this kit's `skills/` folder | freely |
 | Lock-tracked | listed in `~/.agents/.skill-lock.json` | edits are overwritten by the next `skills update` |
 | Installer-owned | listed in `~/.copilot/.sap-ai-dev-toolkit-assets.json` | never; a reinstall replaces the file and stops updating it once modified |
 

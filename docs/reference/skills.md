@@ -22,7 +22,7 @@ without checking first.
 | DietrichGebert/ponytail | `~/.agents/skills` | yes |
 | SAP AI Dev Toolkit | `~/.copilot/skills` | **no** |
 | No upstream source (hand-installed) | `~/.agents/skills` | **no** |
-| | `~/.copilot/skills`, hand-maintained | `~/.copilot/skills` | **no** — edited by hand |
+| | Hand-maintained in this kit | `~/.copilot/skills` | **no** — edited by hand |
 
 ## `~/.copilot/skills-disabled/` — parked on purpose
 

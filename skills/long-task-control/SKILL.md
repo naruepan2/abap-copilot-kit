@@ -43,10 +43,5 @@ A status report says what happened. A handoff lets the next session continue. It
 
 Point 5 is the one that gets left out and the one that causes the most damage next session.
 
-## Evidence has a lifetime
-
-A tool result is evidence only while it is still in context. When it falls out of context the fact
-reverts to `UNVERIFIED` and must be re-read before being relied on.
-
-Never cite an earlier result as if it were current — say it was verified earlier and re-verify before
-acting. A todo entry proves a step happened; it never proves the step succeeded.
+A todo entry proves a step happened; it never proves the step succeeded. So a handoff that says "all
+steps complete" and lists no evidence has told the next session nothing it can act on.

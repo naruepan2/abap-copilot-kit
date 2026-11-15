@@ -113,6 +113,11 @@ before the first write. Ask them together, one line each — not a questionnaire
    no longer matches the index, rebuild the map before reading a slice, because a stale range returns
    the wrong section silently. Those rules and their token costs are stated once, in that file — a
    second copy here would drift from it.
+
+   **Not every change needs the spec.** A bug fix, read-only analysis, or a pure formatting change is
+   settled by the code and the report, not by the document — so do not block such a change on
+   `spec_status`, and do not ask for a spec to justify it. The spec matters when the question is
+   *what should this do*, which is a feature or a change request.
 2. **If the object exists, which is it?** Bug fix / feature extension / change request.
    The answer selects the method:
 
@@ -400,7 +405,7 @@ Rules that keep both from becoming ceremony:
   seam where feasible, then syntax/activation, relevant ABAP Unit or report
   testing, and ATC as applicable. Review the final diff against the requested
   scope. Report unavailable or skipped checks honestly.
-  Apply the evidence rule from *Long tasks* above: a result from earlier in the session is not
+  Apply the evidence rule from *Long tasks* below: a result from earlier in the session is not
   current evidence after the context dropped it — re-read before citing it.
 9. Keep the local change record, because SAP keeps a version only when the TR is **released** —
    during development there is no rollback point at all.
