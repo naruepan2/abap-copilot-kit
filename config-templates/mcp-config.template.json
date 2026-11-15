@@ -1,9 +1,10 @@
 {
     "_comment": "TEMPLATE for the Copilot CLI, which reads %USERPROFILE%\\.copilot\\mcp-config.json. It cannot use ${input:...} - it can only pass --env KEY=VALUE - and its folder is readable by another group on Windows, so a password here would not be private. Instead the server entry names a connection, and sap-arc1-launcher.ps1 resolves the password from Windows Credential Manager at start. Copy this block into the arc-1 entry of your mcp-config.json; keep your own policy variables.",
     "_rule": "No SAP_PASSWORD in env. URL, client, user and language come from arc1-connections.json, so a second logon needs no edit here at all.",
+    "_command": "The interpreter is named by absolute path on purpose. A bare \"powershell\" only resolves while System32\\WindowsPowerShell\\v1.0 is on PATH, and a sandboxed or trimmed parent environment does not have it - the server then fails to start and the tools simply never appear.",
     "mcpServers": {
         "arc-1": {
-            "command": "powershell",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             "args": [
                 "-NoProfile",
                 "-ExecutionPolicy",

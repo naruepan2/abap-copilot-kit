@@ -41,6 +41,11 @@ $ErrorActionPreference = 'Stop'
 if (-not $Store) { $Store = Join-Path $PSScriptRoot 'arc1-connections.json' }
 if (-not $SecretScript) { $SecretScript = Join-Path $PSScriptRoot 'sap-secret.ps1' }
 
+# Bare 'powershell' only resolves while its own folder is on PATH, which a sandboxed parent may
+# trim. $PSHOME is the interpreter that is already running, so it is always correct.
+$PwshExe = Join-Path $PSHOME 'powershell.exe'
+if (-not (Test-Path $PwshExe)) { $PwshExe = (Get-Process -Id $PID).Path }
+
 function Read-Store {
     if (-not (Test-Path $Store)) { return [pscustomobject]@{ active = $null; connections = [pscustomobject]@{} } }
     $raw = [System.IO.File]::ReadAllText($Store, [System.Text.Encoding]::UTF8)
@@ -67,7 +72,7 @@ function Secret-Key($n) { return $n + '_SAP_PASSWORD' }
 function Secret-Present($n) {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $o = & powershell -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Test -Key (Secret-Key $n) 2>$null
+    $o = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Test -Key (Secret-Key $n) 2>$null
     $ErrorActionPreference = $prev
     return (($o -join '') -match '^PRESENT')
 }
@@ -119,7 +124,7 @@ if ($Remove) {
     if ($AlsoSecret) {
         $prev = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Remove -Key (Secret-Key $Name) 2>$null | Out-Null
+        & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Remove -Key (Secret-Key $Name) 2>$null | Out-Null
         $ErrorActionPreference = $prev
         Write-Output ("also removed its stored secret: " + (Secret-Key $Name))
     } else {

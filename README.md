@@ -188,15 +188,23 @@ entry for both harnesses; only the key above it differs (`mcpServers` for the Co
 
 ```json
 "arc-1": {
-  "command": "powershell",
+  "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
   "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File",
            "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1","-Connection","gsd-110"]
 }
 ```
 
+Name the interpreter by absolute path. A bare `"powershell"` resolves only while
+`System32\WindowsPowerShell\v1.0` is on `PATH`, and a sandboxed or trimmed parent does not have it:
+the server then fails to start and the only symptom is that its tools never appear. Measured, not
+assumed — under a trimmed `PATH` the spawn was `ENOENT`. The same rule applies inside the scripts,
+which use `$PSHOME` instead of a bare name.
+
 Keep the policy variables (`SAP_ALLOW_WRITES`, `SAP_ALLOWED_PACKAGES`, …) in `env`; the launcher
-only fills in URL, client, user, language and password. `verify-all.ps1` checks both files, so a
-config that drifts back to `npx` with a literal password is caught rather than discovered later.
+only fills in URL, client, user, language and password. Do not also set `SAP_URL` / `SAP_USER` here:
+two sources for one value drift apart. `verify-all.ps1` checks both files, so a config that drifts
+back to `npx` with a literal password, a bare interpreter name, or a duplicated `SAP_URL` is caught
+rather than discovered later.
 
 At start the launcher asks the system whether the stored password still authenticates
 (`sap-auth-probe.js`, run on Node so the verdict matches what ARC-1 would get):

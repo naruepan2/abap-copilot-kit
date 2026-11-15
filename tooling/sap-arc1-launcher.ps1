@@ -2,7 +2,7 @@
 #
 # What an MCP client stores is only this (the connection name, not its details):
 #
-#   "command": "powershell",
+#   "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
 #   "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File",
 #            "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1","-Connection","gsd-120"]
 #
@@ -42,6 +42,13 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not $Store) { $Store = Join-Path $PSScriptRoot 'arc1-connections.json' }
 if (-not $SecretScript) { $SecretScript = Join-Path $PSScriptRoot 'sap-secret.ps1' }
+
+# Never launch 'powershell' by bare name. It only resolves while its own folder is on PATH
+# (System32\WindowsPowerShell\v1.0), and a sandboxed or trimmed parent environment does not have
+# it. That failed with "no credential stored", which was a wrong diagnosis: the stored credential
+# was fine, the helper had never started. $PSHOME always points at the interpreter that is running.
+$PwshExe = Join-Path $PSHOME 'powershell.exe'
+if (-not (Test-Path $PwshExe)) { $PwshExe = (Get-Process -Id $PID).Path }
 
 if (-not (Test-Path $SecretScript)) {
     [Console]::Error.WriteLine("sap-arc1-launcher: missing helper at $SecretScript")
@@ -83,7 +90,7 @@ $secretKey = $Connection + '_SAP_PASSWORD'
 function Read-StoredSecret([string]$k) {
     $prevR = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $v = & powershell -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Read -Key $k 2>$null
+    $v = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Read -Key $k 2>$null
     $script:SecretReadCode = $LASTEXITCODE
     $ErrorActionPreference = $prevR
     return $v
@@ -188,7 +195,7 @@ if ($status -eq 'STALE') {
     $before = @([WinUi]::CredentialWindows())
 
     # Hidden on purpose: the credential dialog must not come with a console window behind it.
-    $prompt = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList @(
+    $prompt = Start-Process $PwshExe -PassThru -WindowStyle Hidden -ArgumentList @(
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $SecretScript,
         '-Set', '-Gui', '-Key', $secretKey
     )
@@ -249,7 +256,7 @@ if ($EnvFile) {
         if ($v.Trim() -eq '@secret') {
             $prev2 = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
-            $r2 = & powershell -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Read -Key $k 2>$null
+            $r2 = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Read -Key $k 2>$null
             $rc2 = $LASTEXITCODE
             $ErrorActionPreference = $prev2
             if ($rc2 -ne 0 -or [string]::IsNullOrEmpty($r2)) {

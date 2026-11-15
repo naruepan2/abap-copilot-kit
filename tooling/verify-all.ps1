@@ -343,11 +343,24 @@ function Test-LauncherWiring($path, $rootKey, $label) {
     if ($argLine -match 'sap-arc1-launcher\.ps1') {
         if ($argLine -match '-Connection\s+"?([A-Za-z0-9][A-Za-z0-9_-]*)"?') { $named = $Matches[1] }
     }
+
+    # A bare interpreter name only resolves while its own folder is on PATH. Measured: with a
+    # trimmed PATH (sandboxed parent) "powershell" was ENOENT, the server never started, and the
+    # only visible symptom was that its tools never appeared. Absolute path, always.
+    $cmd = [string]$arc.command
+    $cmdIsAbsolute = $cmd -match '^([A-Za-z]:\\|\\\\)'
+
     if (-not $named) {
         Write-Output ("  {0,-8} ISSUE   arc-1 does not start through sap-arc1-launcher.ps1 -Connection <name>" -f $label)
     }
+    elseif (-not $cmdIsAbsolute) {
+        Write-Output ("  {0,-8} ISSUE   arc-1 command '{1}' depends on PATH - use the absolute interpreter path" -f $label, $cmd)
+    }
     elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_PASSWORD') {
         Write-Output ("  {0,-8} ISSUE   arc-1 still passes SAP_PASSWORD in env" -f $label)
+    }
+    elseif ($arc.env.PSObject.Properties.Name -contains 'SAP_URL') {
+        Write-Output ("  {0,-8} ISSUE   arc-1 still sets SAP_URL in env - the connection store owns that value" -f $label)
     }
     elseif (-not (Test-Path $connFile)) {
         Write-Output ("  {0,-8} ISSUE   names '{1}' but there is no connection store" -f $label, $named)
