@@ -8,18 +8,20 @@
 #   -Set -Key NAME   prompt once and store (interactive; the value never enters a chat or a file)
 #   -Set -Gui -Key   same, but in the Windows credential dialog instead of the console. Use this
 #                    when the terminal that runs the script is not the one you can see.
-#
-# Start it hidden, or a console sits next to the dialog for no reason:
-#
-#   Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy',
-#     'Bypass','-File',$script,'-Set','-Gui','-Key','NAME'
-#
-# -WindowStyle Hidden was measured: the process then owns no visible window at all, and the only
-# thing on screen is the credential dialog itself (which is a CredentialUIBroker window, not ours).
 #   -Read -Key NAME   print it to stdout (the launcher captures it)
 #   -Test -Key NAME   report PRESENT/ABSENT and the length, without revealing the value
 #   -Remove -Key NAME delete the entry
 #   -List             list the ARC1 entries that exist
+#
+# To keep a console from sitting next to the dialog, start -Gui hidden. Use the full interpreter
+# path, not the bare name: the bare name only resolves while its own folder is on PATH, and a
+# sandboxed parent process does not have it.
+#
+#   Start-Process "$PSHOME\powershell.exe" -WindowStyle Hidden -ArgumentList '-NoProfile',
+#     '-ExecutionPolicy','Bypass','-File',$script,'-Set','-Gui','-Key','NAME'
+#
+# -WindowStyle Hidden was measured: the process then owns no visible window at all, and the only
+# thing on screen is the credential dialog itself (a CredentialUIBroker window, not ours).
 #
 # Any ARC-1 secret works without editing this script: SAP_PASSWORD, SAP_COOKIE_STRING,
 # SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, or one it gains later.
