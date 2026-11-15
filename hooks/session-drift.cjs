@@ -21,6 +21,10 @@ const SNAPSHOT = path.join(STATE_DIR, 'surface.json');
 const PREV = path.join(STATE_DIR, 'surface.prev.json');
 const ROSTER = path.join(COPILOT, 'roster.json');
 const MCP_JSON = path.join(process.env.APPDATA || '', 'Code', 'User', 'mcp.json');
+// The Copilot CLI's own list. Referenced by serverNamesCli below - it was not declared at all in the
+// first version of that function, so buildSurface() threw on every run, the catch turned it into an
+// empty object, and the snapshot was never written. `node --check` cannot see a missing identifier.
+const MCP_CLI_JSON = path.join(COPILOT, 'mcp-config.json');
 const EXT_DIR = path.join(HOME, '.vscode', 'extensions');
 
 function readJson(file) {
@@ -165,8 +169,11 @@ function rosterCoverage(surface, lines) {
     const roster = readJson(ROSTER);
     if (!roster) return;
     const known = [];
-    for (const d of roster.delegatable || []) known.push(d.file);
-    for (const g of roster.not_delegatable || []) for (const f of g.files || []) known.push(f);
+    // File stems only: the surface lists installed agent FILES. Guarded because a roster entry that
+    // carried only a display name would push `undefined` into the set and be reported as an agent
+    // that does not exist.
+    for (const d of roster.delegatable || []) if (d && d.file) known.push(d.file);
+    for (const g of roster.not_delegatable || []) for (const f of g.files || []) if (f) known.push(f);
     const undeclared = surface.agents.filter((a) => !known.includes(a));
     const dangling = known.filter((a) => !surface.agents.includes(a));
     if (undeclared.length) {

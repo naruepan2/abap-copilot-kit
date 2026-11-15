@@ -20,7 +20,7 @@ cover the system you are asking about, the agent must ask rather than guess.
 | --- | --- | --- |
 | `arc-1` | <system> | read and write |
 | `adt-mcp-server` | <system> | read and ATC only; **not** authorized for <other system> |
-| `abap-fs` | <system>, <system> | read-only inspection |
+| `murbani.vscode-abap-remote-fs` | <system>, <system> | read-only inspection |
 
 ## Fallbacks
 

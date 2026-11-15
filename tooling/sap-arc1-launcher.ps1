@@ -102,9 +102,10 @@ $rc = $script:SecretReadCode
 $errors = @()
 if ($c.password -eq '@secret') {
     if ($rc -ne 0 -or [string]::IsNullOrEmpty($secret)) {
-        # Two different failures, and the message should not guess between them: the helper can start
-        # and report nothing stored, or it can fail to run at all. Both leave the secret empty.
-        if ($rc -ne 0 -and [string]::IsNullOrEmpty($secret)) {
+        # Key the message off the exit code alone. The two failures read differently and a reader has to
+        # be able to tell them apart: the helper exited non-zero (it may have printed nothing at all),
+        # or it ran and reported no stored value.
+        if ($rc -ne 0) {
             $errors += "could not read credential for '$Connection' (key $secretKey) - the helper exited $rc, which is either 'nothing stored' or a failure to start; run: sap-secret.ps1 -Test -Key $secretKey"
         }
         else {

@@ -10,7 +10,8 @@ argument-hint: "Which SAP system and client, and what should the program do — 
 user-invocable: true
 # true, because roster.json classifies this agent as "self; the coordinator does not delegate to
 # itself". Measured 2026-11-15 on VS Code 1.146: a runSubagent call to this agent ran anyway with the
-# flag set, so the flag states the intent and the subagentStart hook is what enforces it. Keep both.
+# flag set. The flag states the intent; the subagentStart hook only injects a restricting block into
+# the child's context - no hook event can cancel a delegation, so nothing here prevents it.
 disable-model-invocation: true
 tools:
   - execute
@@ -536,9 +537,8 @@ The verified matching rules, and why a wildcard yields nothing for extension too
 
 ## Ownership gate
 
-Only these files are yours to change: agents whose filename ends `-by-pongg.agent.md`,
-and the skills in this kit's `skills/` folder — the folder is the list, so a new skill needs no
-registry edit here.
+Free to change: agents whose filename ends `-by-pongg.agent.md`, and the skills in this kit's
+`skills/` folder - the folder is the list, so a new skill needs no registry edit here.
 
 Before changing any agent or skill, ask in one message:
 

@@ -137,13 +137,13 @@ foreach ($i in $plan) {
         # hash comparison says otherwise. Rewriting it costs one file write and makes the two answers
         # agree; leaving it means every future check has to explain itself.
         #
-        # Compare the NORMALISED text on both sides. Hashing the raw source against a normalised
-        # destination compares two different things, so a repository file stored as CRLF reported
-        # "line-ending only" on every run and the counter never reached zero - an install that can
-        # never converge hides a real drift in the standing five.
-        $nb = [System.Text.Encoding]::UTF8.GetBytes($a)
-        $mb = [System.Text.Encoding]::UTF8.GetBytes($b)
-        $bytesDiffer = -not ([System.Convert]::ToBase64String($nb) -eq [System.Convert]::ToBase64String($mb))
+        # Compare BYTES on both sides, from the files as they are on disk. Comparing the normalised
+        # strings here made this test provably false - $a and $b are already CRLF-stripped, so they
+        # differ in bytes only when they differ in content, and a CRLF destination was reported
+        # "already identical" and never rewritten. The counter converged because it could never fire.
+        $rawA = [System.IO.File]::ReadAllBytes($i.Src)
+        $rawB = [System.IO.File]::ReadAllBytes($i.Dest)
+        $bytesDiffer = -not ([System.Convert]::ToBase64String($rawA) -eq [System.Convert]::ToBase64String($rawB))
         if ($bytesDiffer -and -not $Check) { Write-Normalised $i.Src $i.Dest; $normalised++ }
         elseif ($bytesDiffer) { $normalised++ }
         else { $same++ }

@@ -1,5 +1,5 @@
 {
-    "$comment":  "Delegation allowlist for the ABAP Developer by Pongg agent. ALLOWLIST, not denylist: an agent not listed under \u0027delegatable\u0027 may not be delegated to, including any agent installed after this file was last verified. Only a human edits this file.",
+    "$comment":  "Delegation allowlist for the ABAP Developer by Pongg agent. ALLOWLIST, not denylist: an agent not listed under \u0027delegatable\u0027 may not be delegated to, including any agent installed after this file was last verified. Only a human edits this file. `file` (or `files`) is mandatory on every entry: the coverage checks compare installed file stems against exactly those fields. `display` (or `displays`) is an additional spelling used only for matching, because the harness sends the frontmatter name.",
     "version":  1,
     "verified":  "2026-11-15",
     "delegatable":  [

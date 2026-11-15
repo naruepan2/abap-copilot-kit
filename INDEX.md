@@ -14,7 +14,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `skills/new-program/` | Scaffold a new project or program record without guessing a SID |
 | `skills/rap-lifecycle/` | The nine-step RAP create-and-publish chain, with the owning server per step |
 | `skills/long-task-control/` | Stop condition, handoff, and why evidence expires |
-| `hooks/` | Detection-only hooks; only `*.json.template` is committed |
+| `hooks/` | Detection-only hooks: three `*.cjs` scripts plus `hooks.json.template` |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
 | `config-templates/` | `mcp.json` (VS Code), `mcp-config.json` (Copilot CLI), `settings.json` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |

@@ -67,6 +67,11 @@ function keys(entry) {
     if (!entry) return out;
     add(entry.file);
     add(entry.display);
+    // The harness has been seen sending the display name with and without the " by <author>" suffix:
+    // the full form for the delegatable agents, the short form for the coordinator. One extra key
+    // removes the dependence on which one it picks. Normalise() turns the stripped form into the same
+    // shape as a file stem.
+    add(String(entry.display || '').replace(/\s+by\s+.+$/i, ''));
     for (const f of entry.files || []) add(f);
     for (const d of entry.displays || []) add(d);
     return out;

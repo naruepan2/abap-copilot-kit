@@ -481,8 +481,11 @@ elseif (-not $parseFailed -and -not ($roster.PSObject.Properties.Name -contains 
     Note 'ISSUE' 1
 }
 elseif (-not $parseFailed) {
+# `$known` stays FILE STEMS only. Adding the display names here would make every display name look
+# like an agent that is installed nowhere, and GONE would report three false positives. Guarded for
+# null so a roster entry carrying only a display does not inject an empty entry.
 foreach ($d in $roster.delegatable) { if ($d -and $d.file) { $known += $d.file } }
-foreach ($g in $roster.not_delegatable) { if ($g -and $g.files) { $known += $g.files } }
+foreach ($g in $roster.not_delegatable) { if ($g -and $g.files) { foreach ($f in $g.files) { if ($f) { $known += $f } } } }
 # An empty allowlist is not a usable roster: it would make every installed toolkit agent "not in
 # roster", which is the roster's defect reported N times as the toolkit's.
 if ($known.Count -gt 0) { $rosterOk = $true }
@@ -655,7 +658,7 @@ foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
     # name, which is how every row of the real table in the agent file begins. Matching any row that
     # merely contains "ARC-1" flagged an index line that only says where the password pipeline is
     # documented, and a probe that fires on prose is a probe someone turns off.
-    $mirror = $t -match '(?m)^\|\s*`?(arc-1|adt-mcp-server|abap-fs|SAPRead|SAPWrite|SAPSearch|SAPContext)\b'
+    $mirror = $t -match '(?m)^\|\s*`?(arc-1|adt-mcp-server|murbani\.vscode-abap-remote-fs|SAPRead|SAPWrite|SAPSearch|SAPContext)\b'
     $dated = $t -match 'verified \d{4}-\d{2}-\d{2}'
     $rmN++; if ($mirror) { $rmMirror++ }
     if (-not $Summary -or $mirror) {
@@ -1011,14 +1014,21 @@ if (Test-Path $setPath) {
     $raw = $null
     try { $raw = [System.IO.File]::ReadAllText($setPath, [System.Text.Encoding]::UTF8) } catch { $raw = $null }
     if ($raw) {
-        # settings.json is JSONC. Strip comments and trailing commas before parsing, the same tolerance
-        # hooks/session-drift.cjs uses, so a comment in the settings file does not read as a defect.
-        $json = [regex]::Replace($raw, '(?m)^\s*//.*$', '')
-        $json = [regex]::Replace($json, '/\*[\s\S]*?\*/', '')
-        $json = [regex]::Replace($json, ',(\s*[}\]])', '$1')
+        # Strict JSON first. settings.json is JSONC, but most of it parses as-is, and stripping first
+        # corrupted a glob containing /* ... */ into unbalanced JSON and then fell through to the
+        # product default - so "copilot": false was ignored and the duplicate was reported anyway.
         $sc = $null
-        try { $sc = $json | ConvertFrom-Json } catch { $sc = $null }
-        if ($sc -and ($sc.PSObject.Properties.Name -contains 'chat.mcp.discovery.enabled')) {
+        try { $sc = $raw | ConvertFrom-Json } catch { $sc = $null }
+        if (-not $sc) {
+            $json = [regex]::Replace($raw, '(?m)^\s*//.*$', '')
+            $json = [regex]::Replace($json, ',(\s*[}\]])', '$1')
+            try { $sc = $json | ConvertFrom-Json } catch { $sc = $null }
+        }
+        if (-not $sc) {
+            Write-Output '  ISSUE   settings.json could not be parsed - the discovery state is unknown, not default'
+            Note 'ISSUE' 1
+        }
+        elseif ($sc.PSObject.Properties.Name -contains 'chat.mcp.discovery.enabled') {
             $d = $sc.'chat.mcp.discovery.enabled'
             if ($d -is [bool]) { $discState = $(if ($d) { 'all sources on' } else { 'all sources off' }) }
             elseif ($d.PSObject.Properties.Name -contains 'copilot') { $discState = $(if ($d.copilot) { 'copilot on' } else { 'copilot off' }) }
@@ -1041,7 +1051,9 @@ if ($overlap.Count -gt 0) {
 elseif ($cfgRead -gt 0) {
     Write-Output '  OK      no server name is declared in both configs'
 }
-Ran 'mcp-sources' $cfgRead
+# A machine with no MCP config examined nothing, and a zero here would make the verdict inconclusive
+# on a clean machine - the same defect this commit fixed for 'parked' and 'toolkit'.
+if ($cfgRead -gt 0) { Ran 'mcp-sources' $cfgRead } else { Skip 'no MCP config found - nothing to compare' }
 
 Line '9. Sensitive values in any tracked file'
 if (-not $repoOk) {
