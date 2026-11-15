@@ -6,8 +6,16 @@
 # entry, addressed by the ARC-1 variable name.
 #
 #   -Set -Key NAME   prompt once and store (interactive; the value never enters a chat or a file)
-#   -Set -Gui -Key   same, but in a Windows dialog instead of the console. Use this when the
-#                    terminal that runs the script is not the one you can see.
+#   -Set -Gui -Key   same, but in the Windows credential dialog instead of the console. Use this
+#                    when the terminal that runs the script is not the one you can see.
+#
+# Start it hidden, or a console sits next to the dialog for no reason:
+#
+#   Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy',
+#     'Bypass','-File',$script,'-Set','-Gui','-Key','NAME'
+#
+# -WindowStyle Hidden was measured: the process then owns no visible window at all, and the only
+# thing on screen is the credential dialog itself (which is a CredentialUIBroker window, not ours).
 #   -Read -Key NAME   print it to stdout (the launcher captures it)
 #   -Test -Key NAME   report PRESENT/ABSENT and the length, without revealing the value
 #   -Remove -Key NAME delete the entry
@@ -134,54 +142,92 @@ public static class CredMan {
 
 if (-not ('CredMan' -as [type])) { Add-Type -TypeDefinition $sig -Language CSharp }
 
-# A modal dialog that returns the typed value, or $null if cancelled. The console prompt below is
-# invisible when this script is started from a terminal the user cannot see - which happened, and
-# read as "nothing is happening". A window cannot be missed.
+# Windows' own credential dialog, not a hand-built form. CredUIPromptForWindowsCredentialsW is the
+# same dialog Windows shows for a network share or an RDP logon, so it looks like the operating
+# system, scales with DPI, and works with a screen reader and the keyboard. A hand-built WinForms
+# form was tried first and looked like an unfinished utility.
+$credUiSig = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public static class CredUi {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct CREDUI_INFO {
+        public int cbSize;
+        public IntPtr hwndParent;
+        public string pszMessageText;
+        public string pszCaptionText;
+        public IntPtr hbmBanner;
+    }
+
+    [DllImport("credui.dll", EntryPoint = "CredUIPromptForWindowsCredentialsW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern int Prompt(
+        ref CREDUI_INFO pUiInfo,
+        int dwAuthError,
+        ref uint pulAuthPackage,
+        IntPtr pvInAuthBuffer,
+        uint ulInAuthBufferSize,
+        out IntPtr ppvOutAuthBuffer,
+        out uint pulOutAuthBufferSize,
+        ref int pfSave,
+        uint dwFlags);
+
+    [DllImport("credui.dll", EntryPoint = "CredUnPackAuthenticationBufferW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool Unpack(
+        uint dwFlags,
+        IntPtr pAuthBuffer,
+        uint cbAuthBuffer,
+        StringBuilder pszUserName,
+        ref uint pcchMaxUserName,
+        StringBuilder pszDomainName,
+        ref uint pcchMaxDomainName,
+        StringBuilder pszPassword,
+        ref uint pcchMaxPassword);
+
+    [DllImport("ole32.dll")]
+    public static extern void CoTaskMemFree(IntPtr pv);
+
+    const uint CREDUIWIN_GENERIC = 1;
+    const int ERROR_CANCELLED = 1223;
+
+    // Returns the password, or null when the user cancelled. The generic package shows a user name
+    // and a password field; only the password is returned, because that is all we store.
+    public static string AskPassword(string caption, string message) {
+        CREDUI_INFO info = new CREDUI_INFO();
+        info.cbSize = Marshal.SizeOf(typeof(CREDUI_INFO));
+        info.pszCaptionText = caption;
+        info.pszMessageText = message;
+
+        uint authPackage = 0;
+        int save = 0;
+        IntPtr outBuffer;
+        uint outSize;
+        int rc = Prompt(ref info, 0, ref authPackage, IntPtr.Zero, 0, out outBuffer, out outSize, ref save, CREDUIWIN_GENERIC);
+        if (rc == ERROR_CANCELLED) return null;
+        if (rc != 0) throw new InvalidOperationException("CredUIPromptForWindowsCredentials returned " + rc);
+        try {
+            uint userLen = 514, domainLen = 514, passLen = 514;
+            StringBuilder u = new StringBuilder((int)userLen);
+            StringBuilder d = new StringBuilder((int)domainLen);
+            StringBuilder p = new StringBuilder((int)passLen);
+            if (!Unpack(0, outBuffer, outSize, u, ref userLen, d, ref domainLen, p, ref passLen)) {
+                throw new InvalidOperationException("CredUnPackAuthenticationBuffer failed: " + Marshal.GetLastWin32Error());
+            }
+            return p.ToString();
+        } finally {
+            CoTaskMemFree(outBuffer);
+        }
+    }
+}
+'@
+
+# Returns the typed secret, or $null if cancelled. The console prompt is invisible when this script
+# is started from a terminal the user cannot see - which happened, and read as "nothing is
+# happening". A native window cannot be missed.
 function Read-SecretGui([string]$Label) {
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = 'ARC-1 credential'
-    $form.ClientSize = New-Object System.Drawing.Size(420, 130)
-    $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
-    $form.TopMost = $true
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = $Label
-    $lbl.Location = New-Object System.Drawing.Point(12, 12)
-    $lbl.Size = New-Object System.Drawing.Size(396, 36)
-    $form.Controls.Add($lbl)
-
-    $tb = New-Object System.Windows.Forms.TextBox
-    $tb.UseSystemPasswordChar = $true
-    $tb.Location = New-Object System.Drawing.Point(12, 52)
-    $tb.Size = New-Object System.Drawing.Size(396, 23)
-    $tb.TabIndex = 0
-    $form.Controls.Add($tb)
-
-    $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = 'Store'
-    $ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
-    $ok.Location = New-Object System.Drawing.Point(252, 88)
-    $form.Controls.Add($ok)
-
-    $no = New-Object System.Windows.Forms.Button
-    $no.Text = 'Cancel'
-    $no.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-    $no.Location = New-Object System.Drawing.Point(333, 88)
-    $form.Controls.Add($no)
-
-    $form.AcceptButton = $ok
-    $form.CancelButton = $no
-    $form.Add_Shown({ $tb.Focus() })
-    $result = $form.ShowDialog()
-    $value = $tb.Text
-    $form.Dispose()
-    if ($result -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
-    return $value
+    if (-not ('CredUi' -as [type])) { Add-Type -TypeDefinition $credUiSig -Language CSharp }
+    return [CredUi]::AskPassword('ARC-1 credential store', $Label)
 }
 
 if ($Set) {

@@ -29,6 +29,7 @@ memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
 tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
                    sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher,
+                   sap-auth-probe (does the stored password still work),
                    install-kit (copy agents/tooling/skills into place on a machine)
 backup/            recovery snapshot of user memory (nothing loads it)
 Projects/          convention only — local notebook, gitignored

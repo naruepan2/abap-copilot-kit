@@ -75,7 +75,10 @@ $plan = @()
 foreach ($f in Get-ChildItem (Join-Path $KitRoot 'agents') -File -Filter '*.agent.md' -ErrorAction SilentlyContinue) {
     $plan += [pscustomobject]@{ Kind = 'agents'; Name = $f.Name; Src = $f.FullName; Dest = (Join-Path $dest.agents $f.Name) }
 }
-foreach ($f in Get-ChildItem (Join-Path $KitRoot 'tooling') -File -Filter '*.ps1' -ErrorAction SilentlyContinue) {
+# Every file in tooling, not only *.ps1: sap-auth-probe.js is part of the launcher and was silently
+# left behind by a *.ps1 filter, which made the launcher report "no node" instead of probing.
+foreach ($f in Get-ChildItem (Join-Path $KitRoot 'tooling') -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Extension -in @('.ps1', '.js', '.json') }) {
     $plan += [pscustomobject]@{ Kind = 'tooling'; Name = $f.Name; Src = $f.FullName; Dest = (Join-Path $dest.tooling $f.Name) }
 }
 foreach ($d in Get-ChildItem (Join-Path $KitRoot 'skills') -Directory -ErrorAction SilentlyContinue) {
