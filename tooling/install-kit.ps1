@@ -32,7 +32,12 @@ if (-not $KitRoot) { $KitRoot = $env:ABAP_KIT_ROOT }
 if (-not $KitRoot -or -not (Test-Path (Join-Path $KitRoot 'INDEX.md'))) {
     $pinPath = Join-Path $PSScriptRoot 'kit-root.txt'
     if (Test-Path $pinPath) {
-        $pinned = ([System.IO.File]::ReadAllText($pinPath, [System.Text.Encoding]::UTF8)).Trim()
+        # Guarded, like verify-all's copy of this rule. Under EAP=Stop an unreadable pin - a lock held
+        # by a concurrent run, an ACL - terminated the whole script with raw .NET text instead of
+        # falling through to the parent-folder fallback three lines down. Measured 2026-11-16: three
+        # copies of the rule, one of which knew the trap.
+        $pinned = $null
+        try { $pinned = ([System.IO.File]::ReadAllText($pinPath, [System.Text.Encoding]::UTF8)).Trim() } catch { $pinned = $null }
         if ($pinned -and (Test-Path (Join-Path $pinned 'INDEX.md'))) { $KitRoot = $pinned }
     }
 }

@@ -21,18 +21,30 @@ $AGDIR = "$env:USERPROFILE\.copilot\agents"
 $main  = Join-Path $AGDIR 'abap-developer-by-pongg.agent.md'
 
 function Read-Utf8([string]$p) {
-    # Under EAP=Continue a failed read returns nothing and the caller receives $null, so every number
-    # computed downstream describes a file that was never opened. Returning a sentinel string makes the
-    # failure visible in the output instead of arithmetically plausible.
+    # A failed read returns $null, never ''. The comment above this line used to promise a sentinel and
+    # then return an empty string, which every caller summed as a zero-char file - the same defect this
+    # tool exists to measure, wearing the tool's own name. $null forces each call site to decide, and
+    # every one of them now records the file in $unread instead of lowering the total in silence.
     try { return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
-    catch { return '' }
+    catch { return $null }
+}
+# A file whose last line ends in a newline has one fewer line than -split reports. Measured 2026-11-16
+# on the live memory folder: the naive form counted 21/56/25 lines for 20/55/24 real ones. The 200-line
+# budget is a gate, so at the boundary the phantom line fails a compliant tree.
+function Get-LineCount([string]$t) {
+    if ([string]::IsNullOrEmpty($t)) { return 0 }
+    $n = ($t -split "`r?`n").Count
+    if ($t.EndsWith("`n")) { $n-- }
+    return $n
 }
 function Tok([int]$chars) { return [int]($chars / 4) }
 function Num([int]$n) { return $n.ToString('N0') }
 
 function Get-Sections([string]$path) {
     $raw = Read-Utf8 $path
+    if ($null -eq $raw) { return @() }
     $lines = $raw -split "`r?`n"
+    if ($lines.Count -gt 1 -and $lines[$lines.Count - 1] -eq '') { $lines = @($lines[0..($lines.Count - 2)]) }
     $cur = '(preamble)'; $start = 0; $out = @()
     for ($i = 0; $i -lt $lines.Count; $i++) {
         if ($lines[$i] -match '^#{1,3}\s') {
@@ -55,11 +67,13 @@ function Get-Sections([string]$path) {
 # exist to prevent for the other roots. Measured 2026-11-15: APPDATA redirected to an empty tree gave
 # "memory 0 files", TOTAL 25,574 instead of 31,625, and no warning at all.
 $memRows = @()
+$unread = @()
 $memMissing = -not (Test-Path $MEM)
 if (-not $memMissing) {
     foreach ($f in Get-ChildItem $MEM -File -Filter *.md | Sort-Object Name) {
         $t = Read-Utf8 $f.FullName
-        $memRows += [pscustomobject]@{ Name = $f.Name; Chars = $t.Length; Lines = (($t -split "`r?`n").Count) }
+        if ($null -eq $t) { $unread += ('memory/' + $f.Name); continue }
+        $memRows += [pscustomobject]@{ Name = $f.Name; Chars = $t.Length; Lines = (Get-LineCount $t) }
     }
 }
 $grand = 0
@@ -76,6 +90,7 @@ foreach ($root in $ROOTS) {
         $s = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path $s)) { continue }
         $t = Read-Utf8 $s
+        if ($null -eq $t) { $unread += ($d.Name + '/SKILL.md'); continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
         $len = 0
         if ($m.Success) { $len = $m.Groups[1].Value.Length }
@@ -94,9 +109,13 @@ if ($Detail -eq 'terse') {
     if ($memMissing) { Write-Output ("           WARNING memory folder not found, its notes are NOT in this total: {0}" -f $MEM) }
     foreach ($mr in $missingRoots) { Write-Output ("           WARNING root not found, its skills are NOT in this total: {0}" -f $mr) }
     if (-not (Test-Path $AGDIR)) { Write-Output ("           WARNING agent folder not found: {0}" -f $AGDIR) }
+    if ($unread.Count -gt 0) { Write-Output ("           WARNING {0} file(s) unreadable, their chars are NOT in this total: {1}" -f $unread.Count, ($unread -join ', ')) }
     Write-Output ("           TOTAL           {0,7} chars  ~{1,6} tok   every request" -f (Num $always), (Num (Tok $always)))
+    $mainText = $null
+    if (Test-Path $main) { $mainText = Read-Utf8 $main }
     $mainChars = 0
-    if (Test-Path $main) { $mainChars = (Read-Utf8 $main).Length }
+    if ($null -eq $mainText) { Write-Output ("per-run    WARNING main agent unreadable, its chars are NOT in this total: {0}" -f $main) }
+    else { $mainChars = $mainText.Length }
     Write-Output ("per-run    main agent          {0,7} chars  ~{1,6} tok   only when it runs" -f (Num $mainChars), (Num (Tok $mainChars)))
     $heavy = $skillRows | Sort-Object FM -Descending | Select-Object -First 1
     if ($heavy) {
@@ -148,6 +167,9 @@ if ($Detail -eq 'raw') {
 }
 
 Write-Output '=== 1. USER MEMORY (loaded into every request) ==='
+if ($unread.Count -gt 0) {
+    Write-Output ("  WARNING {0} file(s) unreadable, their chars are NOT in any total below: {1}" -f $unread.Count, ($unread -join ', '))
+}
 foreach ($r in $memRows) {
     Write-Output ("  {0,-20} {1,6} chars  ~{2,5} tok  ({3} lines)" -f $r.Name, $r.Chars, (Tok $r.Chars), $r.Lines)
 }
@@ -172,6 +194,7 @@ Write-Output '=== 3. AGENT FILES (full body loads only when that agent runs) ===
 $agentTotal = 0
 foreach ($f in Get-ChildItem $AGDIR -Filter *.md | Sort-Object Name) {
     $t = Read-Utf8 $f.FullName
+    if ($null -eq $t) { Write-Output ("  {0,-50} unreadable" -f $f.Name); continue }
     $agentTotal += $t.Length
     Write-Output ("  {0,-50} {1,6} chars  ~{2,5} tok" -f $f.Name, $t.Length, [int]($t.Length / 4))
 }
@@ -206,4 +229,11 @@ Write-Output ''
 Write-Output '=== 7. TOTALS ==='
 $always = $grand + $skillTotal
 Write-Output ("  always-on (memory+skills): {0} chars  ~{1} tok" -f $always, [int]($always / 4))
-Write-Output ("  if the main agent runs:    +{0} chars  ~{1} tok" -f (Read-Utf8 $main).Length, [int]((Read-Utf8 $main).Length / 4))
+$mainText = $null
+if (Test-Path $main) { $mainText = Read-Utf8 $main }
+if ($null -eq $mainText) {
+    Write-Output '  if the main agent runs:    unreadable, its chars are NOT in this total'
+}
+else {
+    Write-Output ("  if the main agent runs:    +{0} chars  ~{1} tok" -f $mainText.Length, [int]($mainText.Length / 4))
+}

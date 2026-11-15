@@ -44,7 +44,10 @@ $KitRoot = $env:ABAP_KIT_ROOT
 if (-not $KitRoot) {
     $pin = Join-Path $PSScriptRoot 'kit-root.txt'
     if (Test-Path $pin) {
-        $pinned = ([System.IO.File]::ReadAllText($pin, [System.Text.Encoding]::UTF8)).Trim()
+        # Guarded, like verify-all's copy of this rule. Under EAP=Stop an unreadable pin terminated the
+        # script with raw .NET text instead of falling through to the parent folder below.
+        $pinned = $null
+        try { $pinned = ([System.IO.File]::ReadAllText($pin, [System.Text.Encoding]::UTF8)).Trim() } catch { $pinned = $null }
         if ($pinned -and (Test-Path (Join-Path $pinned 'INDEX.md'))) { $KitRoot = $pinned }
     }
 }
@@ -278,7 +281,17 @@ if ($RepoMemory) {
 $credentialFiles = @()
 foreach ($p in @($plan) + @($memoryPlan)) {
     if (-not $p -or -not $p.Src) { continue }
-    foreach ($m in @(Select-String -Path $p.Src -Pattern $shape -ErrorAction SilentlyContinue)) {
+    # -ErrorAction SilentlyContinue overrode the script's top-level Stop, so a file that could not be
+    # opened produced an empty match list - which is exactly what a clean file produces. The one gate
+    # that exists to stop a password reaching a repository was therefore deciding from an empty set.
+    # An unreadable file is now a refusal, the rule verify-all section 9 already applies to itself.
+    $hits = @()
+    try { $hits = @(Select-String -Path $p.Src -Pattern $shape -ErrorAction Stop) }
+    catch {
+        [Console]::Error.WriteLine('workspace-sync: refusing to mirror - cannot scan for credentials: ' + $p.Rel + ' (' + $_.Exception.GetType().Name + ')')
+        exit 1
+    }
+    foreach ($m in $hits) {
         if ($m.Line -match $placeholder) { continue }
         $credentialFiles += ($p.Rel + ':' + $m.LineNumber + '  ' + $m.Line.Trim())
     }

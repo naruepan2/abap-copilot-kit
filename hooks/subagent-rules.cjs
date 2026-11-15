@@ -58,7 +58,7 @@ function normalise(value) {
 // fix for a real defect: normalise() used to strip " by pongg", a suffix the stems do not carry, so
 // the allowlist never matched a display name and every delegatable agent was classified "not listed
 // in roster.json" and restricted. The log on this machine recorded it before the fix.
-function keys(entry) {
+function keys(entry, withShortDisplay) {
     const out = [];
     const add = (v) => {
         const k = normalise(v);
@@ -69,9 +69,15 @@ function keys(entry) {
     add(entry.display);
     // The harness has been seen sending the display name with and without the " by <author>" suffix:
     // the full form for the delegatable agents, the short form for the coordinator. One extra key
-    // removes the dependence on which one it picks. Normalise() turns the stripped form into the same
-    // shape as a file stem.
-    add(String(entry.display || '').replace(/\s+by\s+.+$/i, ''));
+    // removes the dependence on which one it picks.
+    //
+    // It is a WIDER spelling, so it belongs on the deny side only. Adding it to the allow list meant
+    // an agent installed as `<display minus " by X">` - for this roster `sap-se38-report-tester`,
+    // `sap-st22-dump-analyst`, `sap-abap-reverse-engineering-analyst` - was trusted although the
+    // roster never named that file, contradicting the rule two lines below that nothing but the
+    // roster entry itself may inherit its trust. Measured 2026-11-16: those three keys were not
+    // equal to any file stem, and section 5c could not see it because it only probed `.file`.
+    if (withShortDisplay) add(String(entry.display || '').replace(/\s+by\s+.+$/i, ''));
     for (const f of entry.files || []) add(f);
     for (const d of entry.displays || []) add(d);
     return out;
@@ -110,15 +116,16 @@ function classify(agentName, roster) {
     // The allow list is a permission, so it requires an exact match: nothing but the roster entry
     // itself may inherit its trust. The deny list is a restriction, so a broader match is the safe
     // direction - if a name resembles something the roster refused, refuse it.
-    const exact = (list) => list.find((e) => keys(e).includes(want)) || null;
-    const fuzzy = (list) => list.find((e) => keys(e).some((n) => want.startsWith(`${n}-`) || n.startsWith(`${want}-`))) || null;
+    const exact = (list, withShortDisplay) => list.find((e) => keys(e, withShortDisplay).includes(want)) || null;
+    const fuzzy = (list) => list.find((e) => keys(e, true).some((n) => want.startsWith(`${n}-`) || n.startsWith(`${want}-`))) || null;
 
-    const allow = exact(allowed);
+    // The allow list is a permission, so the narrower spelling: exact match on what the roster names.
+    const allow = exact(allowed, false);
     if (allow) return { trusted: true, role: allow.role };
 
     // Deny is checked with both, and deny wins over "not listed": the reason is more useful when it
     // names the entry the roster actually refused.
-    const deny = exact(blocked) || fuzzy(blocked);
+    const deny = exact(blocked, true) || fuzzy(blocked);
     if (deny) {
         const named = deny.file || deny.display || '(unnamed entry)';
         return {

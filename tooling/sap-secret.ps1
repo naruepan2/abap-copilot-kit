@@ -87,9 +87,16 @@ public static class CredMan {
     const uint CRED_TYPE_GENERIC = 1;
     const uint CRED_PERSIST_LOCAL_MACHINE = 2;
 
+    public static int LastReadError = 0;
+
     public static string Read(string target) {
         IntPtr ptr;
-        if (!CredRead(target, CRED_TYPE_GENERIC, 0, out ptr)) return null;
+        // A failed CredRead is not the same fact as "nothing stored". The Win32 error was discarded,
+        // so ERROR_NO_SUCH_LOGON_SESSION (1312), ERROR_ACCESS_DENIED (5) and a damaged store all read
+        // as ABSENT, and the caller told the user to re-enter a password that was already there. Same
+        // class as F-006/F-017, one layer below the fix they applied.
+        LastReadError = 0;
+        if (!CredRead(target, CRED_TYPE_GENERIC, 0, out ptr)) { LastReadError = Marshal.GetLastWin32Error(); return null; }
         try {
             CREDENTIAL cred = (CREDENTIAL)Marshal.PtrToStructure(ptr, typeof(CREDENTIAL));
             return Marshal.PtrToStringUni(cred.CredentialBlob, (int)(cred.CredentialBlobSize / 2));
@@ -256,13 +263,27 @@ if ($Remove) {
 
 if ($Test) {
     $v = [CredMan]::Read($Target)
-    if ($null -eq $v) { Write-Output "ABSENT  $Target" } else { Write-Output ("PRESENT " + $Target + "  (" + $v.Length + " chars)") }
+    if ($null -ne $v) { Write-Output ("PRESENT " + $Target + "  (" + $v.Length + " chars)") }
+    elseif ([CredMan]::LastReadError -eq 1168) { Write-Output "ABSENT  $Target" }
+    else {
+        # 1168 = ERROR_NOT_FOUND. Anything else means the read failed, and sap-connection.ps1 already
+        # maps any line that is neither PRESENT nor ABSENT to 'ERROR' - so the caller gets UNKNOWN
+        # instead of being told to re-enter a working password.
+        [Console]::Error.WriteLine("UNKNOWN " + $Target + "  (CredRead failed, Win32 error " + [CredMan]::LastReadError + ")")
+        exit 2
+    }
     exit 0
 }
 
 if ($Read) {
     $v = [CredMan]::Read($Target)
-    if ($null -eq $v) { [Console]::Error.WriteLine("nothing stored for $Key - run: sap-secret.ps1 -Set -Key $Key"); exit 1 }
+    if ($null -eq $v) {
+        if ([CredMan]::LastReadError -ne 1168) {
+            [Console]::Error.WriteLine("could not read $Key - CredRead failed (Win32 error " + [CredMan]::LastReadError + "), so this is not a statement that nothing is stored")
+            exit 2
+        }
+        [Console]::Error.WriteLine("nothing stored for $Key - run: sap-secret.ps1 -Set -Key $Key"); exit 1
+    }
     Write-Output $v
     exit 0
 }

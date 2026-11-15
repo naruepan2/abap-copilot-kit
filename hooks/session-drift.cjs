@@ -177,8 +177,16 @@ function rosterCoverage(surface, lines) {
     // File stems only: the surface lists installed agent FILES. Guarded because a roster entry that
     // carried only a display name would push `undefined` into the set and be reported as an agent
     // that does not exist.
-    for (const d of roster.delegatable || []) if (d && d.file) known.push(d.file);
-    for (const g of roster.not_delegatable || []) for (const f of g.files || []) if (f) known.push(f);
+    for (const d of roster.delegatable || []) {
+        if (!d) continue;
+        if (d.file) known.push(d.file);
+        for (const f of d.files || []) if (f) known.push(f);
+    }
+    for (const g of roster.not_delegatable || []) {
+        if (!g) continue;
+        if (g.file) known.push(g.file);
+        for (const f of g.files || []) if (f) known.push(f);
+    }
     const undeclared = surface.agents.filter((a) => !known.includes(a));
     const dangling = known.filter((a) => !surface.agents.includes(a));
     if (undeclared.length) {

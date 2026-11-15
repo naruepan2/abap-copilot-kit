@@ -136,11 +136,23 @@ function main() {
         return;
     }
 
+    // A failed read is not an empty ledger. The old catch set `existing = ''`, the next line replaced
+    // it with HEADER, and the write below then overwrote the real ledger with a header plus one row -
+    // losing every captured failure and restarting the occurrence count that is this hook's only
+    // output. Only ENOENT means "no ledger yet"; a sharing violation or an ACL means "do not touch it".
     let existing = '';
     try {
         existing = fs.readFileSync(file, 'utf8');
         if (existing.charCodeAt(0) === 0xfeff) existing = existing.slice(1);
-    } catch {
+    } catch (e) {
+        if (!e || e.code !== 'ENOENT') {
+            try {
+                process.stderr.write(`lesson-capture: cannot read ${file} (${(e && e.code) || 'error'}); ledger not touched\n`);
+            } catch {
+                /* stderr is best effort */
+            }
+            return;
+        }
         existing = '';
     }
 
@@ -154,7 +166,16 @@ function main() {
 
     try {
         fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(file, existing.endsWith('\n') ? existing + row : `${existing}\n${row}`);
+        // Unbounded before: every failure appended for ever and the whole file was rewritten each
+        // time. Measured 2026-11-16: +71 bytes per event, about 750 KB at 10,000 failures, so the
+        // rewrite cost grew with the ledger's age. Same cap the subagent log already uses.
+        let next = existing.endsWith('\n') ? existing + row : `${existing}\n${row}`;
+        const MAX_BYTES = 256 * 1024;
+        if (Buffer.byteLength(next, 'utf8') > MAX_BYTES) {
+            const keep = next.split('\n').filter(Boolean).slice(-250);
+            next = `${HEADER}${keep.join('\n')}\n`;
+        }
+        fs.writeFileSync(file, next);
     } catch {
         return;
     }

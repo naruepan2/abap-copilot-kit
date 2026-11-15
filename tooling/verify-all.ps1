@@ -109,6 +109,27 @@ function Note([string]$kind, $n) {
 }
 function Skip($t) { Write-Output ("  SKIP    " + $t) }
 
+# A file whose last line ends in a newline has one fewer line than -split reports. Measured 2026-11-16
+# on the live memory folder: 21/56/25 lines reported for 20/55/24 real ones, total 102 for 99. The
+# 200-line budget is a gate, so the phantom line turned a compliant tree into "exceeds by 1".
+function Get-RealLineCount([string]$t) {
+    if ([string]::IsNullOrEmpty($t)) { return 0 }
+    $n = ($t -split "`r?`n").Count
+    if ($t.EndsWith("`n")) { $n-- }
+    return $n
+}
+# git cat-file --batch-check="%(objecttype)" answers a resolvable object with its type ALONE, and an
+# unresolvable one with "<input> missing" - one line either way. Comparing the raw line to 'commit'
+# therefore described a missing commit as "resolves to a <sha> missing, not a commit", and the
+# 'no such object' branch could never fire. Proved 2026-11-16: a 40-hex non-object printed
+# "deadbeef... missing" and exited 0.
+function Get-EvidenceType([string]$line) {
+    if ([string]::IsNullOrWhiteSpace($line)) { return 'missing' }
+    $v = $line.Trim()
+    if ($v -match '\smissing$') { return 'missing' }
+    return $v
+}
+
 # Records how many inputs a section actually examined. A section that saw nothing is either a SKIP
 # (its input is optional and absent) or a silent failure, and the two were indistinguishable before.
 function Ran([string]$name, $n) {
@@ -298,7 +319,7 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         Note 'ISSUE' 1
         continue
     }
-    $n = 0; $bad = 0
+    $n = 0; $bad = 0; $badLinks = 0
     foreach ($d in Get-ChildItem $root -Directory) {
         $s = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path $s)) { continue }
@@ -310,11 +331,19 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         catch { Write-Output ("    BAD  " + $d.Name + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); $bad++; continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
         if (-not $m.Success -or $t -notmatch 'name:' -or $t -notmatch 'description:') { $bad++; Write-Output ("    BAD  " + $d.Name) }
+        # A deferral to references/ is only worth writing if the target exists. A skill collection met
+        # in the wild on 2026-11-16 had a 9,333-char reference its SKILL.md never mentioned and no
+        # check that could notice; the reverse - a link to a file nobody wrote - fails at the moment
+        # the agent needs it, which is worse. Zero cost: the file is already in memory here.
+        foreach ($ln in [regex]::Matches($t, '\]\((\./)?(references/[^)\s]+)\)')) {
+            $rel = $ln.Groups[2].Value
+            if (-not (Test-Path (Join-Path $d.FullName $rel))) { $badLinks++; Write-Output ("    BAD  " + $d.Name + ' (broken reference link: ' + $rel + ')') }
+        }
     }
     $label = (Split-Path $root -Parent | Split-Path -Leaf) + ':' + (Split-Path $root -Leaf)
-    Write-Output ("  {0,-30} skills={1,3}  bad_frontmatter={2}" -f $label, $n, $bad)
+    Write-Output ("  {0,-30} skills={1,3}  bad_frontmatter={2}  bad_links={3}" -f $label, $n, $bad, $badLinks)
     Ran 'skills' $n
-    Note 'BAD' $bad
+    Note 'BAD' ($bad + $badLinks)
 }
 
 Line '2b. Parked skills stayed parked (a designed state must not revert silently)'
@@ -434,13 +463,17 @@ foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
     try { $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) }
     catch { Write-Output ("  ISSUE   unreadable memory file: " + $f.Name); Note 'ISSUE' 1; continue }
     $memRead++
-    $tot += ($t -split "`r?`n").Count
+    $tot += Get-RealLineCount $t
     foreach ($l in ($t -split "`r?`n")) {
         if ($l -match '^\s*[-*]\s' -and $l -match '\b(never|always|do not|prefer|ask|verify)\b') { $rules++ }
         elseif ($l -match '^\s*[-*]\s') { $facts++ }
     }
 }
 $over = $tot - 200
+# Self-test, because this arithmetic had no gate and was therefore wrong on every run. A helper that
+# is only ever called from the place it was written for is not tested at all.
+$lcProbe = @((Get-RealLineCount "a`nb`n"), (Get-RealLineCount "a`r`nb"), (Get-RealLineCount ''), (Get-RealLineCount 'a'))
+if (($lcProbe -join ',') -ne '2,2,0,1') { Write-Output ("  ISSUE   line-count self-test failed: " + ($lcProbe -join ',')); Note 'ISSUE' 1 }
 Write-Output ("  used={0}/200 lines  headroom={1}  rule-bullets={2}  fact-bullets={3}" -f $tot, (0 - $over), $rules, $facts)
 # Coverage, in this branch specifically. The section had no Ran call at all, so an empty memory
 # folder printed used=0/200 and the verdict could not tell it from a memory that was read and fine.
@@ -491,8 +524,21 @@ elseif (-not $parseFailed) {
 # `$known` stays FILE STEMS only. Adding the display names here would make every display name look
 # like an agent that is installed nowhere, and GONE would report three false positives. Guarded for
 # null so a roster entry carrying only a display does not inject an empty entry.
-foreach ($d in $roster.delegatable) { if ($d -and $d.file) { $known += $d.file } }
-foreach ($g in $roster.not_delegatable) { if ($g -and $g.files) { foreach ($f in $g.files) { if ($f) { $known += $f } } } }
+# Both spellings, because the roster's own comment permits `file` (or `files`) and the hook supports
+# both. Reading only `.file` on the allow side meant a valid roster written with files:[...] made
+# section 5 report its installed agents as GONE and section 5b raise "toolkit agent not in roster" -
+# a false exit 1 from exactly the asymmetry F-035 fixed in the hook. Measured 2026-11-16 by adding a
+# files:[...] entry to a copy of the roster.
+foreach ($d in $roster.delegatable) {
+    if (-not $d) { continue }
+    if ($d.file) { $known += $d.file }
+    foreach ($f in @($d.files)) { if ($f) { $known += $f } }
+}
+foreach ($g in $roster.not_delegatable) {
+    if (-not $g) { continue }
+    if ($g.file) { $known += $g.file }
+    foreach ($f in @($g.files)) { if ($f) { $known += $f } }
+}
 # An empty allowlist is not a usable roster: it would make every installed toolkit agent "not in
 # roster", which is the roster's defect reported N times as the toolkit's.
 if ($known.Count -gt 0) { $rosterOk = $true }
@@ -590,15 +636,38 @@ elseif (-not $rosterOk) {
 else {
     # The hook reads $HOME\.copilot\roster.json and appends its own log, so the probes run against a
     # throwaway home holding a copy of the live roster. Nothing outside that folder is touched.
+    # A killed run never reaches the finally below, so every hard-stopped audit left its probe home in
+    # TEMP for ever. Measured 2026-11-16: hookprobe-15060 survived a Ctrl+C the night before, with two
+    # files in it. Sweep the stale ones only - a concurrent run's home is minutes old, not hours.
+    Get-ChildItem ([System.IO.Path]::GetTempPath()) -Directory -Filter 'hookprobe-*' -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-1) } |
+        ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
     $probeHome = Join-Path ([System.IO.Path]::GetTempPath()) ('hookprobe-' + $PID)
     New-Item -ItemType Directory -Force -Path (Join-Path $probeHome '.copilot') | Out-Null
     Copy-Item $rosterPath (Join-Path $probeHome '.copilot\roster.json') -Force
     $cases = @()
     foreach ($d in $roster.delegatable) {
-        if (-not $d.file) { continue }
-        $cases += , @([string]$d.file, $true)
-        if ($d.display) { $cases += , @([string]$d.display, $true) }
-        $cases += , @(([string]$d.file + '-evil'), $false)
+        $names = @()
+        if ($d.file) { $names += [string]$d.file }
+        foreach ($f in @($d.files)) { if ($f) { $names += [string]$f } }
+        foreach ($n in $names) {
+            $cases += , @($n, $true)
+            $cases += , @(($n + '-evil'), $false)
+        }
+        foreach ($x in @(@($d.display) + @($d.displays))) {
+            if (-not $x) { continue }
+            $cases += , @([string]$x, $true)
+            # The hook ALSO accepts the display with its " by <author>" suffix stripped, because the
+            # harness spells the coordinator's name that way. On the allow list that extra key is a
+            # permission the roster never granted: an agent installed as `<display minus " by X">`
+            # was trusted without appearing in the roster, which contradicts the hook's own stated
+            # rule. Probe it and expect RESTRICTED, unless the roster itself names it.
+            $derived = ([string]$x -replace '\s+by\s+.*$', '')
+            $derivedKey = ($derived.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
+            if ($derived -ne [string]$x -and $derivedKey -and $known -notcontains $derivedKey) {
+                $cases += , @($derived, $false)
+            }
+        }
     }
     $cases += , @('no-such-agent-by-pongg', $false)
     $cases += , @('', $false)
@@ -1360,6 +1429,10 @@ if (-not $repoOk) {
             # evidence that resolves to a tree or a blob is rejected instead of accepted merely for
             # existing. Missing refs come back as the literal 'missing'.
             $evShas = @($fl.findings | Where-Object { $_ -and $_.status -eq 'fixed' -and $_.evidence -match '^[0-9a-f]{7,40}$' } | ForEach-Object { [string]$_.evidence })
+            # Self-test the classifier on the two shapes git actually produces, plus the fallback. The
+            # 'no such object' branch it feeds was unreachable for two rounds with no test to notice.
+            $evProbe = @((Get-EvidenceType 'commit'), (Get-EvidenceType 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef missing'), (Get-EvidenceType 'tree'), (Get-EvidenceType ''))
+            if (($evProbe -join ',') -ne 'commit,missing,tree,missing') { Write-Output ("  ISSUE   evidence-type self-test failed: " + ($evProbe -join ',')); Note 'ISSUE' 1 }
             $evTypes = @{}
             if ($evShas.Count -gt 0) {
                 Push-Location $REPO
@@ -1369,7 +1442,7 @@ if (-not $repoOk) {
                     # A hashtable keyed by the ref as written. Duplicate refs are harmless: the same
                     # value is stored twice. A short ref answers with its own line, which is why the
                     # lookup uses the input string and not the resolved object name.
-                    $evTypes[$evShas[$bi]] = if ($bi -lt $bc.Count) { ([string]$bc[$bi]).Trim() } else { 'missing' }
+                    $evTypes[$evShas[$bi]] = Get-EvidenceType ([string]$bc[$bi])
                 }
             }
             foreach ($f in @($fl.findings)) {
