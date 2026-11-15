@@ -420,14 +420,24 @@ if (Test-Path $connFile) {
 
 # Hand-written extras, also local and also gitignored: a service key, a token fragment, a system id
 # the connection store cannot know about.
-$extraFile = Join-Path $PSScriptRoot 'verify-patterns.local.txt'
+#
+# Looked for in three places, because this script runs from two: beside the script (the clone, or
+# the live copy), beside the connection store, and in the clone's tooling folder when it can be
+# found. Without the third, the same script reported six patterns from the clone and five from the
+# live copy - a check that silently weakens depending on where it was started is worse than none.
 $extraCount = 0
-if (Test-Path $extraFile) {
+$extraUsed = @()
+$candidates = @($PSScriptRoot, (Split-Path $connFile -Parent))
+if ($repoOk) { $candidates += (Join-Path $REPO 'tooling') }
+foreach ($dir in @($candidates | Where-Object { $_ } | Select-Object -Unique)) {
+    $extraFile = Join-Path $dir 'verify-patterns.local.txt'
+    if (-not (Test-Path $extraFile)) { continue }
     foreach ($raw in [System.IO.File]::ReadAllLines($extraFile, [System.Text.Encoding]::UTF8)) {
         $t = $raw.Trim()
         if ($t -eq '' -or $t.StartsWith('#')) { continue }
         $patterns += [regex]::Escape($t); $extraCount++
     }
+    $extraUsed += $dir
 }
 
 # A credential-shaped assignment, minus the placeholders that fill the templates. Reported apart
@@ -453,7 +463,8 @@ foreach ($f in git ls-files) {
 if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
     Write-Output '  values   none derived - no connection store yet, so only generic shapes are checked'
 } else {
-    Write-Output ("  values   {0} pattern(s): {1} derived (connections), {2} from verify-patterns.local.txt" -f $patterns.Count, $derivedFrom.Count, $extraCount)
+    $where = if ($extraUsed.Count -gt 0) { 'verify-patterns.local.txt in ' + ($extraUsed -join ', ') } else { 'no local list' }
+    Write-Output ("  values   {0} pattern(s): {1} derived (connections), {2} local ({3})" -f $patterns.Count, $derivedFrom.Count, $extraCount, $where)
 }
 Write-Output ("  sensitive = {0} value hit(s), {1} credential-shaped line(s)" -f $hits, $shapes)
 Pop-Location
