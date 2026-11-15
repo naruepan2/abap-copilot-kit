@@ -174,15 +174,22 @@ function log(line) {
         fs.mkdirSync(STATE_DIR, { recursive: true });
         // Bounded on purpose. This file is appended to on every subagent start - about 88 bytes each,
         // measured - and had no cap, rotation or truncation path, so it grew without limit for the
-        // life of the machine (0.84 MB after 10,000 events). The last 500 lines are enough to answer
-        // "why was this agent restricted" without turning a log into an archive; when the cap is
-        // crossed the file is rewritten with its newest half.
+        // life of the machine (0.84 MB after 10,000 events).
+        //
+        // Truncated by BYTES, not by a line count. A fixed 250 lines could not converge: a restricted
+        // entry carries the roster's whole reason text, measured 2026-11-16 at a mean of 197 B and a
+        // maximum of 637 B, so 250 lines is up to 159 KB - still over the 64 KB cap, and every later
+        // event would re-read and re-write the whole file for ever. Keeping the last half-cap means
+        // the rewrite happens once per ~32 KB of events instead of once per event.
         const MAX_BYTES = 64 * 1024;
         try {
             const st = fs.statSync(LOG);
             if (st.size > MAX_BYTES) {
-                const keep = fs.readFileSync(LOG, 'utf8').split('\n').filter(Boolean).slice(-250);
-                fs.writeFileSync(LOG, keep.join('\n') + '\n');
+                const all = fs.readFileSync(LOG, 'utf8');
+                const tail = all.slice(-Math.floor(MAX_BYTES / 2));
+                const cut = tail.indexOf('\n');
+                const keep = cut >= 0 ? tail.slice(cut + 1) : tail;
+                fs.writeFileSync(LOG, keep.endsWith('\n') || keep === '' ? keep : `${keep}\n`);
             }
         } catch {
             /* no log yet, or unreadable: appending below is still the best effort */

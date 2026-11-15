@@ -195,12 +195,10 @@ read them from that output instead of quoting a number remembered from a previou
 written into prose here goes stale exactly like any other duplicated fact.
 
 **Run this manually.** Do not wait for the `sessionStart` drift hook: per-event firing differs in
-this harness. Measured 2026-11-15 - `subagentStart` fires (its log gains a line per spawn) while
-`postToolUseFailure` has never written a ledger here, and `sessionStart` writes the snapshot but the
-event name itself is unverified. `chat.useHooks` and `chat.hookFilesLocation` are documented as
-Local-harness only while `chat.defaultToCopilotHarness` defaults to `true`. Treat the drift check as
-an on-demand step, and never report a hook as having run until a firing is observed in a log or a
-changed file. Full table: `docs/reference/environment.md`.
+this harness, and `chat.useHooks` is documented as Local-harness only while
+`chat.defaultToCopilotHarness` defaults to `true`. Treat the drift check as an on-demand step, and
+never report a hook as having run until a firing is observed in a log or a changed file. Measured
+per-event behaviour: `docs/reference/environment.md`.
 
 Interpretation:
 

@@ -38,6 +38,26 @@ function Get-LineCount([string]$t) {
     return $n
 }
 function Tok([int]$chars) { return [int]($chars / 4) }
+# What a skill actually costs per request is its name and description, not its whole YAML block. The
+# frontmatter of every skill in this tree was summed whole, which counted licence, maintainer,
+# orientation metadata and keyword lists that VS Code never sends. Measured 2026-11-16 across 58
+# skills: 23,805 chars of frontmatter against 21,133 that can be injected - over-counted by 2,672,
+# concentrated in three third-party skills (sap-abap-cds +930, sapui5 +873, sap-abap +408).
+# The tool's only job is that number, so it now counts the injected keys and prints the difference
+# when there is one; a reader can then see which file to look at instead of trusting a total.
+function Get-InjectedFrontmatter([string]$fm) {
+    if ([string]::IsNullOrEmpty($fm)) { return 0 }
+    $mode = ''; $n = 0
+    foreach ($l in ($fm -split "`r?`n")) {
+        if ($l -match '^([A-Za-z_$][\w$.-]*):') {
+            $key = $Matches[1].ToLower()
+            if ($key -eq 'name' -or $key -eq 'description') { $mode = 'keep' } else { $mode = '' }
+        }
+        elseif ($l -notmatch '^\s' -and $l -ne '') { $mode = '' }
+        if ($mode -eq 'keep') { $n += $l.Length + 1 }
+    }
+    return $n
+}
 function Num([int]$n) { return $n.ToString('N0') }
 
 function Get-Sections([string]$path) {
@@ -92,20 +112,26 @@ foreach ($root in $ROOTS) {
         $t = Read-Utf8 $s
         if ($null -eq $t) { $unread += ($d.Name + '/SKILL.md'); continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
-        $len = 0
-        if ($m.Success) { $len = $m.Groups[1].Value.Length }
-        $skillRows += [pscustomobject]@{ Root = $root; Name = $d.Name; FM = $len; Full = $t.Length }
+        $len = 0; $rawFm = 0
+        if ($m.Success) { $rawFm = $m.Groups[1].Value.Length; $len = Get-InjectedFrontmatter $m.Groups[1].Value }
+        $skillRows += [pscustomobject]@{ Root = $root; Name = $d.Name; FM = $len; Full = $t.Length; Raw = $rawFm }
     }
 }
 $skillTotal = 0
 foreach ($r in $skillRows) { $skillTotal += $r.FM }
+$skillRaw = 0
+foreach ($r in $skillRows) { $skillRaw += $r.Raw }
 $skillCount = $skillRows.Count
-
 # == terse =====================================================================
 if ($Detail -eq 'terse') {
     $always = $grand + $skillTotal
     Write-Output ("always-on  memory  {0,3} files  {1,7} chars  ~{2,6} tok" -f $memRows.Count, (Num $grand), (Num (Tok $grand)))
     Write-Output ("           skills  {0,3} files  {1,7} chars  ~{2,6} tok" -f $skillCount, (Num $skillTotal), (Num (Tok $skillTotal)))
+    if ($skillRaw -gt $skillTotal) {
+        $heavyFm = $skillRows | Sort-Object { $_.Raw - $_.FM } -Descending | Select-Object -First 3 |
+            Where-Object { ($_.Raw - $_.FM) -gt 0 } | ForEach-Object { '{0} +{1}' -f $_.Name, ($_.Raw - $_.FM) }
+        Write-Output ("           NOTE    frontmatter is {0} chars more; licence/metadata/keywords are not sent ({1})" -f (Num ($skillRaw - $skillTotal)), ($heavyFm -join ', '))
+    }
     if ($memMissing) { Write-Output ("           WARNING memory folder not found, its notes are NOT in this total: {0}" -f $MEM) }
     foreach ($mr in $missingRoots) { Write-Output ("           WARNING root not found, its skills are NOT in this total: {0}" -f $mr) }
     if (-not (Test-Path $AGDIR)) { Write-Output ("           WARNING agent folder not found: {0}" -f $AGDIR) }

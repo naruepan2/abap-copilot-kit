@@ -51,9 +51,10 @@ When two tools satisfy a task equally, the order is:
 2. Otherwise, the server exposing fewer tools.
 3. Otherwise, ask.
 
-Whether ARC-1 is callable is a fact to observe, not to assume. Attempt the call; if the tool is
-absent from the session, report that and move to step 2. The reason for the preference is cost
-and guardrails: the fewest advertised tools, and the tightest default-deny configuration.
+Whether ARC-1 is callable is a fact to observe, not to assume — but observe it only after the target
+system and client are confirmed, with a call that reads no data. If the tool is absent from the
+session, report that and move to step 2. The reason for the preference is cost and guardrails: the
+fewest advertised tools, and the tightest default-deny configuration.
 
 ## Keeping it correct
 

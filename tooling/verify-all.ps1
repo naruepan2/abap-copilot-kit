@@ -335,9 +335,19 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         # in the wild on 2026-11-16 had a 9,333-char reference its SKILL.md never mentioned and no
         # check that could notice; the reverse - a link to a file nobody wrote - fails at the moment
         # the agent needs it, which is worse. Zero cost: the file is already in memory here.
-        foreach ($ln in [regex]::Matches($t, '\]\((\./)?(references/[^)\s]+)\)')) {
-            $rel = $ln.Groups[2].Value
-            if (-not (Test-Path (Join-Path $d.FullName $rel))) { $badLinks++; Write-Output ("    BAD  " + $d.Name + ' (broken reference link: ' + $rel + ')') }
+        #
+        # Two spellings, because both are in live use: a markdown link and a bare backticked path.
+        # Measured 2026-11-16 across the three loader roots: 3 markdown links and 76 backticked paths,
+        # all 76 resolving. Checking only the link form would have validated 3 of 79 references, which
+        # is the coverage problem this gate exists to fix rather than repeat.
+        $seenRef = @{}
+        foreach ($rx in @('\]\((\./)?(references/[^)\s]+)\)', '`(references/[^`\s]+\.md)`')) {
+            foreach ($m in [regex]::Matches($t, $rx)) {
+                $rel = $m.Groups[$m.Groups.Count - 1].Value
+                if ($seenRef.ContainsKey($rel)) { continue }
+                $seenRef[$rel] = $true
+                if (-not (Test-Path (Join-Path $d.FullName $rel))) { $badLinks++; Write-Output ("    BAD  " + $d.Name + ' (broken reference: ' + $rel + ')') }
+            }
         }
     }
     $label = (Split-Path $root -Parent | Split-Path -Leaf) + ':' + (Split-Path $root -Leaf)
@@ -379,6 +389,42 @@ else {
     Write-Output ("  unparking cost ~{0} chars (~{1} tokens) in every request" -f $parkedCost, [math]::Round($parkedCost / 4))
     Note 'ISSUE' $revived.Count
     Ran 'parked' 1
+}
+
+# A third designed state: DELETED. tools/removed-on-purpose.json declares it, because the setup guide
+# tells the operator to delete nine skills after every reinstall while also requiring this audit to
+# exit 0 - so without the declaration the documented procedure makes the documented success condition
+# impossible. A revival here costs tokens on every request (the name+description come back), which is
+# exactly what the deletions bought back.
+$removedFile = if ($REPO) { Join-Path $REPO 'tooling\removed-on-purpose.json' } else { $null }
+$removedDoc = $null
+if ($removedFile -and (Test-Path $removedFile)) {
+    try { $removedDoc = [System.IO.File]::ReadAllText($removedFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    catch { Write-Output '  ISSUE   removed-on-purpose.json is not valid JSON'; Note 'ISSUE' 1 }
+}
+else { Write-Output '  WARNING removed-on-purpose.json not found - declared deletions cannot be honoured' }
+if ($removedDoc) {
+    $pubRemoved = @($removedDoc.published_skills | Where-Object { $_ -and $_.name })
+    $pubBack = @(); $pubCost = 0
+    foreach ($r in $pubRemoved) {
+        $live = Join-Path (Join-Path "$env:USERPROFILE\.agents\skills" $r.name) 'SKILL.md'
+        if (-not (Test-Path $live)) { continue }
+        $pubBack += $r.name
+        $rt = $null
+        try { $rt = [System.IO.File]::ReadAllText($live, [System.Text.Encoding]::UTF8) } catch { continue }
+        if ($rt -match '(?s)^---\r?\n(.*?)\r?\n---') { $pubCost += $Matches[1].Length }
+    }
+    if ($pubRemoved.Count -eq 0) { Write-Output '  WARNING removed-on-purpose.json declares no published skill - nothing to check' }
+    elseif ($pubBack.Count -eq 0) {
+        Write-Output ("  {0} skill(s) declared deleted stay deleted" -f $pubRemoved.Count)
+        Ran 'removed' $pubRemoved.Count
+    }
+    else {
+        foreach ($r in $pubBack) { Write-Output ("  ISSUE   declared deleted but installed again: " + $r) }
+        Write-Output ("  reinstalling cost ~{0} chars (~{1} tokens) in every request - delete again, see SETUP-NEW-MACHINE.md section 7" -f $pubCost, [math]::Round($pubCost / 4))
+        Note 'ISSUE' $pubBack.Count
+        Ran 'removed' $pubRemoved.Count
+    }
 }
 
 Line '3. Cross-file rule duplication (a rule must have one home)'
@@ -450,6 +496,52 @@ if ($Summary) { Write-Output ("  duplication probes: {0} of {1} flagged" -f @($p
 Ran 'probes' $probes.Count
 Note 'DUP' @($probes.Keys | Where-Object { $probes[$_] }).Count
 }
+}
+
+Line '3b. Every skill a repository file names is a skill that can be loaded'
+# Measured 2026-11-16: nine skills were deleted on purpose and the agent file still said
+# "`surgical-patch` (bug fix) vs `safe-refactor` (structure) vs `tdd` (test-first)" in three places.
+# Nothing noticed, because a skill name in prose is just text - and the instruction it carries fails
+# at the moment an agent tries to follow it, which is the worst time. Only repository-owned files are
+# checked: the user's own skills may legitimately name a skill that a VS Code extension ships, and
+# those live under no loader root this script knows about.
+if (-not $repoOk) {
+    Skip 'kit repository not found - nothing to check for named skills'
+} else {
+    $installedSkills = @{}
+    $skillRootsSeen = 0
+    foreach ($r in @($SK, "$env:USERPROFILE\.agents\skills")) {
+        if (-not (Test-Path $r)) { continue }
+        $skillRootsSeen++
+        foreach ($d in Get-ChildItem $r -Directory -ErrorAction SilentlyContinue) { $installedSkills[$d.Name] = $true }
+    }
+    if ($skillRootsSeen -eq 0) {
+        Skip 'no skill root found - cannot tell which skill names resolve'
+    } else {
+        $namedFiles = @()
+        $namedFiles += @(Get-ChildItem (Join-Path $REPO 'agents') -File -Filter '*.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+        $namedFiles += @(Get-ChildItem (Join-Path $REPO 'skills') -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName 'SKILL.md' } | Where-Object { Test-Path $_ })
+        $dangling = @(); $named = 0; $namedRead = 0
+        foreach ($f in $namedFiles) {
+            $nt = $null
+            try { $nt = [System.IO.File]::ReadAllText($f, [System.Text.Encoding]::UTF8) } catch { continue }
+            $namedRead++
+            foreach ($m in [regex]::Matches($nt, '(?i)(?:load|loads|loading|use|using|skill)\s+`([a-z0-9]+(?:-[a-z0-9]+)+)`')) {
+                $named++
+                $n2 = $m.Groups[1].Value
+                if (-not $installedSkills.ContainsKey($n2)) { $dangling += ((Split-Path $f -Leaf) + ' -> ' + $n2) }
+            }
+        }
+        $dangling = @($dangling | Sort-Object -Unique)
+        foreach ($d in $dangling) { Write-Output ("  ISSUE   names a skill that is not installed: " + $d) }
+        if ($dangling.Count -eq 0) {
+            Write-Output ("  {0} named skill(s) across {1} repository file(s) all resolve" -f $named, $namedRead)
+        }
+        Ran 'named-skills' $named
+        Note 'ISSUE' $dangling.Count
+        if ($namedRead -eq 0) { Write-Output '  ISSUE   no repository file could be read to check its skill names'; Note 'ISSUE' 1 }
+    }
 }
 
 Line '4. Memory budget and shape'
@@ -572,7 +664,12 @@ if (-not (Test-Path $TK)) {
     try { $tkDoc = Get-Content $TK -Raw | ConvertFrom-Json }
     catch { Write-Output '  ISSUE   toolkit manifest is not valid JSON'; Note 'ISSUE' 1 }
     $map = if ($tkDoc) { @($tkDoc.files)[0] } else { $null }
-    $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @(); $parkedGone = @()
+    $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @(); $parkedGone = @(); $removedGone = @(); $removedBack = @()
+    # Declared deletions, keyed by the manifest's own spelling so the comparison cannot drift.
+    $declaredRemoved = @{}
+    foreach ($r in @(if ($removedDoc) { $removedDoc.toolkit_skills })) {
+        if ($r -and $r.name) { $declaredRemoved['skills\' + $r.name + '\SKILL.md'] = [string]$r.reason }
+    }
     foreach ($p in @(if ($map) { $map.PSObject.Properties })) {
         if ($p.Name -like 'agents\*') { $tkAgents += ($p.Name -replace '^agents\\', '' -replace '\.agent\.md$', '') }
         elseif ($p.Name -like 'skills\*') { $tkSkills += @(($p.Name -split '\\')[1]) }
@@ -583,8 +680,17 @@ if (-not (Test-Path $TK)) {
             # count the same decision as a defect, or the audit can never pass once a skill is parked.
             $parkedCopy = Join-Path "$env:USERPROFILE\.copilot\skills-disabled" ($p.Name -replace '^skills\\', '')
             if ($p.Name -like 'skills\*' -and (Test-Path $parkedCopy)) { $parkedGone += $p.Name; continue }
+            # A declared deletion is a third designed state, and it is the one SETUP-NEW-MACHINE.md
+            # section 7 creates on purpose. Without this branch that documented step made the
+            # documented "must exit 0" impossible on every machine, for ever - the operator could
+            # not tell a correct deletion from a broken install.
+            if ($declaredRemoved.ContainsKey($p.Name)) { $removedGone += $p.Name; continue }
             $gone += $p.Name; continue
         }
+        # ...and the reverse: a file the owner deleted that a reinstall put back. That is not a
+        # missing file, it is the token cost coming back, so it is reported with the reason that
+        # justified deleting it in the first place.
+        if ($declaredRemoved.ContainsKey($p.Name)) { $removedBack += $p.Name }
         # An unreadable file threw here and left the drift count at zero, so a locked file read as
         # "not edited since install". Reading is guarded and reported as drift instead.
         try { $actual = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
@@ -610,6 +716,15 @@ if (-not (Test-Path $TK)) {
     Write-Output ("  {0} toolkit files edited since install, {1} missing{2}" -f $hashDrift.Count, $gone.Count, $(if ($parkedGone.Count -gt 0) { ", $($parkedGone.Count) parked on purpose" } else { '' }))
     foreach ($h in $hashDrift) { Write-Output ("          EDITED  " + $h) }
     foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
+    if ($removedGone.Count -gt 0) {
+        Write-Output ("          removed on purpose: {0} (declared in tooling\removed-on-purpose.json)" -f ($removedGone -join ', '))
+    }
+    foreach ($rb in $removedBack) {
+        $why = $declaredRemoved[$rb]
+        Write-Output ("  ISSUE   declared deleted but reinstalled: " + $rb)
+        Write-Output ("          reason it was deleted: " + $why)
+    }
+    Note 'ISSUE' $removedBack.Count
     Ran 'toolkit' $tkAgents.Count
     Note 'ISSUE' ($hashDrift.Count + $gone.Count)
 }
@@ -639,8 +754,19 @@ else {
     # A killed run never reaches the finally below, so every hard-stopped audit left its probe home in
     # TEMP for ever. Measured 2026-11-16: hookprobe-15060 survived a Ctrl+C the night before, with two
     # files in it. Sweep the stale ones only - a concurrent run's home is minutes old, not hours.
+    # Age alone is not enough: a directory's timestamp does not advance when a file is written into a
+    # SUBdirectory, and the hook writes its log that way. Measured 2026-11-16: a subdirectory write
+    # left the parent's LastWriteTime unchanged. So a run alive for over an hour would have had its
+    # home deleted by another run's sweep, and its remaining probes would then read no roster and
+    # report a trusted agent as RESTRICTED - a false exit 1 from a clean tree. The PID is in the name;
+    # if that process is alive, skip it.
     Get-ChildItem ([System.IO.Path]::GetTempPath()) -Directory -Filter 'hookprobe-*' -ErrorAction SilentlyContinue |
-        Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-1) } |
+        Where-Object {
+            if ($_.LastWriteTime -ge (Get-Date).AddHours(-1)) { return $false }
+            $suffix = $_.Name -replace '^hookprobe-', ''
+            if ($suffix -match '^\d+$') { return -not [bool](Get-Process -Id ([int]$suffix) -ErrorAction SilentlyContinue) }
+            return $true
+        } |
         ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
     $probeHome = Join-Path ([System.IO.Path]::GetTempPath()) ('hookprobe-' + $PID)
     New-Item -ItemType Directory -Force -Path (Join-Path $probeHome '.copilot') | Out-Null
@@ -1332,34 +1458,34 @@ if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
 $histHits = 0
 $revs = @(git rev-list --all 2>$null)
 if ($revs.Count -gt 0) {
-    $rxFile = Join-Path ([System.IO.Path]::GetTempPath()) ('verify-rx-' + $PID + '.txt')
-    try {
-        [System.IO.File]::WriteAllLines($rxFile, $patterns, (New-Object System.Text.UTF8Encoding($false)))
-        $found = @()
-        & git grep -I -E -f $rxFile $revs 2>$null | ForEach-Object { if ($_) { $found += $_ } }
-        # git grep exits 0 for a match, 1 for no match, and anything above 1 is a failure. Without this
-        # branch a failed scan (a bad pattern, a damaged repository) produced an empty list and the
-        # line "history clean across N commit(s)" - the one check for leaked credentials reporting a
-        # pass it never earned.
-        $grepRc = $LASTEXITCODE
-        if ($grepRc -gt 1) {
-            Write-Output ("  ISSUE   history scan failed (git grep exit {0}) - this is not a clean result" -f $grepRc)
-            Note 'ISSUE' 1
-        }
-        # git grep prints "<sha>:<path>:<content>". The same bad line survives in every later commit,
-        # so counting the raw output reported one leaked value as three problems when it had been
-        # committed three times. A leak is a location, not a commit: dedupe on path + content.
-        $locations = @{}
-        foreach ($line in $found) {
-            $parts = $line -split ':', 3
-            if ($parts.Count -lt 3) { continue }
-            $locations[$parts[1] + '|' + $parts[2]] = $true
-        }
-        $histHits = $locations.Count
-        $locations.Keys | Select-Object -First 5 | ForEach-Object { Write-Output ("  HISTORY " + $_) }
-        if ($histHits -gt 5) { Write-Output ("  HISTORY ... and {0} more" -f ($histHits - 5)) }
+    # The patterns go in on stdin. They used to go through a temp file with cleanup only in a finally,
+    # so every hard-killed run left verify-rx-<pid>.txt on disk for ever - and its contents ARE the
+    # derived identifiers this section exists to keep off disk. Measured 2026-11-16: a 126-byte file
+    # with six pattern lines survived a Ctrl+C. Proved separately that this git accepts -f - (rc 0 on
+    # a match, 1 on no match), so no file is needed at all.
+    $found = @()
+    $patterns | & git grep -I -E -f - $revs 2>$null | ForEach-Object { if ($_) { $found += $_ } }
+    # git grep exits 0 for a match, 1 for no match, and anything above 1 is a failure. Without this
+    # branch a failed scan (a bad pattern, a damaged repository) produced an empty list and the
+    # line "history clean across N commit(s)" - the one check for leaked credentials reporting a
+    # pass it never earned.
+    $grepRc = $LASTEXITCODE
+    if ($grepRc -gt 1) {
+        Write-Output ("  ISSUE   history scan failed (git grep exit {0}) - this is not a clean result" -f $grepRc)
+        Note 'ISSUE' 1
     }
-    finally { Remove-Item $rxFile -Force -ErrorAction SilentlyContinue }
+    # git grep prints "<sha>:<path>:<content>". The same bad line survives in every later commit,
+    # so counting the raw output reported one leaked value as three problems when it had been
+    # committed three times. A leak is a location, not a commit: dedupe on path + content.
+    $locations = @{}
+    foreach ($line in $found) {
+        $parts = $line -split ':', 3
+        if ($parts.Count -lt 3) { continue }
+        $locations[$parts[1] + '|' + $parts[2]] = $true
+    }
+    $histHits = $locations.Count
+    $locations.Keys | Select-Object -First 5 | ForEach-Object { Write-Output ("  HISTORY " + $_) }
+    if ($histHits -gt 5) { Write-Output ("  HISTORY ... and {0} more" -f ($histHits - 5)) }
 }
 
 if ($histHits -gt 0) {

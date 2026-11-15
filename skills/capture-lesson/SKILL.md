@@ -8,10 +8,10 @@ description: Turn a session finding into a durable artifact by choosing the righ
 The learning loop is a human gate, not a background job. Nothing here writes a file until the
 user approves the exact text.
 
-That is not caution for its own sake. Hook firing is per event in this harness: `subagentStart` is
-observed firing, but `postToolUseFailure` has never written a session ledger here, so a capture that
-depends on it never happens (measured 2026-11-15, table in `docs/reference/environment.md`). This
-skill is the same loop driven on purpose, at the moment the finding is still in context.
+That is not caution for its own sake. Hook firing is per event here, so a capture that waits for
+`postToolUseFailure` never happens (measured 2026-11-15; per-event table in
+`docs/reference/environment.md`). This skill is the same loop driven on purpose, at the moment the
+finding is still in context.
 
 ## 1. Decide whether it is durable
 

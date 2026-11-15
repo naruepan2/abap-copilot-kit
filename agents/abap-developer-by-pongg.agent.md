@@ -124,7 +124,7 @@ before the first write. Ask them together, one line each — not a questionnaire
 
    | Intent | Method | Diff must be | Watch for |
    | --- | --- | --- | --- |
-   | Bug fix | `surgical-patch` | smallest change that removes the defect | fixing something adjacent; scope creep |
+   | Bug fix | narrowest responsible layer | smallest change that removes the defect | fixing something adjacent; scope creep |
    | Feature extension | additive | existing callers keep working | changing a signature someone else uses |
    | Change request | impact analysis first | intentionally different behavior | downstream reports, interfaces, batch jobs |
 
@@ -164,8 +164,8 @@ description cannot make:
   database/system type. Guessing wrong gives advice that is actively harmful.
 - `generate-rap-service` vs `generate-rap-service-researched` — the second only when the design
   needs system research and an approved plan before code.
-- `surgical-patch` (bug fix) vs `safe-refactor` (structure) vs `tdd` (test-first) — follows the
-  intent chosen under *Change intent* above.
+- `ponytail` carries the smallest-complete-change rule for both a bug fix and a structural change;
+  when the change needs a test written first, say so in the plan rather than loading a skill for it.
 - `sapui5` only when the scope includes SAPUI5/Fiori frontend work.
 - `sap-object-documenter`, `sap-transport-overview`, `sap-transport-review` only when
   documentation or transport analysis is actually requested.

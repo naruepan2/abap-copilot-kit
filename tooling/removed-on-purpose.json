@@ -1,0 +1,53 @@
+{
+    "$comment": "Skills this machine's owner deleted on purpose, with the reason. Read by verify-all.ps1: a toolkit-owned file listed here is 'removed on purpose' instead of 'MISSING', and a skill listed here that reappears is reported as a revival with its token cost. This file exists because SETUP-NEW-MACHINE.md section 7 tells the operator to delete these after every reinstall, while section 10 tells them the audit must exit 0 - so without a declaration the documented procedure makes the documented success criterion impossible. Only a human edits this file. A skill belongs here only if the owner decided the capability is covered elsewhere; 'I could not find it' is not a reason.",
+    "version": 1,
+    "verified": "2026-11-16",
+    "toolkit_skills": [
+        {
+            "name": "advanced-event-mesh-lifecycle",
+            "reason": "Not an ABAP capability. The AEM administrator agent is installed by the same toolkit and carries its own rules, so the skill costs ~200 chars in every request for a server this ABAP workspace never calls."
+        }
+    ],
+    "published_skills": [
+        {
+            "name": "lean-build",
+            "reason": "Duplicate of ponytail, which states the smallest-complete-change rule and the option ladder in one place.",
+            "upstream": "JuliusBrussee/caveman"
+        },
+        {
+            "name": "migration",
+            "reason": "Covered by migrate-custom-code, sap-migration-dossier and migrate-segw-to-rap, which carry the SAP-specific evidence rules the generic skill does not.",
+            "upstream": "JuliusBrussee/caveman"
+        },
+        {
+            "name": "safe-refactor",
+            "reason": "Nothing replaced it. ponytail's 'keep the structure the codebase already has' is a constraint, not a procedure, so a structural refactor has no procedure here - added to open items rather than covered by a claim.",
+            "upstream": "JuliusBrussee/caveman"
+        },
+        {
+            "name": "surgical-patch",
+            "reason": "Covered by ponytail's bug-fix rule (grep every caller, fix the root cause once in the shared code) plus the agent's Change intent table.",
+            "upstream": "JuliusBrussee/caveman"
+        },
+        {
+            "name": "verify-and-stop",
+            "reason": "Covered four times over: agent Evidence discipline, agent Report contract item 4, senior-abap-development section 5, and senior-abap-development section 6.",
+            "upstream": "JuliusBrussee/caveman"
+        },
+        {
+            "name": "tdd",
+            "reason": "Partially covered: the agent says 'use TDD for a feasible regression test' and generate-abap-unit-test writes tests, but the test-first ordering itself is stated nowhere. Recorded as a gap, not as covered.",
+            "upstream": "mattpocock/skills"
+        },
+        {
+            "name": "diagnosing-bugs",
+            "reason": "Covered by abap-debugging, abap-runtime-analysis and sap-st22-dump-analysis.",
+            "upstream": "mattpocock/skills"
+        },
+        {
+            "name": "code-review",
+            "reason": "Covered by ponytail-review; the deleted skill also ran parallel subagents, which fights the serial ABAP flow.",
+            "upstream": "mattpocock/skills"
+        }
+    ]
+}
