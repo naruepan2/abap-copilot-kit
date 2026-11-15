@@ -213,14 +213,20 @@ $placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.|_SAP_PASSWO
 
 # Repo memory is workspace-scoped and its folder name is a hash, so it is never guessed: the path is
 # given explicitly or memory is not mirrored at all.
+#
+# Recursive, not top-level only. The memory folder has a hierarchy - a parent handbook, then one per
+# client, then per-package deltas - and mirroring only the root left five files with no history and no
+# off-machine copy. A backup with holes is worse than no backup, because it is trusted.
 $memoryPlan = @()
 if ($RepoMemory) {
     if (-not (Test-Path $RepoMemory)) {
         [Console]::Error.WriteLine('workspace-sync: -RepoMemory path does not exist: ' + $RepoMemory)
         exit 1
     }
-    foreach ($f in Get-ChildItem $RepoMemory -File -Filter '*.md' -ErrorAction SilentlyContinue) {
-        $memoryPlan += [pscustomobject]@{ Src = $f.FullName; Rel = ('memory\' + $f.Name) }
+    $rootLen = (Resolve-Path $RepoMemory).Path.Length
+    foreach ($f in Get-ChildItem $RepoMemory -File -Filter '*.md' -Recurse -ErrorAction SilentlyContinue) {
+        $rel = $f.FullName.Substring($rootLen).TrimStart('\')
+        $memoryPlan += [pscustomobject]@{ Src = $f.FullName; Rel = ('memory\' + $rel) }
     }
 }
 
