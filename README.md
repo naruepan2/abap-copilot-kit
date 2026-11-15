@@ -12,6 +12,12 @@ SAP tooling changes constantly — a server updates, an extension ships new tool
 rewrites its agents. This workspace is built to stay correct when that happens, instead of
 accumulating instructions that were true once.
 
+**Scope: Windows.** The credential layer is Windows Credential Manager, the launch paths are
+`%USERPROFILE%`, and the scripts are PowerShell 5.1. The agent, skill and hook files are
+portable; the tooling is not.
+
+**Contents.** [What is here](#what-is-here) · [Read this first](#one-fact-worth-reading-before-anything-else) · [Hooks](#hooks) · [Design](#design-in-one-diagram) · [Install](#install) · [Not here](#what-is-deliberately-not-here) · [Releasing](#releasing) · [Adapting](#adapting-it) · [License](#license)
+
 ## What is here
 
 ```
@@ -129,32 +135,41 @@ on purpose, while the finding is still in context.
 
 ## Install
 
-**1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
-on Windows). Reload the window, then pick one from the agent dropdown.
+Two ways in. **One command** places the mechanical parts — agents, tooling, this kit's skills — and
+reports what it deliberately left alone. **The steps** are what remains: files a script cannot
+place, because each needs a real value or a decision.
 
-**Or do steps 1-2 with one command.** `tooling/install-kit.ps1` copies `agents/*.agent.md`,
-`tooling/*.ps1` and this kit's own three skills into place. It is idempotent, and it refuses to
-overwrite a live file that differs — because the live copy has been newer than the clone before,
-and a blind copy would quietly undo that. `-Check` reports without copying; `-Force` overwrites
-after you have decided the clone is the newer one.
+### One command
 
 ```powershell
 powershell -File tooling\install-kit.ps1 -Check     # what would change
 powershell -File tooling\install-kit.ps1           # copy what is missing
 ```
 
-On a second machine, clone anywhere and run it: the kit root is resolved from
-`$env:ABAP_KIT_ROOT`, else the parent of `tooling\`, so no drive letter is baked in.
+It copies `agents/*.agent.md`, every `tooling/*.ps1`, `*.js` and `*.json`, and this kit's three
+skills. It is idempotent, and it refuses to overwrite a live file that differs — because the live
+copy has been newer than the clone before, and a blind copy would quietly undo that. `-Check`
+reports without copying; `-Force` overwrites once you have decided the clone is the newer one.
 
-**Skills from GitHub, for anyone with repository access.** The kit already has the layout the
-`skills` CLI expects, so a collaborator can install the three skills without cloning:
+On a second machine, clone anywhere and run it. The kit root is resolved from
+`$env:ABAP_KIT_ROOT`, then the `kit-root.txt` pin a previous run wrote beside the live scripts,
+then the parent of `tooling\` — so no drive letter is baked in.
+
+**Then check it.** `tooling/verify-all.ps1` is the audit this repository is held to. Run it after
+installing, and again after any change:
 
 ```powershell
-npx skills add naruepan2/abap-copilot-kit -s capture-lesson -g
+powershell -File tooling\verify-all.ps1                  # one line per check
+powershell -File tooling\verify-all.ps1 -Detail full     # every file and every probe
 ```
 
-That is skills only — it cannot place agents, tooling or templates. Those still come from the
-clone. Note the repository is private, so this needs collaborator access first.
+It is read-only. A check it cannot evaluate prints `SKIP` with the reason rather than a pass — a
+probe that reports success without evidence is worse than no probe.
+
+### Steps
+
+**1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
+on Windows). Reload the window, then pick one from the agent dropdown.
 
 **2. Skills.** Copy `skills/mcp-surface-audit`, `skills/capture-lesson`, and
 `skills/new-program` into `~/.copilot/skills/`. Skills only load in a new chat session, so start
@@ -168,7 +183,7 @@ of an allowlist.
 `%APPDATA%\Code\User\mcp.json` and replace every `{{PLACEHOLDER}}`. The template is JSONC;
 strip the comments if your editor refuses them.
 
-**4b. One credential, two clients.** VS Code reads `~/.copilot/mcp.json`-style configs and
+**5. Credential — one password, both clients.** VS Code reads `~/.copilot/mcp.json`-style configs and
 supports `${input:...}`, so it can ask for the password in a Quick Input every time a server
 starts. The Copilot CLI has no such input — it can only pass `--env KEY=VALUE` — and its folder is
 readable by another group on Windows, so a password in that file is not private.
@@ -180,8 +195,9 @@ tooling\sap-connection.ps1 -Add -Name gsd-110 -Url https://host:44381 -Client 11
 powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key gsd-110_SAP_PASSWORD
 ```
 
-`-Set` prompts once and stores the value in Windows Credential Manager. To avoid a console window
-sitting next to the prompt, start it hidden: `Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','gsd-110_SAP_PASSWORD'`.
+`-Set` prompts once and stores the value in Windows Credential Manager. To keep a console window
+from sitting next to the prompt, start it hidden — and name the interpreter by full path, because
+this is a spawned process: `Start-Process "$PSHOME\powershell.exe" -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','gsd-110_SAP_PASSWORD'`.
 Then point the client at the launcher — the password never appears in the config. Use the same
 entry for both harnesses; only the key above it differs (`mcpServers` for the Copilot CLI,
 `servers` for VS Code). The whole entry is in `config-templates/mcp-config.template.json`:
@@ -198,7 +214,8 @@ Name the interpreter by absolute path. A bare `"powershell"` resolves only while
 `System32\WindowsPowerShell\v1.0` is on `PATH`, and a sandboxed or trimmed parent does not have it:
 the server then fails to start and the only symptom is that its tools never appear. Measured, not
 assumed — under a trimmed `PATH` the spawn was `ENOENT`. The same rule applies inside the scripts,
-which use `$PSHOME` instead of a bare name.
+which use `$PSHOME` instead of a bare name. Typing `powershell` in your own terminal is a different
+case and is fine: your `PATH` is normal. The rule is about processes a harness or a script spawns.
 
 Keep the policy variables (`SAP_ALLOW_WRITES`, `SAP_ALLOWED_PACKAGES`, …) in `env`; the launcher
 only fills in URL, client, user, language and password. Do not also set `SAP_URL` / `SAP_USER` here:
@@ -220,18 +237,18 @@ and works with a screen reader. The wait is bounded by `-PromptTimeoutSec` (defa
 timeout the window it caused is closed, because that dialog belongs to `CredentialUIBroker` and
 would otherwise outlive the process that asked for it.
 
-**5. Settings.** Merge the keys in `config-templates/settings.json.template` into your
+**6. Settings.** Merge the keys in `config-templates/settings.json.template` into your
 `settings.json`. Do not paste over your existing file.
 
-**6. Profile (optional).** Copy `memory-templates/user-profile.md` to your Copilot memory folder
+**7. Profile (optional).** Copy `memory-templates/user-profile.md` to your Copilot memory folder
 and fill it in. Keep it under about 40 lines: user memory is loaded into every session.
 
-**7. Workspace contract (optional).** If you open this repository as a VS Code workspace
-folder, `AGENTS.md` is loaded into every request. It costs about 850 tokens at its current
-length, and it is the place to put the connection-scope warning where the agent cannot miss it.
-Drop the file if you use the repository only as a source of files to copy.
+**8. Workspace contract (optional).** If you open this repository as a VS Code workspace
+folder, `AGENTS.md` is loaded into every request. It costs about 830 tokens at its current
+length (measured: 3333 characters), and it is the place to put the connection-scope warning where
+the agent cannot miss it. Drop the file if you use the repository only as a source of files to copy.
 
-**8. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
+**9. Hooks (optional).** Copy the three `hooks/*.cjs` scripts into `~/.copilot/hooks/`, then copy
 `hooks/hooks.json.template` to `~/.copilot/hooks/hooks.json` and replace `{{COPILOT_HOME}}` with
 your Copilot folder path. Drop any event you do not want. Verify the scripts parse before
 relying on them:
@@ -242,6 +259,18 @@ Get-ChildItem "$env:USERPROFILE\.copilot\hooks\*.cjs" | ForEach-Object { node --
 
 Hooks are a preview feature. Test one at a time and confirm it fires before adding the next.
 For `sessionStart`, firing is provable: `surface.json` gets a new `takenAt` on every run.
+
+### Skills without cloning
+
+For a collaborator with repository access, the `skills` CLI can install the three skills without a
+clone. The kit already has the layout it expects:
+
+```powershell
+npx skills add naruepan2/abap-copilot-kit -s capture-lesson -g
+```
+
+That is skills only — it cannot place agents, tooling or templates. Those still come from the
+clone. The repository is private, so this needs collaborator access first.
 
 ## What is deliberately not here
 
@@ -272,6 +301,23 @@ time a file is added, and that has already happened once in this repository.
 Line endings are pinned to LF by `.gitattributes`. Without it, this machine's system
 `core.autocrlf=true` produced CRLF in a fresh clone while the mirrored source files were LF,
 so one commit had two byte representations on disk.
+
+## Releasing
+
+There is no `CHANGELOG.md`, and that is a decision rather than an oversight. The rule this
+repository follows is one home per rule: a changelog would be a second copy of what `git log`
+already holds, and a hand-maintained copy rots the same way the file counts this README warns
+about. An annotated tag carries the release body instead, and the log range writes it:
+
+```powershell
+git log --oneline v0.9.0..HEAD      # what changed since the last tag, for the release body
+git tag -a v0.10.0 -F notes.txt     # notes.txt becomes the tag message
+git push origin v0.10.0
+```
+
+GitHub does not read an annotated tag message as the Release description — it generates one from
+commits instead, so paste the tag body into the release form. What the tag itself gives you is the
+part that matters: an immutable pointer at a state someone measured.
 
 ## Adapting it
 
