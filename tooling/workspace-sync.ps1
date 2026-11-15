@@ -82,6 +82,12 @@ if (-not (Test-Path (Join-Path $Workspace '.git'))) {
     exit 1
 }
 
+# Every destination path is built from $Workspace by string arithmetic (Substring for relative names,
+# Join-Path for targets). With a relative -Workspace that arithmetic produces garbage: -Check reported
+# every file as EXTRA and -Write deleted what it had just written. Both relative and absolute inputs
+# are normalised to one absolute form here, once, before anything is computed from it.
+$Workspace = (Resolve-Path -LiteralPath $Workspace).Path.TrimEnd('\')
+
 # Contract files, by name, relative to a program or project folder. The value is the name used in
 # the mirror, so a case change on disk cannot silently create a second file.
 $contractFiles = @(
@@ -117,8 +123,7 @@ function Get-RelSha([string]$path) {
     finally { $sha.Dispose() }
 }
 
-function Get-LineCount([string]$path) {
-    $t = Get-NormText $path
+function Get-LineCount([string]$path) {    $t = Get-NormText $path
     if ($t -eq '') { return 0 }
     $n = @($t -split "`n").Count
     if ($t.EndsWith("`n")) { $n-- }
@@ -130,7 +135,10 @@ function Get-LineCount([string]$path) {
 # not worth carrying for five keys.
 function Get-YamlValue([string]$path, [string]$key) {
     if (-not (Test-Path $path)) { return $null }
-    foreach ($line in [System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8)) {
+    $lines = @()
+    try { $lines = [System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8) }
+    catch { return $null }
+    foreach ($line in $lines) {
         if ($line -match ('^\s*' + [regex]::Escape($key) + '\s*:\s*(.*)$')) {
             $v = $Matches[1]
             $v = ($v -replace '\s+#.*$', '').Trim()
@@ -139,6 +147,21 @@ function Get-YamlValue([string]$path, [string]$key) {
         }
     }
     return $null
+}
+
+# Files the mirror repository owns itself. -Check must ignore them and -Write's cleanup must never
+# delete them, so there is one definition rather than two lists that drift.
+#
+# The previous cleanup excluded four names and deleted everything else it did not recognise, which
+# means a .gitignore, a LICENSE or a .github/ folder in the workspace repository was destroyed on
+# every run. Now the rule is the inverse: only files under `programs\` or `memory\` are considered
+# mirror output, and anything else in that repository belongs to the repository.
+function Test-RepoOwnedFile([string]$rel) {
+    $r = $rel -replace '\\', '/'
+    if ($r -eq 'manifest.json' -or $r -eq 'README.md' -or $r -eq '.gitattributes') { return $true }
+    if ($r -like '.git/*' -or $r -like '.github/*') { return $true }
+    if ($r.StartsWith('.')) { return $true }
+    return (-not ($r -like 'programs/*' -or $r -like 'memory/*'))
 }
 
 # Build the plan: every file that should exist in the mirror, with its destination path.
@@ -281,7 +304,7 @@ if ($Check) {
 
     foreach ($f in Get-ChildItem $Workspace -Recurse -File -ErrorAction SilentlyContinue) {
         $rel = $f.FullName.Substring($Workspace.Length).TrimStart('\')
-        if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -eq '.gitattributes' -or $rel -like '.git\*') { continue }
+        if (Test-RepoOwnedFile $rel) { continue }
         if (-not $expected.ContainsKey($rel)) { Write-Output ('  EXTRA   ' + $rel); $extra++ }
     }
 
@@ -341,7 +364,9 @@ $expected = @{}
 foreach ($p in $plan + $memoryPlan) { $expected[$p.Rel] = $true }
 foreach ($f in Get-ChildItem $Workspace -Recurse -File -ErrorAction SilentlyContinue) {
     $rel = $f.FullName.Substring($Workspace.Length).TrimStart('\')
-    if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -eq '.gitattributes' -or $rel -like '.git\*') { continue }
+    # Only mirror output is removable. See Test-RepoOwnedFile: an earlier version deleted every file
+    # it did not recognise, which included files the repository owns.
+    if (Test-RepoOwnedFile $rel) { continue }
     if (-not $expected.ContainsKey($rel)) { Remove-Item $f.FullName -Force; $removed++ }
 }
 
@@ -383,7 +408,7 @@ for ($i = 0; $i -lt $all.Count; $i++) {
     $p = $all[$i]
     $rel = $p.Rel -replace '\\', '/'
     $comma = if ($i -lt $all.Count - 1) { ',' } else { '' }
-    Add-Line ('    "' + $rel + '": { "sha256": "' + (Get-RelSha $p.Src) + '", "bytes": ' + (Get-Item $p.Src).Length + ', "lines": ' + (Get-LineCount $p.Src) + ' }' + $comma)
+    Add-Line ('    "' + $rel + '": { "sha256": "' + (Get-RelSha $p.Src) + '", "bytes": ' + (Get-NormBytes $p.Src).Length + ', "lines": ' + (Get-LineCount $p.Src) + ' }' + $comma)
 }
 Add-Line '  }'
 Add-Line '}'

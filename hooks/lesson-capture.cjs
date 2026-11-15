@@ -87,10 +87,16 @@ function signature(tool, error) {
 function countOccurrences(content, sig) {
     // Rows store the tool in cell 2 and the error in cell 4. Rebuild each row's signature
     // from those cells so the count reflects real repeats, not a substring coincidence.
+    //
+    // The split ignores escaped pipes. writeRow() escapes `|` as `\|` so the table stays valid, and
+    // splitting on a raw `|` first cut an error that contained one into extra cells: cells[4] came
+    // back truncated, the signature never matched, and `seen` stayed 0 forever - so the recurring
+    // failure this hook exists to surface never fired for exactly the errors most likely to have
+    // pipes in them (SQL, PowerShell, table dumps).
     let n = 0;
     for (const line of content.split(/\r?\n/)) {
         if (!line.startsWith('| ')) continue;
-        const cells = line.split('|').map((c) => c.trim());
+        const cells = line.split(/(?<!\\)\|/).map((c) => c.trim());
         if (cells.length < 6) continue;
         const tool = cells[2];
         const err = cells[4];

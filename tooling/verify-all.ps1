@@ -400,6 +400,32 @@ if (Test-Path $rmIndex) {
     Write-Output '  ISSUE   repo memory has no INDEX.md'
     Note 'ISSUE' 1
 }
+
+# A file that exists both in repo memory and in a Projects program folder is two homes for one fact.
+# It happened for real: a record was moved to its program, deleted from memory, and came back - the
+# index still said "Moved out" while the file sat there, so the index and the folder disagreed.
+$dupInProjects = @()
+if ($repoOk) {
+    $projDocs = @(Get-ChildItem (Join-Path $REPO 'Projects') -Recurse -File -Filter *.md -ErrorAction SilentlyContinue)
+    foreach ($f in Get-ChildItem $AWS -Recurse -File -Filter *.md -ErrorAction SilentlyContinue) {
+        if ($f.Name -eq 'INDEX.md') { continue }
+        $mine = $null
+        try { $mine = ([System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n") } catch { continue }
+        if ($mine.Length -lt 200) { continue }
+        foreach ($p in $projDocs) {
+            $theirs = $null
+            try { $theirs = ([System.IO.File]::ReadAllText($p.FullName, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n") } catch { continue }
+            if ($theirs.Contains($mine)) {
+                $dupInProjects += ($f.Name + ' == ' + $p.FullName.Substring($REPO.Length).TrimStart('\'))
+                break
+            }
+        }
+    }
+}
+if ($dupInProjects.Count -gt 0) {
+    foreach ($d in $dupInProjects) { Write-Output ("  ISSUE   same content in repo memory and Projects: " + $d) }
+    Note 'ISSUE' $dupInProjects.Count
+}
 }
 
 Line '7. Git state of the kit'

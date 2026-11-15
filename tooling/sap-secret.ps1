@@ -41,11 +41,11 @@ $ErrorActionPreference = 'Stop'
 $Prefix = 'ARC1:'
 
 if (($Set -or $Read -or $Remove -or $Test) -and -not $Key) {
-    Write-Error 'Specify -Key NAME (for example -Key SAP_PASSWORD, or gsd-120_SAP_PASSWORD).'
+    [Console]::Error.WriteLine('Specify -Key NAME (for example -Key SAP_PASSWORD, or gsd-120_SAP_PASSWORD).')
     exit 1
 }
 if ($Key -and $Key -notmatch '^[A-Za-z_][A-Za-z0-9_-]*$') {
-    Write-Error "Invalid key name '$Key'. Letters, digits, underscore and dash only."
+    [Console]::Error.WriteLine("Invalid key name '$Key'. Letters, digits, underscore and dash only.")
     exit 1
 }
 $Target = if ($Key) { $Prefix + $Key } else { $Prefix.TrimEnd(':') }
@@ -235,7 +235,7 @@ function Read-SecretGui([string]$Label) {
 if ($Set) {
     if ($Gui) {
         $plain = Read-SecretGui ("Value for " + $Key + " (stored as " + $Target + ")")
-        if ($null -eq $plain) { Write-Error 'Cancelled - nothing stored.'; exit 1 }
+        if ($null -eq $plain) { [Console]::Error.WriteLine('Cancelled - nothing stored.'); exit 1 }
     }
     else {
         $sec = Read-Host -AsSecureString "Value for $Key (stored as $Target)"
@@ -243,9 +243,9 @@ if ($Set) {
         try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
         finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
     }
-    if ([string]::IsNullOrEmpty($plain)) { Write-Error 'Empty value - nothing stored.'; exit 1 }
+    if ([string]::IsNullOrEmpty($plain)) { [Console]::Error.WriteLine('Empty value - nothing stored.'); exit 1 }
     if ([CredMan]::Write($Target, $Key, $plain)) { Write-Output "stored: $Target" }
-    else { Write-Error ("CredWrite failed: " + [Runtime.InteropServices.Marshal]::GetLastWin32Error()); exit 1 }
+    else { [Console]::Error.WriteLine("CredWrite failed: " + [Runtime.InteropServices.Marshal]::GetLastWin32Error()); exit 1 }
     exit 0
 }
 
@@ -262,7 +262,7 @@ if ($Test) {
 
 if ($Read) {
     $v = [CredMan]::Read($Target)
-    if ($null -eq $v) { Write-Error "nothing stored for $Key - run: sap-secret.ps1 -Set -Key $Key"; exit 1 }
+    if ($null -eq $v) { [Console]::Error.WriteLine("nothing stored for $Key - run: sap-secret.ps1 -Set -Key $Key"); exit 1 }
     Write-Output $v
     exit 0
 }

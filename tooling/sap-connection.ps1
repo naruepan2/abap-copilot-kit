@@ -51,8 +51,22 @@ function Read-Store {
     $raw = [System.IO.File]::ReadAllText($Store, [System.Text.Encoding]::UTF8)
     if ($raw.Trim() -eq '') { return [pscustomobject]@{ active = $null; connections = [pscustomobject]@{} } }
     $j = $raw | ConvertFrom-Json
-    if (-not $j.PSObject.Properties.Name.Contains('connections') -or $null -eq $j.connections) {
+
+    # Both members are back-filled, not just `connections`. Assigning a property that does not exist
+    # on a PSCustomObject throws "The property 'active' cannot be found on this object", so a store
+    # written by hand or by an older version made -Add and -Use abort without writing anything.
+    # Measured: exit -1 and no output.
+    #
+    # The test is on the shape (`-contains` over the member names), not `String.Contains`. On an
+    # object with one property, `.Contains` binds to the STRING method and does a substring test, so
+    # a key called `connections2` or `Connections` took the wrong branch depending on how many other
+    # keys the file happened to have.
+    $names = @($j.PSObject.Properties.Name)
+    if ($names -notcontains 'connections' -or $null -eq $j.connections) {
         $j | Add-Member -NotePropertyName connections -NotePropertyValue ([pscustomobject]@{}) -Force
+    }
+    if ($names -notcontains 'active') {
+        $j | Add-Member -NotePropertyName active -NotePropertyValue $null -Force
     }
     return $j
 }
