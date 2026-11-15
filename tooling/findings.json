@@ -545,6 +545,129 @@
                          "status":  "fixed",
                          "note":  "The snapshot committed on 2026-11-15 still said hooks do not fire in this harness (disproved the same day), carried the pre-verify-all way of counting the 200-line budget, and pointed tool-surface matching at an agent comment block instead of the skill. README.md said only \"check first\" before Copy-Item *.md -Force, and it did not say that arc-1-mcp.md is stored sanitised. Measured 2026-11-16: memory-setup.md was 208 chars behind live and differed on all four points; arc-1-mcp.md differs on exactly 1 of 20 lines, the real NODE_EXTRA_CA_CERTS path, which contains a customer name. A restore is silent on success, so the false rule would have come back with no signal.",
                          "evidence":  "0cf8571"
+                     },
+                     {
+                         "id":  "F-063",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "SETUP-NEW-MACHINE.md sections 3 and 10",
+                         "title":  "The setup guide never installs roster.json or hooks.json, so following it leaves the audit unpassable and the subagent roster gate silently inert",
+                         "status":  "fixed",
+                         "note":  "install-kit.ps1:189 and :195 print both as manual; the word roster appeared nowhere in the guide and hooks.json appears nowhere at all. Two consequences on a fresh machine: verify-all.ps1:501 reports ISSUE roster not found and exits 1, and three .cjs files sit in ~/.copilot/hooks with no event registered, so the security control that restricts un-rostered subagents never runs while section 10 tells the operator to confirm it is reporting. Section 3b now copies both, resolves {{COPILOT_HOME}} with a measured one-liner, and says node must be on PATH.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-064",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "SETUP-NEW-MACHINE.md section 7 vs section 10, tooling/verify-all.ps1 section 5b",
+                         "title":  "The guide told the operator to delete a toolkit skill after every reinstall and also required the audit to exit 0 - the two were mutually exclusive, on every machine, for ever",
+                         "status":  "fixed",
+                         "note":  "Section 5b had a parked-file exception but no deleted-file one, so a documented deletion reported MISSING and exited 1. Measured before the fix: \"MISSING skills\\advanced-event-mesh-lifecycle\\SKILL.md\" and RESULT 1 problem. tooling/removed-on-purpose.json now declares nine removals with their reasons; 5b honours them and reports a declared skill that reappears as an ISSUE carrying the reason. Negative-tested both directions: a fake lean-build in ~/.agents/skills produced \"declared deleted but installed again\" plus the measured 67-char cost, and a fake live advanced-event-mesh-lifecycle produced the 5b revival line. Both removed afterwards.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-065",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "docs/tool-routing.md:54-55",
+                         "title":  "The routing reference still carried the sentence F-022 removed from the agent, so the tie-break still authorised a SAP call before the target gate",
+                         "status":  "fixed",
+                         "note":  "F-022s own note says the sentence was a verbatim copy of docs/tool-routing.md and that this is how one rule came to mean two things in two homes - but only the agent copy was edited. The document now matches the fixed agent: observe callability only after the target is confirmed, with a call that reads no data.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-066",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:127,:167, C:\\Users\\narue\\.agents\\skills\\senior-abap-development\\SKILL.md:178",
+                         "title":  "Three skills deleted on purpose were still named as loadable in the agent and in the skill, so an agent following either would issue a load that cannot resolve",
+                         "status":  "fixed",
+                         "note":  "surgical-patch, safe-refactor and tdd. Nothing noticed because a skill name in prose is only text, and the instruction fails at the moment it is followed. Both now name ponytail, which is installed; the deleted names were removed entirely rather than annotated, so nothing can be read as an instruction. New gate section 3b checks every load/use/skill mention in the nine repository-owned files: measured 10 names, all resolving.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-067",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "SETUP-NEW-MACHINE.md section 6",
+                         "title":  "The guide said 19 ABAP skills have no npx source and must be copied from a backup; 12 of them are lock-tracked to arc-mcp/arc-1",
+                         "status":  "fixed",
+                         "note":  "Measured against ~/.agents/.skill-lock.json: exactly 7 are absent from the lock (senior-abap-development, sap-abap, sap-abap-cds, sapui5, sap-abap-reverse-engineering, sap-se38-report-tester, sap-st22-dump-analysis) and 12 resolve to arc-mcp/arc-1. docs/reference/skills.md:43-45 lists exactly those 7, and docs/reference/arc-1.md:23 has the command the guide omitted. A hand-copied skill is invisible to npx skills update, so the old text permanently froze 12 skills at their backup version.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-068",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "tooling/verify-all.ps1:1335-1362",
+                         "title":  "The history scan wrote its derived credential patterns to a temp file with cleanup only in a finally, so every hard-killed run left the identifiers themselves on disk",
+                         "status":  "fixed",
+                         "note":  "The patterns are built from the ARC-1 connection store, so the leftover file is a file of customer identifiers. Measured 2026-11-16: verify-rx-5020.txt, 126 bytes, six pattern lines, left by a Ctrl+C. Proved that this git accepts -f - from stdin (rc 0 on a match, 1 on no match) and piped the patterns in, so no file is created. Removed the leftover; 0 remain.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-069",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "tooling/verify-all.ps1:642-652",
+                         "title":  "The hookprobe sweep decided by age alone, and a directory timestamp does not advance when a file is written into a subdirectory - so it could delete a live run home and turn a clean tree into a false exit 1",
+                         "status":  "fixed",
+                         "note":  "Measured: with sub/x.txt created, the parent LastWriteTime was unchanged (03:09:05.707 before and after); with y.txt at the root it advanced. The hook writes its log into the .copilot subdirectory, so a run alive for over an hour kept a stale timestamp. The victim is hookprobe-\u003cpid\u003e, so the sweep now skips any directory whose PID is still alive.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-070",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "hooks/subagent-rules.cjs:178-190",
+                         "title":  "The log was truncated by a fixed 250 lines under a 64 KB byte cap, which cannot converge when a restricted line carries the roster whole reason",
+                         "status":  "fixed",
+                         "note":  "Measured live log: 51 lines, mean 197 bytes, max 637, so 250 lines is up to 159 KB - above the cap, meaning every later event would re-read and re-write the whole file for ever. Truncation is now by bytes, keeping the last half-cap so the rewrite happens once per ~32 KB of events. Proved with a synthetic 137,600-byte log: the old rule would have left 137,600 bytes, the new one wrote 32,416 with the newest line intact.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-071",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "SETUP-NEW-MACHINE.md sections 1, 2, 7, 9",
+                         "title":  "Seven command-level errors that would each stop or mislead an operator on a fresh machine",
+                         "status":  "fixed",
+                         "note":  "All measured against the repository this session: (a) two of the four config templates are named mcp.json and settings.json but the files are mcp.json.template and settings.json.template; (b) the probe was invoked as .\\tooling\\sap-auth-probe.js, and .JS is in PATHEXT so Windows hands it to WScript, which has no require - it needs node, and it exits 2 UNKNOWN without ARC1_PROBE_URL/USER/PASS; (c) no execution-policy step, while a default Windows client is Restricted and blocks both .\\x.ps1 and powershell -File x.ps1; (d) three of the eight delete targets come from mattpocock/skills, which the guide never installs, so they error on a clean machine; (e) the park step was described but never instructed, so section 0 18 skills was unreachable after a fresh toolkit install puts 24 live; (f) section 0 listed kit skills under ~/.agents/skills while install-kit.ps1 writes them to ~/.copilot/skills; (g) see 2 (no version) and 6 (group-3 skills see 7, a section with no such list).",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-072",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "tooling/verify-all.ps1 section 2",
+                         "title":  "The reference-link gate checked only markdown links, so it validated 3 of 79 references",
+                         "status":  "fixed",
+                         "note":  "Measured across the three loader roots: 3 markdown links and 76 backticked paths, all 76 resolving. The gate now checks both spellings, de-duplicated per file. Negative-tested with a scratch skill whose SKILL.md says Read `references/never-written.md`: reported BAD (broken reference), then clean after removal.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-073",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "tooling/measure-context.ps1:76-80",
+                         "title":  "The tool counted a whole skill YAML block as always-on cost, but only name and description are sent - over-reporting the total by 2,672 chars",
+                         "status":  "fixed",
+                         "note":  "Measured across 58 live skills: 23,805 chars of frontmatter against 21,133 that can be injected. Concentrated in three third-party skills carrying licence, maintainer, website and keyword metadata: sap-abap-cds +930, sapui5 +873, sap-abap +408. The headline always-on figure drops from 32,189 to 27,237 chars - the rest of that drop is the nine deleted skills, which the old figure still counted. The tool now counts name+description and prints the difference with its three largest contributors, so the number is auditable rather than merely smaller.",
+                         "evidence":  "f88f16a"
+                     },
+                     {
+                         "id":  "F-074",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "tooling/verify-all.ps1 section 5c",
+                         "title":  "Section 5c is 840 ms - a third of the audit - and every verdict-neutral speedup available needs a new failure mode",
+                         "status":  "wontfix",
+                         "reason":  "Measured this round with an instrumented copy: 5c is 840 ms of a 2,481 ms run (14 node spawns at ~42 ms = 587 ms, plus ~253 ms of PowerShell-side payload and JSON work). Bounded concurrency would cut ~380 ms, but in PowerShell 5.1 it needs either one temp file pair per probe - recreating the F-068 leak class I just removed - or runspaces, whose startup cost eats the gain. Caching is F-057 and stays rejected. Accepted: a manual audit at 2.5 s, against a gate that cannot report a verdict it did not compute."
+                     },
+                     {
+                         "id":  "F-075",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "agents/abap-developer-by-pongg.agent.md vs C:\\Users\\narue\\.agents\\skills\\senior-abap-development\\SKILL.md",
+                         "title":  "The agent and the senior skill state four of the same rules in different words - about 2,721 chars of paraphrase against 1,758 - and both load for every ABAP development task",
+                         "status":  "wontfix",
+                         "reason":  "Measured: longest verbatim run between them is 60 chars, so this is paraphrase and section 3 duplication probes cannot see it. The four clusters are target confirmation, the Pre-Flight field list, preservation and test seam, and activation-is-not-correctness. Not compressed, for one reason: the skill is user-invocable and can load with no agent file present, so replacing its text with a pointer would dangle, and removing it from the agent would leave the agent silent when the skill is unavailable. Each asset must stand alone; the cost is accepted and now recorded rather than claimed absent."
+                     },
+                     {
+                         "id":  "F-076",
+                         "verified_by":  "deep audit 2026-11-16 round 2",
+                         "where":  "release notes v0.9.4.1",
+                         "title":  "The v0.9.4.1 notes reported that 42 percent of the audit time is interpreter startup, which re-measurement does not support",
+                         "status":  "wontfix",
+                         "reason":  "Re-measured 2026-11-16: powershell -NoProfile -File on a trivial script is 231-240 ms across five runs, and everything outside the instrumented script span was 363-434 ms = 11-13% of wall, not 42%. The instrumented third-party measure that produced 42% counted all 21 external processes as interpreter startup, which double-counts the work each one does. The published tag cannot be rewritten without changing a released ref, so the correction lives here: interpreter startup is ~12%, and section work - 5c at 840 ms above all - is the rest."
                      }
                  ]
 }
