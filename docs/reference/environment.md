@@ -26,7 +26,9 @@ fbc6ae2e6722b1312ffc2700081aeccb
 |---|---|
 | Framework repo (agents, skills, hooks, templates, reference) | wherever you cloned it — `$env:ABAP_KIT_ROOT`, else the parent of `tooling\` |
 | GitHub | `naruepan2/abap-copilot-kit` — **private**, on purpose |
-| MCP servers (all of them) | `%APPDATA%\Code\User\mcp.json` — user scope |
+| MCP servers (VS Code) | `%APPDATA%\Code\User\mcp.json` — user scope, key `servers` |
+| MCP servers (Copilot CLI) | `%USERPROFILE%\.copilot\mcp-config.json` — user scope, key `mcpServers`. VS Code imports this file as a discovery source named `copilot`, and that source is on by default |
+| MCP discovery import | `%APPDATA%\Code\User\settings.json` → `chat.mcp.discovery.enabled`. A server declared in both files above is a duplicate, and `chat.mcp.collisionBehavior` (default `disable`) then switches one copy off — it still appears in the tool picker, with no tools |
 | ABAP FS destinations | `%APPDATA%\Code\User\settings.json` → `abapfs.remote` — user scope |
 | ADT MCP server settings | `%APPDATA%\Code\User\settings.json` → `adt.mcpServer.*` |
 | Agents | `%USERPROFILE%\.copilot\agents\` |

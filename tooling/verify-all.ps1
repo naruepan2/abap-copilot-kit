@@ -8,9 +8,12 @@
 param(
     [ValidateSet('terse', 'full')]
     [string]$Detail = 'terse',
+    # Legacy alias, honoured rather than merely accepted. Before this the switch was declared and then
+    # overwritten by the $Detail default, so `-Detail full -Summary` printed the full output the caller
+    # had just asked to suppress - a flag that did nothing is worse than an absent one.
     [switch]$Summary
 )
-# One switch drives the existing $Summary logic below, so the body needs no edits.
+if ($Summary) { $Detail = 'terse' }
 $Summary = ($Detail -eq 'terse')
 
 $ErrorActionPreference = 'Continue'
@@ -134,7 +137,13 @@ foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Where-Object { -not $_.PSI
     catch { $agCount++; $agBad++; Write-Output ("  ISSUE  " + $f.Name + " (unreadable: " + $_.Exception.GetType().Name + ")"); continue }
     $u = [System.Text.Encoding]::UTF8.GetString($b)
     $lines = $u -split "`r?`n"
-    $fm = 0; for ($i = 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -eq '---') { $fm = $i + 1; break } }
+    # Frontmatter opens on line 1 and nowhere else. Searching from line 2 accepted any later '---' - a
+    # markdown horizontal rule - so a file whose frontmatter an edit had destroyed still reported
+    # "fm=L5" and passed. The BOM is trimmed first because GetString does not remove it.
+    $fm = 0
+    if ($lines.Count -gt 0 -and $lines[0].TrimStart([char]0xFEFF) -eq '---') {
+        for ($i = 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -eq '---') { $fm = $i + 1; break } }
+    }
     $fences = @($lines | Where-Object { $_ -match '^```' }).Count
     $bad = ([regex]::Matches($u, [string][char]0xFFFD)).Count
     $dup = @($lines | Where-Object { $_ -match '^#{2,3} ' } | Group-Object | Where-Object { $_.Count -gt 1 }).Count
@@ -155,7 +164,12 @@ Line '1b. Every script parses (the cheapest check that would have caught my own 
 # eats a newline breaks a PowerShell script and the tool still reads as "present". Two separate edits
 # in one session produced exactly that, and neither was caught until something ran the file. Parsing is
 # static, fast, and needs no execution.
-$psBad = 0; $psCount = 0; $jsBad = 0; $jsCount = 0
+# A file that was never parsed is not a file that parsed. The pass line used to count every Node file
+# even when `node` was absent (both loops did `continue` after incrementing), so on a machine without
+# node the audit still printed "4 Node file(s) parse" and the same 332 verified - the one check that
+# can catch a syntax error in the hooks had silently left the room.
+$psBad = 0; $psCount = 0; $jsBad = 0; $jsCount = 0; $jsSkipped = 0
+$node = Get-Command node -ErrorAction SilentlyContinue
 if ($repoOk) {
     foreach ($f in @(Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.ps1' -ErrorAction SilentlyContinue) +
                      @(Get-ChildItem (Join-Path $REPO 'hooks') -File -Filter '*.cjs' -ErrorAction SilentlyContinue) +
@@ -173,8 +187,7 @@ if ($repoOk) {
         }
         else {
             $jsCount++
-            $node = (Get-Command node -ErrorAction SilentlyContinue)
-            if (-not $node) { continue }
+            if (-not $node) { $jsSkipped++; continue }
             $out = & $node.Source --check $f.FullName 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $jsBad++
@@ -184,18 +197,21 @@ if ($repoOk) {
     }
     foreach ($f in Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.js' -ErrorAction SilentlyContinue) {
         $jsCount++
-        $node = (Get-Command node -ErrorAction SilentlyContinue)
-        if (-not $node) { continue }
+        if (-not $node) { $jsSkipped++; continue }
         $out = & $node.Source --check $f.FullName 2>&1
         if ($LASTEXITCODE -ne 0) {
             $jsBad++
             Write-Output ("  ISSUE   {0}: does not parse ({1})" -f $f.Name, (($out | Select-Object -First 1) -join ''))
         }
     }
+    $jsParsed = $jsCount - $jsSkipped
     if ($psBad -eq 0 -and $jsBad -eq 0) {
-        Write-Output ("  {0} PowerShell file(s) and {1} Node file(s) parse" -f $psCount, $jsCount)
+        Write-Output ("  {0} PowerShell file(s) and {1} Node file(s) parse" -f $psCount, $jsParsed)
     }
-    Ran 'scripts' ($psCount + $jsCount)
+    if ($jsSkipped -gt 0) {
+        Write-Output ("  SKIP    {0} Node file(s) not parsed - node is not on PATH" -f $jsSkipped)
+    }
+    Ran 'scripts' ($psCount + $jsParsed)
     Note 'ISSUE' ($psBad + $jsBad)
     if ($psCount -eq 0) { Write-Output '  ISSUE   no .ps1 found to parse'; Note 'ISSUE' 1 }
 }
@@ -315,16 +331,19 @@ if (Test-Path $parkedDir) {
 }
 if (-not (Test-Path $parkedDir)) {
     Write-Output '  SKIP    no skills-disabled folder - nothing is parked'
+    # No Ran here: an absent folder examined nothing. The old unconditional Ran 'parked' 1 counted a
+    # SKIP as verified on every machine and made the section unreachable for the verdict.
 }
 elseif ($revived.Count -eq 0) {
     Write-Output '  parked skills stayed parked'
+    Ran 'parked' 1
 }
 else {
     foreach ($r in $revived) { Write-Output ("  ISSUE   parked but live again: " + $r) }
     Write-Output ("  unparking cost ~{0} chars (~{1} tokens) in every request" -f $parkedCost, [math]::Round($parkedCost / 4))
     Note 'ISSUE' $revived.Count
+    Ran 'parked' 1
 }
-Ran 'parked' (1)
 
 Line '3. Cross-file rule duplication (a rule must have one home)'
 # Every file a probe reads is guarded. A missing skill file used to throw inside the ordered
@@ -488,7 +507,10 @@ Line '5b. SAP AI Dev Toolkit: does the roster still cover what it installs?'
 $TK = "$env:USERPROFILE\.copilot\.sap-ai-dev-toolkit-assets.json"
 if (-not (Test-Path $TK)) {
     Write-Output '  no toolkit manifest - nothing to reconcile'
-    Ran 'toolkit' 0
+    # An optional input that is absent is a decision that was examined, not a section that ran nothing.
+    # Counting it as 0 made the verdict "inconclusive" (exit 2) on every machine without the toolkit,
+    # with no way to reach a clean run - a gate that can only fail is as useless as one that cannot.
+    Ran 'toolkit' 1
 } else {
     $tkDoc = $null
     try { $tkDoc = Get-Content $TK -Raw | ConvertFrom-Json }
@@ -534,6 +556,84 @@ if (-not (Test-Path $TK)) {
     foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
     Ran 'toolkit' $tkAgents.Count
     Note 'ISSUE' ($hashDrift.Count + $gone.Count)
+}
+
+Line '5c. The subagent gate answers the names the harness actually sends'
+# The roster is an allowlist, so the hook must recognise the SAME string the harness puts in the
+# event. It did not: normalise() stripped a " by pongg" suffix that exists only in the display name,
+# while the roster is keyed on file stems - so every allowlisted agent fell through to "not listed in
+# roster.json" and was restricted. This machine's own log recorded it on 2026-11-15:
+#   restricted  SAP ABAP Reverse Engineering Analyst by Pongg  agent is not listed in roster.json
+# No amount of reading the code finds that, because both sides look right on their own. So the check
+# runs the hook with the shapes the product sends and compares the verdict with the roster.
+$hookFile = "$env:USERPROFILE\.copilot\hooks\subagent-rules.cjs"
+if (-not (Test-Path $hookFile)) { $hookFile = Join-Path $REPO 'hooks\subagent-rules.cjs' }
+if (-not $node) {
+    Skip 'node is not on PATH - the gate cannot be exercised'
+}
+elseif (-not (Test-Path $hookFile)) {
+    Skip 'subagent-rules.cjs not found - nothing to exercise'
+}
+elseif (-not $rosterOk) {
+    Skip 'roster unreadable - no expected verdicts to compare against'
+}
+else {
+    # The hook reads $HOME\.copilot\roster.json and appends its own log, so the probes run against a
+    # throwaway home holding a copy of the live roster. Nothing outside that folder is touched.
+    $probeHome = Join-Path ([System.IO.Path]::GetTempPath()) ('hookprobe-' + $PID)
+    New-Item -ItemType Directory -Force -Path (Join-Path $probeHome '.copilot') | Out-Null
+    Copy-Item $rosterPath (Join-Path $probeHome '.copilot\roster.json') -Force
+    $cases = @()
+    foreach ($d in $roster.delegatable) {
+        if (-not $d.file) { continue }
+        $cases += , @([string]$d.file, $true)
+        if ($d.display) { $cases += , @([string]$d.display, $true) }
+        $cases += , @(([string]$d.file + '-evil'), $false)
+    }
+    $cases += , @('no-such-agent-by-pongg', $false)
+    $cases += , @('', $false)
+    $savedHome = $env:USERPROFILE
+    $wrong = 0
+    try {
+        $env:USERPROFILE = $probeHome
+        foreach ($c in $cases) {
+            $name = [string]$c[0]
+            $payload = '{"hookEventName":"SubagentStart","agent_type":"' + $name.Replace('\', '\\').Replace('"', '\"') + '"}'
+            $out = ''
+            try { $out = (($payload | & $node.Source $hookFile) -join '') } catch { $out = '' }
+            $label = if ($name -eq '') { '(empty)' } else { $name }
+            # An empty or unparseable answer is not a verdict. Treating "no Restricted text" as trusted
+            # made the gate report success precisely when the hook had crashed - the same shape of
+            # mistake as a read that leaves the previous value behind.
+            $trusted = $false; $answered = $false
+            try {
+                $verdictJson = $out | ConvertFrom-Json
+                $ctx = $verdictJson.hookSpecificOutput.additionalContext
+                if ($ctx) { $answered = $true; $trusted = ($ctx -notmatch 'Restricted delegation context') }
+            }
+            catch { $answered = $false }
+            if (-not $answered) {
+                Write-Output ("  ISSUE   '{0}': the hook returned no verdict" -f $label)
+                $wrong++
+                continue
+            }
+            if ($trusted -ne [bool]$c[1]) {
+                $want = if ([bool]$c[1]) { 'trusted' } else { 'restricted' }
+                Write-Output ("  ISSUE   '{0}' should be {1}" -f $label, $want)
+                $wrong++
+            }
+            elseif (-not $Summary) {
+                Write-Output ("  OK      '{0}' -> {1}" -f $label, $(if ($trusted) { 'trusted' } else { 'restricted' }))
+            }
+        }
+    }
+    finally {
+        $env:USERPROFILE = $savedHome
+        Remove-Item $probeHome -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if ($wrong -eq 0) { Write-Output ("  {0} probe(s) matched the roster" -f $cases.Count) }
+    Ran 'subagent-gate' $cases.Count
+    Note 'ISSUE' $wrong
 }
 
 Line '6. Repo memory: does it duplicate the agent?'
@@ -642,7 +742,12 @@ $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -Er
 $skillMirrors = @(Get-ChildItem "$REPO\skills" -Directory -ErrorAction SilentlyContinue |
     Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') } |
     ForEach-Object { 'skills\' + $_.Name + '\SKILL.md' })
-$pairs = @() + $agentMirrors + $skillMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
+# Hooks are mirrored too, and were the one folder this section never compared. Measured 2026-11-15: the
+# live subagent-rules.cjs was a full version behind the clone - it still ran the fuzzy allowlist a
+# previous release replaced - and no section noticed, because the installer had never copied hooks/
+# either. A file that runs on every session and is compared nowhere is the worst place to be stale.
+$hookMirrors = @(Get-ChildItem "$REPO\hooks" -Filter '*.cjs' -ErrorAction SilentlyContinue | ForEach-Object { 'hooks\' + $_.Name })
+$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
 # tooling\surface.json is deliberately absent from the list. It is runtime state: the sessionStart
 # hook rewrites the LIVE copy on every run, so comparing it against the repository snapshot would
 # report DRIFT forever, from the first session in which the hook fires. A check that can only fail is
@@ -652,6 +757,7 @@ $compared = 0
 foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
            elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }
+           elseif ($rel -like 'hooks*') { Join-Path "$env:USERPROFILE\.copilot\hooks" (Split-Path $rel -Leaf) }
            elseif ($rel -like 'tooling*') { Join-Path "$env:USERPROFILE\.copilot\state" (Split-Path $rel -Leaf) }
            else { Join-Path $SK ($rel -replace 'skills\\', '') }
     if (-not (Test-Path (Join-Path $REPO $rel))) { $missingLive += ($rel + ' (absent from the repository)'); continue }
@@ -677,9 +783,10 @@ Pop-Location
 }
 
 Line '8. SAP password in any harness config: literal, or indirection?'
-# VS Code supports ${input:...} and ~/.copilot/mcp.json already uses it. The Copilot CLI accepts
-# only --env KEY=VALUE, so its config had the real password as plaintext - invisible to a scan
-# that only looks at the repository. A literal here is an ISSUE wherever the file lives.
+# VS Code supports ${input:...} and the Copilot CLI does not, which is why the two configs are not
+# interchangeable. The CLI accepts only --env KEY=VALUE, so its config once held the real password as
+# plaintext - invisible to a scan that only looks at the repository. A literal here is an ISSUE
+# wherever the file lives.
 $configs = [ordered]@{
     'vscode'   = "$env:APPDATA\Code\User\mcp.json"
     'copilot'  = "$env:USERPROFILE\.copilot\mcp-config.json"
@@ -868,6 +975,74 @@ function Test-LauncherWiring($path, $rootKey, $label) {
 Test-LauncherWiring "$env:USERPROFILE\.copilot\mcp-config.json" 'mcpServers' 'launcher'
 Test-LauncherWiring "$env:APPDATA\Code\User\mcp.json" 'servers' 'launcher2'
 
+Line '8b. Two MCP config files, one server list (a duplicate is silently disabled)'
+# VS Code 1.146 reads %USERPROFILE%\.copilot\mcp-config.json as a discovery source named "copilot",
+# and that source is ON by default. When the same server label appears in both files, the setting
+# chat.mcp.collisionBehavior decides what happens, and its default is "disable": the second copy is
+# disabled at runtime and still listed in the tool picker, as a name that contributes no tools.
+# Measured in the shipped workbench bundle on 2026-11-15:
+#   Pyo  = {"claude-desktop":!1,"copilot":!0,"windsurf":!1,...}   copilot discovery on by default
+#   [ESi]= {enum:["disable","suffix"], default:"disable"}          collision default
+#   collision key = serverDefinition.label.toLowerCase()
+# So a duplicate is not cosmetic. Either de-duplicate the files or switch the source off.
+$vsCfgPath = "$env:APPDATA\Code\User\mcp.json"
+$clCfgPath = "$env:USERPROFILE\.copilot\mcp-config.json"
+$vsNames = @(); $clNames = @(); $cfgRead = 0
+foreach ($pair in @(, @($vsCfgPath, 'servers', 'vscode')) + @(, @($clCfgPath, 'mcpServers', 'cli'))) {
+    $path = $pair[0]; $rootKey = $pair[1]; $label = $pair[2]
+    if (-not (Test-Path $path)) { Write-Output ("  {0,-8} absent" -f $label); continue }
+    $cfg = $null
+    try { $cfg = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    catch { Write-Output ("  {0,-8} ISSUE   not valid JSON" -f $label); Note 'ISSUE' 1; continue }
+    if (-not $cfg) { continue }
+    $cfgRead++
+    $block = $null
+    if ($rootKey -eq 'servers') { $block = $cfg.servers } else { $block = $cfg.mcpServers }
+    $names = @()
+    if ($block) { $names = @($block.PSObject.Properties | Where-Object { $_ } | ForEach-Object { $_.Name }) }
+    Write-Output ("  {0,-8} {1} server(s): {2}" -f $label, $names.Count, ($names -join ', '))
+    if ($rootKey -eq 'servers') { $vsNames = $names } else { $clNames = $names }
+}
+$overlap = @($vsNames | Where-Object { $clNames -contains $_ })
+# The setting is a per-source object; absent means the product default, which is copilot: true.
+$discState = 'default (copilot on)'
+$setPath = "$env:APPDATA\Code\User\settings.json"
+if (Test-Path $setPath) {
+    $raw = $null
+    try { $raw = [System.IO.File]::ReadAllText($setPath, [System.Text.Encoding]::UTF8) } catch { $raw = $null }
+    if ($raw) {
+        # settings.json is JSONC. Strip comments and trailing commas before parsing, the same tolerance
+        # hooks/session-drift.cjs uses, so a comment in the settings file does not read as a defect.
+        $json = [regex]::Replace($raw, '(?m)^\s*//.*$', '')
+        $json = [regex]::Replace($json, '/\*[\s\S]*?\*/', '')
+        $json = [regex]::Replace($json, ',(\s*[}\]])', '$1')
+        $sc = $null
+        try { $sc = $json | ConvertFrom-Json } catch { $sc = $null }
+        if ($sc -and ($sc.PSObject.Properties.Name -contains 'chat.mcp.discovery.enabled')) {
+            $d = $sc.'chat.mcp.discovery.enabled'
+            if ($d -is [bool]) { $discState = $(if ($d) { 'all sources on' } else { 'all sources off' }) }
+            elseif ($d.PSObject.Properties.Name -contains 'copilot') { $discState = $(if ($d.copilot) { 'copilot on' } else { 'copilot off' }) }
+        }
+    }
+}
+Write-Output ("  discovery {0}" -f $discState)
+if ($overlap.Count -gt 0) {
+    if ($discState -eq 'copilot off' -or $discState -eq 'all sources off') {
+        Write-Output ("  OK      {0} name(s) duplicated, and the copilot source is off, so only one copy loads" -f $overlap.Count)
+    }
+    else {
+        foreach ($o in $overlap) { Write-Output ("  ISSUE   declared in both configs: " + $o) }
+        Write-Output '           VS Code imports the CLI config by default and disables the second copy, so the'
+        Write-Output '           tool picker lists a server that contributes no tools. Either drop the duplicate'
+        Write-Output '           or set "chat.mcp.discovery.enabled": { "copilot": false } in settings.json.'
+        Note 'ISSUE' $overlap.Count
+    }
+}
+elseif ($cfgRead -gt 0) {
+    Write-Output '  OK      no server name is declared in both configs'
+}
+Ran 'mcp-sources' $cfgRead
+
 Line '9. Sensitive values in any tracked file'
 if (-not $repoOk) {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
@@ -989,7 +1164,17 @@ if ($revs.Count -gt 0) {
     $rxFile = Join-Path ([System.IO.Path]::GetTempPath()) ('verify-rx-' + $PID + '.txt')
     try {
         [System.IO.File]::WriteAllLines($rxFile, $patterns, (New-Object System.Text.UTF8Encoding($false)))
-        $found = @(git grep -I -E -f $rxFile $revs 2>$null | Where-Object { $_ })
+        $found = @()
+        & git grep -I -E -f $rxFile $revs 2>$null | ForEach-Object { if ($_) { $found += $_ } }
+        # git grep exits 0 for a match, 1 for no match, and anything above 1 is a failure. Without this
+        # branch a failed scan (a bad pattern, a damaged repository) produced an empty list and the
+        # line "history clean across N commit(s)" - the one check for leaked credentials reporting a
+        # pass it never earned.
+        $grepRc = $LASTEXITCODE
+        if ($grepRc -gt 1) {
+            Write-Output ("  ISSUE   history scan failed (git grep exit {0}) - this is not a clean result" -f $grepRc)
+            Note 'ISSUE' 1
+        }
         # git grep prints "<sha>:<path>:<content>". The same bad line survives in every later commit,
         # so counting the raw output reported one leaked value as three problems when it had been
         # committed three times. A leak is a location, not a commit: dedupe on path + content.

@@ -103,13 +103,15 @@ function Secret-State($n) {
     $o = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Test -Key (Secret-Key $n) 2>$null
     $rc = $LASTEXITCODE
     $ErrorActionPreference = $prev
-    # Exit 1 means "nothing stored". Anything else is this script's own problem, and is reported as
-    # such rather than as a missing credential: a helper that fails to start printed nothing, which
-    # used to be read as ABSENT, so every connection showed MISSING and the advice was to store a
-    # password that was already stored.
-    if ($rc -ne 0 -and $rc -ne 1) { return 'ERROR' }
-    if (($o -join '') -match '^PRESENT') { return 'PRESENT' }
-    return 'ABSENT'
+    # The verdict comes from the OUTPUT, not from the exit code. A helper that crashes exits 1, and so
+    # does -Read when nothing is stored, so the code alone cannot tell "no credential" from "the
+    # helper is broken" - and reading a crash as ABSENT tells the user to re-enter a password that is
+    # already in the store. -Test prints PRESENT or ABSENT whenever it runs to completion, so silence
+    # is the signal.
+    $out = ($o -join '')
+    if ($out -match '^PRESENT') { return 'PRESENT' }
+    if ($out -match '^ABSENT') { return 'ABSENT' }
+    return 'ERROR'
 }
 
 $data = Read-Store

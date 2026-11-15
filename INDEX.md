@@ -17,7 +17,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
-| `config-templates/` | `mcp.json`, `settings.json` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
+| `config-templates/` | `mcp.json` (VS Code), `mcp-config.json` (Copilot CLI), `settings.json` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
 | `tooling/` | Audit scripts that measure context and check consistency. `sap-connection.ps1` is the logon list (add/remove/list, like ABAP FS's Connection Manager); `sap-secret.ps1` holds each password in DPAPI; `sap-arc1-launcher.ps1` starts `-Connection <name>` and repairs a stale password; `sap-auth-probe.js` decides whether a stored password still authenticates (OK / STALE / UNKNOWN, Node so the verdict matches ARC-1); `workspace-sync.ps1` mirrors a program's contract files into the private workspace repository by allowlist, never the customer's specification; `install-kit.ps1` copies agents, tooling and skills into place and refuses to overwrite a newer live file |

@@ -359,7 +359,14 @@ if ($Check) {
 
     Write-Output ''
     if ($missing + $differ + $extra + $mfIssues -eq 0) {
-        Write-Output ('  mirror matches the source: ' + $plan.Count + ' contract file(s), ' + $memoryPlan.Count + ' memory file(s)')
+        if ($memoryCovered) {
+            Write-Output ('  mirror matches the source: ' + $plan.Count + ' contract file(s), ' + $memoryPlan.Count + ' memory file(s)')
+        }
+        else {
+            # Without -RepoMemory the memory folder is never read, so "matches the source" would be a
+            # verdict about files nobody opened. The contract count stays; the claim does not.
+            Write-Output ('  mirror matches the source, memory not examined: ' + $plan.Count + ' contract file(s)')
+        }
         if ($sourceWarn.Count -gt 0) { Write-Output ('  ' + $sourceWarn.Count + ' source warning(s) - a human decides, -Write cannot fix them') }
         exit 0
     }

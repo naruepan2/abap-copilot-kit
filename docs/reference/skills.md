@@ -56,15 +56,19 @@ Against `~/.agents/.skill-lock.json`:
   Lock entries for uninstalled skills are stale — never assume a lock entry means present.
 - Toolkit skills are refreshed only by **reinstalling** (`npm i -g sap-ai-dev-toolkit`); the
   `skills` CLI never touches them.
-- Most of `~/.copilot/skills` is **not** lock-tracked, so `skills update` does nothing for it.
+- None of `~/.copilot/skills` is lock-tracked, so `skills update` does nothing for it.
 - Edits to a lock-tracked skill are overwritten on update. To customise, copy it to a new folder
   name instead of editing in place.
 
 Recount the lock:
 
 ```powershell
-(Get-Content ~/.agents/.skill-lock.json -Raw | ConvertFrom-Json).skills.PSObject.Properties.Count
+@((Get-Content "$env:USERPROFILE\.agents\.skill-lock.json" -Raw | ConvertFrom-Json).skills.PSObject.Properties).Count
 ```
+
+The original one-liner ended in `.PSObject.Properties.Count` without the `@()`. Measured: that prints
+83 lines of `1` rather than one number, because `.Count` enumerates a property collection in
+PowerShell 5.1 and each entry reports its own count.
 
 Regenerate any name list rather than trusting a table:
 

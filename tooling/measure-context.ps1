@@ -58,8 +58,12 @@ $grand = 0
 foreach ($r in $memRows) { $grand += $r.Chars }
 
 $skillRows = @()
+# A missing root is reported, not skipped. Skipping it printed "skills 0 files" and exited 0, so a
+# person who moved ~/.agents/skills saw the always-on cost halve and believed it - the tool's only job
+# is that number, and it was answering a question it had not been able to examine.
+$missingRoots = @()
 foreach ($root in $ROOTS) {
-    if (-not (Test-Path $root)) { continue }
+    if (-not (Test-Path $root)) { $missingRoots += $root; continue }
     foreach ($d in Get-ChildItem $root -Directory) {
         $s = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path $s)) { continue }
@@ -79,6 +83,8 @@ if ($Detail -eq 'terse') {
     $always = $grand + $skillTotal
     Write-Output ("always-on  memory  {0,3} files  {1,7} chars  ~{2,6} tok" -f $memRows.Count, (Num $grand), (Num (Tok $grand)))
     Write-Output ("           skills  {0,3} files  {1,7} chars  ~{2,6} tok" -f $skillCount, (Num $skillTotal), (Num (Tok $skillTotal)))
+    foreach ($mr in $missingRoots) { Write-Output ("           WARNING root not found, its skills are NOT in this total: {0}" -f $mr) }
+    if (-not (Test-Path $AGDIR)) { Write-Output ("           WARNING agent folder not found: {0}" -f $AGDIR) }
     Write-Output ("           TOTAL           {0,7} chars  ~{1,6} tok   every request" -f (Num $always), (Num (Tok $always)))
     $mainChars = 0
     if (Test-Path $main) { $mainChars = (Read-Utf8 $main).Length }

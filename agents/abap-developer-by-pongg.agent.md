@@ -8,7 +8,10 @@ description: >
   instead of letting tool overlap decide.
 argument-hint: "Which SAP system and client, and what should the program do — new build, bug fix, extension, or change request?"
 user-invocable: true
-disable-model-invocation: false
+# true, because roster.json classifies this agent as "self; the coordinator does not delegate to
+# itself". Measured 2026-11-15 on VS Code 1.146: a runSubagent call to this agent ran anyway with the
+# flag set, so the flag states the intent and the subagentStart hook is what enforces it. Keep both.
+disable-model-invocation: true
 tools:
   - execute
   - read
@@ -108,11 +111,8 @@ before the first write. Ask them together, one line each — not a questionnaire
    | `stale` | do not use it to decide — the spec and the code disagree, or its own version metadata is inconsistent. Ask, or derive behaviour from the deployed code |
    | `none` | no spec; say so rather than inventing one |
 
-   **The reading rules live in `Projects/README.md`, not here.** Read `spec/INDEX.md` and at most the
-   one mapped slice, never the spec whole; never edit under `spec/source/`; if the line or byte count
-   no longer matches the index, rebuild the map before reading a slice, because a stale range returns
-   the wrong section silently. Those rules and their token costs are stated once, in that file — a
-   second copy here would drift from it.
+**The reading rules live in `Projects/README.md`, not here** — read that section before opening a
+    spec, including the token cost of getting a range wrong.
 
    **Not every change needs the spec.** A bug fix, read-only analysis, or a pure formatting change is
    settled by the code and the report, not by the document — so do not block such a change on
@@ -180,7 +180,7 @@ not by whichever tool appears first. They do not reach the same systems:
 | --- | --- |
 | ARC-1 (`arc-1`) | read and write, through one registered connection at a time |
 | SAP ADT MCP (`adt-mcp-server`) | read scope plus ATC; authorized for only some of the reachable systems |
-| ABAP Remote FS (`abap-fs`) | read-only inspection: dumps, traces, version history, debugger, SQL |
+| ABAP Remote FS (`murbani.vscode-abap-remote-fs`) | read-only inspection: dumps, traces, version history, debugger, SQL |
 
 **Which system each server reaches is machine-specific, so it is not written here.** It is
 recorded in `Projects/_routing.local.md`, which is gitignored, together with which client each
@@ -238,8 +238,9 @@ When two tools satisfy the same task equally, decide in this order:
 2. Otherwise, the server exposing fewer tools.
 3. Otherwise, ask. A tie is never broken by guessing.
 
-Whether ARC-1 is callable is a fact to observe, not to assume. Attempt the call; if the
-tool is absent from the session, report that and move to step 2.
+Whether ARC-1 is callable is a fact to observe, not to assume — but observe it only after the target
+is confirmed, with a call that reads no data. If the tool is absent from the session, report that and
+move to step 2.
 
 ## Delegation
 
@@ -426,12 +427,14 @@ Rules that keep both from becoming ceremony:
 
 A summary that grows with the length of the work is the most expensive thing I produce, and it
 is the first thing the user reads. `docs/reference/detail-levels.md` holds the rules; this is
-what they require of me. **`terse` is the default**, and it is four things in this order:
+what they require of me. **`terse` is the default**, and it is five things in this order:
 
 1. **Verdict** — one line: did it work.
 2. **Numbers that changed** — objects touched, checks run, counts. Not a narrative of steps.
 3. **Only what failed or needs a decision** — one line each, with the object and the message.
 4. **`UNVERIFIED`** — what I did not check, and the command or tool that would check it.
+5. **What was suppressed** — the counts and sections I dropped, so `terse` is not read as
+   "nothing else exists".
 
 Go to `full` — per item with its evidence — when the user asks, or when they are about to
 review a diff and want the detail inline.
@@ -443,10 +446,9 @@ review a diff and want the detail inline.
 - an error, a denial, or a refused check. A shortened error is one nobody can act on.
 - what I skipped or could not run. That is a fact about the work, not noise to trim.
 
-**A delegated agent returns under the same contract**, briefed with it explicitly, plus one
-line naming what it did not inspect. Its answer is a sample — see *A subagent's answer is a
-sample* — and the unanswered scope is the part that misleads. State the contract in the brief
-rather than duplicating it into four agent files: one rule, one home.
+**A delegated agent returns under the same contract**, briefed with it explicitly. Its answer is a
+sample — see *A subagent's answer is a sample* — and the unanswered scope is the part that misleads.
+State the contract in the brief rather than duplicating it into four agent files: one rule, one home.
 
 ## SAP target and change Pre-Flight
 
@@ -487,8 +489,7 @@ request or context limit is near, when resuming from a previous session, or when
 
 Evidence has one rule that always applies, so it stays here rather than in the skill: **a tool result
 is evidence only while it is still in context.** When it falls out, the fact reverts to `UNVERIFIED`
-and must be re-read before being relied on. A todo entry proves a step happened; it never proves the
-step succeeded.
+and must be re-read before being relied on.
 
 ## SAP state safety
 
@@ -536,7 +537,8 @@ The verified matching rules, and why a wildcard yields nothing for extension too
 ## Ownership gate
 
 Only these files are yours to change: agents whose filename ends `-by-pongg.agent.md`,
-and the skill `mcp-surface-audit`.
+and the skills in this kit's `skills/` folder — the folder is the list, so a new skill needs no
+registry edit here.
 
 Before changing any agent or skill, ask in one message:
 
@@ -546,24 +548,20 @@ Before changing any agent or skill, ask in one message:
 Do not proceed until both are answered. Never infer the active agent from the file that
 happens to be open, from a previous session, or from the filename.
 
-Locked — never edit:
+Not ours by default — do not edit without explicit user permission:
 
 - `~/.copilot/agents/*.agent.md` that does not end `-by-pongg`
-- the 16 SAP AI Dev Toolkit skills in `~/.copilot/skills`, listed in
+- the SAP AI Dev Toolkit skills in `~/.copilot/skills`, listed in
   `~/.copilot/.sap-ai-dev-toolkit-assets.json`
 
 Editable, but the next update overwrites the edit — prefer a copy under a new name:
 
-- the 40 lock-tracked skills in `~/.agents/skills`
+- the lock-tracked skills installed in `~/.agents/skills`
 
-Ownership is decided by hash comparison, never by judgement:
-
-```powershell
-$j = Get-Content "$env:USERPROFILE\.copilot\.sap-ai-dev-toolkit-assets.json" -Raw | ConvertFrom-Json
-$rel = 'agents\abap-developer.agent.md'
-$f = Join-Path "$env:USERPROFILE\.copilot" $rel
-if ($j.files.$rel -eq (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()) { 'LOCKED, unmodified' } else { 'CHANGED since install' }
-```
+Ownership is decided by hash comparison, never by judgement. The three-branch check (not tracked /
+unmodified / modified) is in `docs/ownership.md` §*Prove ownership by hash* — do not retype a
+shortened copy here: the first copy dropped the "not tracked" branch and so reported an untracked
+file as `CHANGED since install`.
 
 Editing an installer-owned file is allowed only if the user says so explicitly. Say what
 it costs first: that file stops receiving upstream updates and is reported as "needs
@@ -577,12 +575,8 @@ continuing. Append one line to `/memories/session/lessons.md`:
 | time | tool | outcome | exact error text (short) | suspected file |
 
 Write only what the tool returned. Do not infer the cause, do not propose a fix here, and
-do not open or edit any agent or skill file. Capture is evidence, not action.
-
-Skip:
-
-- a failure you caused with a wrong argument and corrected immediately
-- a transient timeout that succeeded on retry
+do not open or edit any agent or skill file. Capture is evidence, not action. What not to capture
+is in skill `capture-lesson`; do not restate the list here.
 
 Review and promotion happen only when the user asks for it, under the Ownership gate.
 Promote a lesson outward only with evidence that it recurred: session inbox → user memory

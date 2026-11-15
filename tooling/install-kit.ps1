@@ -51,6 +51,7 @@ $dest = [ordered]@{
     agents  = Join-Path $Copilot 'agents'
     tooling = Join-Path $Copilot 'state'
     skills  = Join-Path $Copilot 'skills'
+    hooks   = Join-Path $Copilot 'hooks'
 }
 
 if ($ShowPaths) {
@@ -92,6 +93,13 @@ foreach ($d in Get-ChildItem (Join-Path $KitRoot 'skills') -Directory -ErrorActi
     if (-not (Test-Path $s)) { continue }
     $plan += [pscustomobject]@{ Kind = 'skills'; Name = ($d.Name + '\SKILL.md'); Src = $s; Dest = (Join-Path (Join-Path $dest.skills $d.Name) 'SKILL.md') }
 }
+# Hooks were missed entirely: the installer copied agents, tooling and skills, and never the three
+# .cjs files that run on every session. Measured 2026-11-15, the live subagent-rules.cjs was a version
+# behind the clone - it still contained the fuzzy allowlist that a previous release had replaced - and
+# nothing installed or compared it, so the fix never reached the machine that runs it.
+foreach ($f in Get-ChildItem (Join-Path $KitRoot 'hooks') -File -Filter '*.cjs' -ErrorAction SilentlyContinue) {
+    $plan += [pscustomobject]@{ Kind = 'hooks'; Name = $f.Name; Src = $f.FullName; Dest = (Join-Path $dest.hooks $f.Name) }
+}
 
 foreach ($k in $dest.Keys) {
     if (-not (Test-Path $dest[$k])) { New-Item -ItemType Directory -Path $dest[$k] -Force | Out-Null }
@@ -128,7 +136,14 @@ foreach ($i in $plan) {
         # is not a conflict (nobody's work is at risk) and it is not "identical" either, because a
         # hash comparison says otherwise. Rewriting it costs one file write and makes the two answers
         # agree; leaving it means every future check has to explain itself.
-        $bytesDiffer = -not ((Get-FileHash $i.Src).Hash -eq (Get-FileHash $i.Dest).Hash)
+        #
+        # Compare the NORMALISED text on both sides. Hashing the raw source against a normalised
+        # destination compares two different things, so a repository file stored as CRLF reported
+        # "line-ending only" on every run and the counter never reached zero - an install that can
+        # never converge hides a real drift in the standing five.
+        $nb = [System.Text.Encoding]::UTF8.GetBytes($a)
+        $mb = [System.Text.Encoding]::UTF8.GetBytes($b)
+        $bytesDiffer = -not ([System.Convert]::ToBase64String($nb) -eq [System.Convert]::ToBase64String($mb))
         if ($bytesDiffer -and -not $Check) { Write-Normalised $i.Src $i.Dest; $normalised++ }
         elseif ($bytesDiffer) { $normalised++ }
         else { $same++ }
@@ -168,6 +183,7 @@ if (-not (Test-Path (Join-Path $Copilot 'roster.json'))) {
 }
 Write-Output '  memory           not copied - restore from backup\user-memory only when it is gone'
 Write-Output '  mcp.json         not touched - edit it: harness configs hold no secrets, names do'
+Write-Output '  hooks.json       not installed - copy hooks\hooks.json.template and resolve {{COPILOT_HOME}}'
 Write-Output '  Projects\        not copied - local notebook, gitignored, machine-specific'
 Write-Output ''
 Write-Output ('Verify with:  powershell -File "' + (Join-Path $dest.tooling 'verify-all.ps1') + '"')

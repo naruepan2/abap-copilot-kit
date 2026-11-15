@@ -1,7 +1,12 @@
-# who-locks.ps1 - reports the current working directory of every given PID.
+# who-locks.ps1 - reports the current working directory of running processes.
 # Read-only: opens each process for PROCESS_QUERY_INFORMATION|PROCESS_VM_READ and reads
 # RTL_USER_PROCESS_PARAMETERS.CurrentDirectory. Writes nothing except stdout.
-param([string]$Match = '')
+#
+#   -Match <wildcard>  only rows whose cwd matches (for example 'D:\abap*')
+#   -Pid <ids>         only these process ids; default is the interpreters and editors listed below
+#
+# -Pid is an alias for -ProcessId because $PID is a read-only automatic variable in PowerShell.
+param([string]$Match = '', [Alias('Pid')][int[]]$ProcessId = @())
 
 $sig = @'
 using System;
@@ -61,11 +66,17 @@ function Get-ProcCwd([int]$processId) {
     }
 }
 
-$targets = Get-Process | Where-Object { $_.ProcessName -in @('powershell', 'pwsh', 'Code', 'node', 'cmd') }
+$targets = if ($ProcessId.Count -gt 0) {
+    foreach ($procId in $ProcessId) { Get-Process -Id $procId -ErrorAction SilentlyContinue }
+} else {
+    Get-Process | Where-Object { $_.ProcessName -in @('powershell', 'pwsh', 'Code', 'node', 'cmd') }
+}
 foreach ($p in $targets) {
     $cwd = $null
     try { $cwd = Get-ProcCwd -processId $p.Id } catch { $cwd = $null }
-    if ($null -eq $cwd) { continue }
+    # A null result means the PEB could not be read: another user's process, or no SeDebugPrivilege.
+    # Skipping it made an unreadable pid look like a process that holds no directory at all.
+    if ($null -eq $cwd) { $cwd = '?' } elseif ($cwd -eq '') { $cwd = '(none)' }
     if ($Match -ne '' -and $cwd -notlike $Match) { continue }
     Write-Output ("pid={0,-7} {1,-14} cwd={2}" -f $p.Id, $p.ProcessName, $cwd)
 }

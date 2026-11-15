@@ -148,7 +148,7 @@ powershell -File tooling\install-kit.ps1 -Check     # what would change
 powershell -File tooling\install-kit.ps1           # copy what is missing
 ```
 
-It copies `agents/*.agent.md`, every `tooling/*.ps1`, `*.js` and `*.json`, and this kit's three
+It copies `agents/*.agent.md`, every `tooling/*.ps1`, `*.js` and `*.json`, and this kit's five
 skills. It is idempotent, and it refuses to overwrite a live file that differs — because the live
 copy has been newer than the clone before, and a blind copy would quietly undo that. `-Check`
 reports without copying; `-Force` overwrites once you have decided the clone is the newer one.
@@ -186,7 +186,7 @@ of an allowlist.
 `%APPDATA%\Code\User\mcp.json` and replace every `{{PLACEHOLDER}}`. The template is JSONC;
 strip the comments if your editor refuses them.
 
-**5. Credential — one password, both clients.** VS Code reads `~/.copilot/mcp.json`-style configs and
+**5. Credential — one password, both clients.** VS Code reads `%APPDATA%\Code\User\mcp.json` and
 supports `${input:...}`, so it can ask for the password in a Quick Input every time a server
 starts. The Copilot CLI has no such input — it can only pass `--env KEY=VALUE` — and its folder is
 readable by another group on Windows, so a password in that file is not private.

@@ -42,29 +42,51 @@ function readJson(file) {
     }
 }
 
-// agentName arrives in an undocumented shape. Match tolerantly against the roster's file
-// names and their display-ish variants, and treat "no match" as untrusted.
+// agentName arrives in an undocumented shape. The roster is keyed on file stems, but the harness
+// sends the frontmatter display name, so a match is either spelling - never a guess about which one
+// the product picked. Treat "no match" as untrusted.
 function normalise(value) {
     return String(value || '')
         .toLowerCase()
         .replace(/\.agent\.md$/, '')
-        .replace(/\s+by\s+pongg$/, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
+}
+
+// Every spelling an entry may be recognised by. `file`/`files` are the stems the roster is curated
+// with; `display`/`displays` are the names in the agent frontmatter. Keeping both in the data is the
+// fix for a real defect: normalise() used to strip " by pongg", a suffix the stems do not carry, so
+// the allowlist never matched a display name and every delegatable agent was classified "not listed
+// in roster.json" and restricted. The log on this machine recorded it before the fix.
+function keys(entry) {
+    const out = [];
+    const add = (v) => {
+        const k = normalise(v);
+        if (k && !out.includes(k)) out.push(k);
+    };
+    if (!entry) return out;
+    add(entry.file);
+    add(entry.display);
+    for (const f of entry.files || []) add(f);
+    for (const d of entry.displays || []) add(d);
+    return out;
 }
 
 function classify(agentName, roster) {
     const want = normalise(agentName);
     if (!want) return { trusted: false, reason: 'agent name missing from the event payload' };
 
+    // Carry every spelling through. Building this object with only `file` was the second half of the
+    // same defect: the roster had a display name, and the projection to {file, role} threw it away.
     const allowed = [];
-    for (const d of roster.delegatable || []) allowed.push({ file: d.file, role: d.role || '' });
+    for (const d of roster.delegatable || []) allowed.push({ file: d.file, display: d.display, role: d.role || '' });
 
     // Keep the roster's own wording per blocked entry, so the injected reason names the
     // entry that actually matched instead of whichever substring happened to hit first.
     const blocked = [];
     for (const g of roster.not_delegatable || []) {
         for (const f of g.files || []) blocked.push({ file: f, reason: g.reason || '' });
+        for (const d of g.displays || []) blocked.push({ display: d, reason: g.reason || '' });
     }
 
     // Two different questions, so two different matching rules. Collapsing them into one fuzzy search
@@ -76,11 +98,8 @@ function classify(agentName, roster) {
     // The allow list is a permission, so it requires an exact match: nothing but the roster entry
     // itself may inherit its trust. The deny list is a restriction, so a broader match is the safe
     // direction - if a name resembles something the roster refused, refuse it.
-    const exact = (list) => list.find((e) => normalise(e.file) === want) || null;
-    const fuzzy = (list) => list.find((e) => {
-        const n = normalise(e.file);
-        return want.startsWith(`${n}-`) || n.startsWith(`${want}-`);
-    }) || null;
+    const exact = (list) => list.find((e) => keys(e).includes(want)) || null;
+    const fuzzy = (list) => list.find((e) => keys(e).some((n) => want.startsWith(`${n}-`) || n.startsWith(`${want}-`))) || null;
 
     const allow = exact(allowed);
     if (allow) return { trusted: true, role: allow.role };
@@ -89,11 +108,12 @@ function classify(agentName, roster) {
     // names the entry the roster actually refused.
     const deny = exact(blocked) || fuzzy(blocked);
     if (deny) {
+        const named = deny.file || deny.display || '(unnamed entry)';
         return {
             trusted: false,
             reason: deny.reason
-                ? `roster.json classifies "${deny.file}" as not delegatable: ${deny.reason}`
-                : `roster.json classifies "${deny.file}" as not delegatable`,
+                ? `roster.json classifies "${named}" as not delegatable: ${deny.reason}`
+                : `roster.json classifies "${named}" as not delegatable`,
         };
     }
 

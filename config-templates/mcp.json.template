@@ -18,8 +18,9 @@
     }
   ],
   "servers": {
-    // ARC-1 — intent-based ADT server. 12 tools. Read-only by default; each
-    // capability is a separate positive opt-in.
+    // ARC-1 — intent-based ADT server. Read-only by default; each capability is a
+    // separate positive opt-in. Do not write a tool count here: it drifts between
+    // releases and a stale number is worse than none.
     "arc-1": {
       "type": "stdio",
       "command": "npx",

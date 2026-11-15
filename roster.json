@@ -5,18 +5,21 @@
     "delegatable":  [
                         {
                             "file":  "sap-abap-reverse-engineer-by-pongg",
+                            "display":  "SAP ABAP Reverse Engineering Analyst by Pongg",
                             "role":  "reverse-engineering",
                             "scope":  "read-only inspection of ABAP, CDS, RAP, and services",
                             "why_allowed":  "read-only by design; carries its own evidence and safety gates"
                         },
                         {
                             "file":  "sap-se38-report-tester-by-pongg",
+                            "display":  "SAP SE38 Report Tester by Pongg",
                             "role":  "se38-testing",
                             "scope":  "replay SE38 report logic without SAP GUI; read-only SQL channel",
                             "why_allowed":  "read-only by design; default-deny tool matrix"
                         },
                         {
                             "file":  "sap-st22-dump-analysis-by-pongg",
+                            "display":  "SAP ST22 Dump Analyst by Pongg",
                             "role":  "dump-analysis",
                             "scope":  "ST22 dump listing and analysis via ARC-1 SAPDiagnose",
                             "why_allowed":  "read-only; restricted to ARC-1 read tools"
@@ -45,6 +48,9 @@
                                 "files":  [
                                               "abap-developer-by-pongg"
                                           ],
+                                "displays":  [
+                                                 "ABAP Developer by Pongg"
+                                             ],
                                 "reason":  "self; the coordinator does not delegate to itself"
                             }
                         ],

@@ -22,7 +22,7 @@ from **deciding** what to do about it.
 ├──────────────────────────────────────────────────────────────┤
 │ 4  SKILL             how to perform a recurring procedure    │
 │    ~/.copilot/skills/, ~/.agents/skills/                     │
-│    Lazy-loaded, so it costs nothing until used.              │
+│    frontmatter loads every request; body on demand.          │
 └──────────────────────────────────────────────────────────────┘
 ```
 

@@ -118,6 +118,15 @@ function serverNames() {
     return Object.keys(cfg.servers).sort();
 }
 
+// The Copilot CLI keeps its own list in ~/.copilot/mcp-config.json, and VS Code imports that file as a
+// discovery source by default. Snapshotting only the VS Code file meant a server added to the CLI
+// produced no drift line, while it still changed what the tool picker offered.
+function serverNamesCli() {
+    const cfg = readJson(MCP_CLI_JSON);
+    if (!cfg || !cfg.mcpServers) return [];
+    return Object.keys(cfg.mcpServers).sort();
+}
+
 function buildSurface() {
     return {
         takenAt: new Date().toISOString(),
@@ -127,6 +136,7 @@ function buildSurface() {
             dotCopilot: listSkillFolders(path.join(COPILOT, 'skills')),
         },
         mcpServers: serverNames(),
+        mcpServersCli: serverNamesCli(),
         extensionTools: extensionToolCounts(),
     };
 }
@@ -179,6 +189,7 @@ function main() {
         diffList('.agents skill', prev.skills?.dotAgents || [], surface.skills.dotAgents, lines);
         diffList('.copilot skill', prev.skills?.dotCopilot || [], surface.skills.dotCopilot, lines);
         diffList('MCP server', prev.mcpServers || [], surface.mcpServers, lines);
+        diffList('MCP server (CLI)', prev.mcpServersCli || [], surface.mcpServersCli, lines);
         diffMap('extension tool set', prev.extensionTools || {}, surface.extensionTools, lines);
     }
 

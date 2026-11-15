@@ -66,7 +66,10 @@ function normaliseError(text) {
 function isNoise(tool, error) {
     const e = error.toLowerCase();
     if (!error) return true;
-    if (/\b(user cancel|user_cancel|cancell?ed by user|operation cancelled|aborted)\b/.test(e)) return true;
+    // `aborted` used to be matched on its own. Windows renders a dropped socket as "connection aborted
+    // by the remote host (0x80072745)", so the one class of failure this hook most needs to record - a
+    // real network error - was discarded as though the user had pressed Escape.
+    if (/\b(user cancel|user_cancel|cancell?ed by user|operation cancelled|aborted by the user)\b/.test(e)) return true;
     if (/\b(request was cancelled|command was cancelled)\b/.test(e)) return true;
     void tool;
     return false;
