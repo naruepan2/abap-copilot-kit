@@ -142,10 +142,14 @@ Line '7. Git state of the kit'
 Push-Location $REPO
 Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f (git rev-parse --short HEAD), (git rev-parse --short origin/main), ((git rev-parse HEAD) -eq (git rev-parse origin/main)), @(git status --porcelain).Count)
 $drift = @()
-foreach ($pair in @(@('agents\abap-developer-by-pongg.agent.md'), @('skills\mcp-surface-audit\SKILL.md'), @('skills\capture-lesson\SKILL.md'), @('roster.json'), @('tooling\verify-all.ps1'), @('tooling\measure-context.ps1'), @('tooling\who-locks.ps1'))) {
-    $rel = $pair[0]
+# Every user-owned agent is mirrored, not just the main one. Before this, only
+# abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
+# working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
+$agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
+$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1')
+foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
-           elseif ($rel -like 'agents*') { Join-Path $AG 'abap-developer-by-pongg.agent.md' }
+           elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }
            elseif ($rel -like 'tooling*') { Join-Path "$env:USERPROFILE\.copilot\state" (Split-Path $rel -Leaf) }
            else { Join-Path $SK ($rel -replace 'skills\\', '') }
     if ((Test-Path (Join-Path $REPO $rel)) -and (Test-Path $src)) {
