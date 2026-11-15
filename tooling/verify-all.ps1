@@ -1,0 +1,173 @@
+# verify-all.ps1 - full consistency audit after the agent/memory/skill redesign.
+# Read-only. Reports facts; changes nothing.
+#
+#   -Detail terse | full   (default terse)   See docs/reference/detail-levels.md
+#     terse  one line per check (this is the default now)
+#     full   every file and every probe, as this script used to print
+#   -Summary   legacy alias; terse and -Summary are the same thing
+param(
+    [ValidateSet('terse', 'full')]
+    [string]$Detail = 'terse',
+    [switch]$Summary
+)
+# One switch drives the existing $Summary logic below, so the body needs no edits.
+$Summary = ($Detail -eq 'terse')
+
+$ErrorActionPreference = 'Continue'
+$AG   = "$env:USERPROFILE\.copilot\agents"
+$SK   = "$env:USERPROFILE\.copilot\skills"
+$MEM  = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
+$REPO = "D:\abap-copilot-kit"
+$AWS  = "$env:APPDATA\Code\User\workspaceStorage\fbc6ae2e6722b1312ffc2700081aeccb\GitHub.copilot-chat\memory-tool\memories\repo"
+
+function Line($t) { if (-not $Summary) { Write-Output ""; Write-Output ("=== " + $t + " ===") } }
+function Ok($t)   { Write-Output ("  OK      " + $t) }
+function Bad($t)  { Write-Output ("  ISSUE   " + $t) }
+
+Line '1. Agent files: structure and encoding'
+$agBad = 0; $agCount = 0
+foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Sort-Object Name) {
+    $b = [System.IO.File]::ReadAllBytes($f.FullName)
+    $u = [System.Text.Encoding]::UTF8.GetString($b)
+    $lines = $u -split "`r?`n"
+    $fm = 0; for ($i = 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -eq '---') { $fm = $i + 1; break } }
+    $fences = @($lines | Where-Object { $_ -match '^```' }).Count
+    $bad = ([regex]::Matches($u, [string][char]0xFFFD)).Count
+    $dup = @($lines | Where-Object { $_ -match '^#{2,3} ' } | Group-Object | Where-Object { $_.Count -gt 1 }).Count
+    $ok = ($bad -eq 0 -and ($fences % 2) -eq 0 -and $dup -eq 0 -and $fm -gt 0)
+    $agCount++; if (-not $ok) { $agBad++ }
+    if (-not $Summary -or -not $ok) {
+        $tag = if ($ok) { 'OK     ' } else { 'ISSUE  ' }
+        Write-Output ("  {0} {1,-46} fm=L{2,-3} lines={3,-4} fences={4} dupH={5} repl={6}" -f $tag, $f.Name, $fm, $lines.Count, $fences, $dup, $bad)
+    }
+}
+if ($Summary) { Write-Output ("  {0} agent files checked, {1} with issues" -f $agCount, $agBad) }
+
+Line '2. Skill frontmatter parses (both roots)'
+foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
+    $n = 0; $bad = 0
+    foreach ($d in Get-ChildItem $root -Directory) {
+        $s = Join-Path $d.FullName 'SKILL.md'
+        if (-not (Test-Path $s)) { continue }
+        $n++
+        $t = [System.IO.File]::ReadAllText($s, [System.Text.Encoding]::UTF8)
+        $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
+        if (-not $m.Success -or $t -notmatch 'name:' -or $t -notmatch 'description:') { $bad++; Write-Output ("    BAD  " + $d.Name) }
+    }
+    $label = (Split-Path $root -Parent | Split-Path -Leaf) + ':' + (Split-Path $root -Leaf)
+    Write-Output ("  {0,-30} skills={1,3}  bad_frontmatter={2}" -f $label, $n, $bad)
+}
+
+Line '3. Cross-file rule duplication (a rule must have one home)'
+$agent = [System.IO.File]::ReadAllText("$AG\abap-developer-by-pongg.agent.md", [System.Text.Encoding]::UTF8)
+# Each probe is TRUE when the duplication EXISTS - that is the failure state.
+$probes = [ordered]@{
+    'agent hardcodes a roster count'      = $agent -match '\b\d+ (known|not delegatable|delegatable\b)'
+    'audit skill hardcodes a roster count' = ([System.IO.File]::ReadAllText("$SK\mcp-surface-audit\SKILL.md")) -match '\b\d+ (known|live)\b'
+    'capture-lesson restates the evidence rule' = ([System.IO.File]::ReadAllText("$SK\capture-lesson\SKILL.md")) -match 'never guess'
+    'agent restates the delegation table' = ($agent -split 'roster.json').Count -gt 3
+    'agent lost the detail-levels pointer' = $agent -notmatch 'detail-levels\.md'
+    'agent copies the detail-level rules' = $agent -match 'enum is closed|terse is deterministic'
+}
+foreach ($k in $probes.Keys) {
+    if (-not $Summary -or $probes[$k]) {
+        Write-Output ("  {0} {1}" -f $(if ($probes[$k]) { 'DUP     ' } else { 'OK      ' }), $k)
+    }
+}
+if ($Summary) { Write-Output ("  duplication probes: {0} of {1} flagged" -f @($probes.Keys | Where-Object { $probes[$_] }).Count, $probes.Count) }
+
+Line '4. Memory budget and shape'
+$tot = 0; $rules = 0; $facts = 0
+foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
+    $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
+    $tot += ($t -split "`r?`n").Count
+    foreach ($l in ($t -split "`r?`n")) {
+        if ($l -match '^\s*[-*]\s' -and $l -match '\b(never|always|do not|prefer|ask|verify)\b') { $rules++ }
+        elseif ($l -match '^\s*[-*]\s') { $facts++ }
+    }
+}
+Write-Output ("  used={0}/200 lines  headroom={1}  rule-bullets={2}  fact-bullets={3}" -f $tot, (200 - $tot), $rules, $facts)
+
+Line '5. Repo facts: counts that could rot'
+$roster = Get-Content "$env:USERPROFILE\.copilot\roster.json" -Raw | ConvertFrom-Json
+$known = @(); foreach ($d in $roster.delegatable) { $known += $d.file }; foreach ($g in $roster.not_delegatable) { $known += $g.files }
+$live = Get-ChildItem $AG -Filter *.agent.md | ForEach-Object { $_.Name -replace '\.agent\.md$', '' }
+Write-Output ("  roster known={0} live={1} NEW={2} GONE={3}" -f $known.Count, $live.Count, @($live | Where-Object { $known -notcontains $_ }).Count, @($known | Where-Object { $live -notcontains $_ }).Count)
+
+Line '5b. SAP AI Dev Toolkit: does the roster still cover what it installs?'
+# The toolkit gains agents and skills when it is upgraded, so a number written in prose goes
+# stale on its own. Derive everything from its own manifest instead of assuming a count.
+$TK = "$env:USERPROFILE\.copilot\.sap-ai-dev-toolkit-assets.json"
+if (-not (Test-Path $TK)) {
+    Write-Output '  no toolkit manifest - nothing to reconcile'
+} else {
+    $tk = Get-Content $TK -Raw | ConvertFrom-Json
+    $map = @($tk.files)[0]
+    $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @()
+    foreach ($p in $map.PSObject.Properties) {
+        if ($p.Name -like 'agents\*') { $tkAgents += ($p.Name -replace '^agents\\', '' -replace '\.agent\.md$', '') }
+        elseif ($p.Name -like 'skills\*') { $tkSkills += @(($p.Name -split '\\')[1]) }
+        $f = Join-Path "$env:USERPROFILE\.copilot" $p.Name
+        if (-not (Test-Path $f)) { $gone += $p.Name }
+        elseif ((Get-FileHash $f -Algorithm SHA256).Hash.ToLower() -ne $p.Value) { $hashDrift += $p.Name }
+    }
+    # An agent the toolkit installs that the roster has not decided about is the failure case:
+    # it stays non-delegatable by default-deny, so nobody notices it is undocumented.
+    $undecided = @($tkAgents | Where-Object { $known -notcontains $_ })
+    Write-Output ("  toolkit installs: {0} agents, {1} skills" -f $tkAgents.Count, $tkSkills.Count)
+    if ($undecided.Count -eq 0) {
+        Write-Output '  OK      every toolkit agent appears in the roster'
+    } else {
+        foreach ($u in $undecided) { Write-Output ("  ISSUE   toolkit agent not in roster: " + $u) }
+    }
+    Write-Output ("  {0} toolkit files edited since install, {1} missing" -f $hashDrift.Count, $gone.Count)
+    foreach ($h in $hashDrift) { Write-Output ("          EDITED  " + $h) }
+    foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
+}
+
+Line '6. Repo memory: does it duplicate the agent?'
+$rmN = 0; $rmMirror = 0
+foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
+    $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
+    $mirror = ($t -match '^\|.*ARC-1.*\|') -or ($t -match '^\|.*ADT MCP.*\|')
+    $dated = $t -match 'verified \d{4}-\d{2}-\d{2}'
+    $rmN++; if ($mirror) { $rmMirror++ }
+    if (-not $Summary -or $mirror) {
+        Write-Output ("  {0,-40} mirrors_table={1,-5} dated={2}" -f $f.Name, $mirror, $dated)
+    }
+}
+if ($Summary) { Write-Output ("  {0} repo-memory files, {1} mirror the agent table" -f $rmN, $rmMirror) }
+
+Line '7. Git state of the kit'
+Push-Location $REPO
+Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f (git rev-parse --short HEAD), (git rev-parse --short origin/main), ((git rev-parse HEAD) -eq (git rev-parse origin/main)), @(git status --porcelain).Count)
+$drift = @()
+foreach ($pair in @(@('agents\abap-developer-by-pongg.agent.md'), @('skills\mcp-surface-audit\SKILL.md'), @('skills\capture-lesson\SKILL.md'), @('roster.json'), @('tooling\verify-all.ps1'), @('tooling\measure-context.ps1'), @('tooling\who-locks.ps1'))) {
+    $rel = $pair[0]
+    $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
+           elseif ($rel -like 'agents*') { Join-Path $AG 'abap-developer-by-pongg.agent.md' }
+           elseif ($rel -like 'tooling*') { Join-Path "$env:USERPROFILE\.copilot\state" (Split-Path $rel -Leaf) }
+           else { Join-Path $SK ($rel -replace 'skills\\', '') }
+    if ((Test-Path (Join-Path $REPO $rel)) -and (Test-Path $src)) {
+        $a = [System.IO.File]::ReadAllText((Join-Path $REPO $rel), [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
+        $b = [System.IO.File]::ReadAllText($src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
+        if ($a -ne $b) { $drift += $rel }
+    }
+}
+if (@($drift).Count -eq 0) { Write-Output '  repo mirrors live files: identical' } else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) } }
+Pop-Location
+
+Line '8. Credentials in any tracked file'
+Push-Location $REPO
+$hits = 0
+# This file is the scanner, so it necessarily contains the patterns and would flag itself. Skip it
+# by relative path rather than weakening the patterns - a scan that ignores its own list is still a
+# scan, and keeping the list literal keeps it greppable by a human.
+$scanSelf = 'tooling/verify-all.ps1'
+foreach ($f in git ls-files) {
+    if ($f -eq $scanSelf) { continue }
+    $m = Select-String -Path (Join-Path $REPO $f) -Pattern 'Z0000000|example-corp|example\.com|REDACTED|PRIVATE KEY|BEGIN RSA' -ErrorAction SilentlyContinue
+    if ($m) { foreach ($x in $m) { Write-Output ("  HIT " + $f + ":" + $x.LineNumber); $hits++ } }
+}
+Write-Output ("  credential hits = {0}  (scanner itself excluded: {1})" -f $hits, $scanSelf)
+Pop-Location

@@ -18,6 +18,8 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `config-templates/` | `mcp.json` and `settings.json` skeletons |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
+| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot |
+| `backup/` | A recovery snapshot of user memory. Not loaded by anything — see its README before restoring |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 
 ## Memory — where the real thing lives
@@ -34,8 +36,12 @@ Repo memory is per-workspace:
 ...\workspaceStorage\<workspace-hash>\GitHub.copilot-chat\memory-tool\memories\repo\
 ```
 
-This repository deliberately does not duplicate either one. `memory-templates/` holds a
-seed only; a copy stored here would go stale and be loaded by nothing.
+This repository does not duplicate either one as a working copy. `memory-templates/` holds a seed
+only; a copy stored here would go stale and be loaded by nothing.
+
+`backup/user-memory/` is the one deliberate exception, and it is not a working copy either: it is a
+snapshot for disaster recovery, sanitized on the way in, and nothing reads it. Live memory stays
+the only thing VS Code loads.
 
 **`docs/reference/` is the counterpart.** Detail that is needed occasionally rather than every
 session lives there, and memory carries one pointer line to it. Memory is the expensive place —
