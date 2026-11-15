@@ -74,6 +74,160 @@
                          "status":  "fixed",
                          "evidence":  "verify-all.ps1 section 2b",
                          "verified_by":  "measured 2026-11-15"
+                     },
+                     {
+                         "id":  "F-009",
+                         "title":  "subagent-rules.cjs matched only file stems while the harness sends the frontmatter display name, so every allowlisted agent was classified 'not listed in roster.json' and restricted",
+                         "where":  "hooks/subagent-rules.cjs:47-90, roster.json",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15, then QA round",
+                         "note":  "Proved from this machine's own hook log, which recorded 'restricted SAP ABAP Reverse Engineering Analyst by Pongg' on the day the agent was allowed. The roster now carries display/displays, and the hook also matches the display name without its ' by <author>' suffix."
+                     },
+                     {
+                         "id":  "F-010",
+                         "title":  "session-drift.cjs called serverNamesCli(), which reads MCP_CLI_JSON - a constant that was never declared - so every run threw and no snapshot was written",
+                         "where":  "hooks/session-drift.cjs:125",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "QA round 1, 2026-11-15",
+                         "note":  "Introduced by the fix for F-012 and caught by QA, not by the audit: section 1b only runs node --check, and a missing identifier parses cleanly. The hook's own header calls a silent no-op the worst failure mode."
+                     },
+                     {
+                         "id":  "F-011",
+                         "title":  "verify-all.ps1 section 1b counted every Node file as parsed even when node was absent from PATH",
+                         "where":  "tooling/verify-all.ps1:177,188,196,198",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "note":  "Reproduced by trimming PATH: the same '332 verified' printed with node invisible. Now prints SKIP and excludes the files from Ran."
+                     },
+                     {
+                         "id":  "F-012",
+                         "title":  "verify-all.ps1 section 1 accepted any later '---' as a frontmatter fence, so a file whose frontmatter an edit had destroyed still passed",
+                         "where":  "tooling/verify-all.ps1:137",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-013",
+                         "title":  "verify-all.ps1 declared a -Summary switch and then overwrote it, so -Detail full -Summary printed the full output the caller had asked to suppress",
+                         "where":  "tooling/verify-all.ps1:11-14",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-014",
+                         "title":  "Ran 'parked', Ran 'toolkit' and Ran 'mcp-sources' were registered for sections that examined nothing, which made a clean run unreachable (exit 2) on machines without those inputs",
+                         "where":  "tooling/verify-all.ps1:327,491,1044",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15 and QA round 1",
+                         "note":  "The same defect was fixed for two counters and reintroduced for a third in the same commit, which is why the fix is now a stated rule next to each call site rather than a local patch."
+                     },
+                     {
+                         "id":  "F-015",
+                         "title":  "verify-all.ps1 discarded git grep's exit code, so a failed history scan printed 'history clean across N commit(s)'",
+                         "where":  "tooling/verify-all.ps1:1170",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-016",
+                         "title":  "install-kit.ps1 never installed hooks/*.cjs, and its byte comparison could never report a difference, so it was not idempotent either",
+                         "where":  "tooling/install-kit.ps1",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15 and QA round 1",
+                         "note":  "Measured cause of a live subagent-rules.cjs that was a full version behind the clone. Nine tracked files were CRLF in the working tree despite eol=lf, which is what kept the 'line-ending only' counter at five forever."
+                     },
+                     {
+                         "id":  "F-017",
+                         "title":  "sap-connection.ps1 derived PRESENT/ABSENT from the helper's exit code, so a helper that crashed was reported as 'no password stored'",
+                         "where":  "tooling/sap-connection.ps1:100-113",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "note":  "An uncaught terminating error in a -File script exits 1, which is also what a deliberate 'nothing stored' exit looks like. The verdict now comes from the output token."
+                     },
+                     {
+                         "id":  "F-018",
+                         "title":  "lesson-capture.cjs treated any occurrence of 'aborted' as a user cancel, discarding real network failures",
+                         "where":  "hooks/lesson-capture.cjs:69",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-019",
+                         "title":  "measure-context.ps1, who-locks.ps1 and workspace-sync.ps1 reported a pass for input they had not examined",
+                         "where":  "tooling/measure-context.ps1, tooling/who-locks.ps1, tooling/workspace-sync.ps1",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "note":  "A missing skill root printed 'skills 0 files' and exit 0; an unreadable pid printed nothing; a -Check without -RepoMemory said 'mirror matches the source' for a folder it never read."
+                     },
+                     {
+                         "id":  "F-020",
+                         "title":  "Three MCP servers are declared in both %APPDATA%\\Code\\User\\mcp.json and ~/.copilot/mcp-config.json, and VS Code imports the second by default and disables one copy of each duplicate",
+                         "where":  "user configuration; no repository file",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "measured 2026-11-15 from the shipped VS Code 1.146 bundle",
+                         "note":  "Pyo sets copilot discovery on by default and chat.mcp.collisionBehavior defaults to 'disable'. Fixed by setting chat.mcp.discovery.enabled.copilot=false, and gated by verify-all section 8b, which fails while duplicates remain and the source is on."
+                     },
+                     {
+                         "id":  "F-021",
+                         "title":  "The agent's ownership gate forbade and permitted the same act eleven lines apart, and claimed only one skill was editable while the kit ships five",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:538-570",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-022",
+                         "title":  "The routing tie-break told the agent to 'attempt the call' to test ARC-1 callability, which authorised a SAP call before the pre-flight target gate",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:241",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "note":  "The sentence was a verbatim copy of docs/tool-routing.md, which is how the same rule came to mean two different things in two homes."
+                     },
+                     {
+                         "id":  "F-023",
+                         "title":  "Four documentation statements were false: a skill costs nothing until used, all MCP servers live in mcp.json, a non-existent ~/.copilot/mcp.json, and a lock-recount command that printed 83 lines instead of one number",
+                         "where":  "docs/architecture.md, docs/reference/environment.md, README.md, docs/reference/skills.md",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "deep audit 2026-11-15"
+                     },
+                     {
+                         "id":  "F-024",
+                         "title":  "Nine tracked files were CRLF in the working tree although .gitattributes pins eol=lf",
+                         "where":  "repository working tree",
+                         "status":  "fixed",
+                         "evidence":  "080ce20",
+                         "verified_by":  "measured 2026-11-15",
+                         "note":  "Invisible to git, visible to install-kit's byte comparison. Renormalised; a fresh install now converges at 22 identical on the second run."
+                     },
+                     {
+                         "id":  "F-025",
+                         "title":  "The SE38 and reverse-engineering agents declare read-only default-deny in prose but have no tools: list, so the harness grants them every tool",
+                         "where":  "agents/sap-se38-report-tester-by-pongg.agent.md, agents/sap-abap-reverse-engineer-by-pongg.agent.md",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "reason":  "A tools: list cannot express 'read-only SAP': 'arc-1/*' is one entry covering SAPWrite and SAPActivate as well, which is how the other read-only agent (ST22) is configured already. Narrowing the list without narrowing ARC-1 would move the restriction from prose to nothing, and a list that omits a tool the agent needs fails mid-task. The real control is ARC-1's own SAP_ALLOW_WRITES and SAP_ALLOWED_PACKAGES, plus the prose gate."
+                     },
+                     {
+                         "id":  "F-026",
+                         "title":  "verify-all.ps1 never reads %APPDATA%\\Code\\User\\settings.json, which holds a plaintext ADT MCP token",
+                         "where":  "tooling/verify-all.ps1 section 8",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-15",
+                         "reason":  "The token is a field of the SAPSE.adt-vscode extension (adt.mcpServer.token), which offers no ${input:...} or credential-store indirection, so no rewrite removes it. The file lives outside every repository and is never tracked, and the token value is already covered in tracked files by the local pattern list. Adding settings.json to the literal-secret scan would fail every run for a value that has no supported alternative, which is the false-positive class this audit is trying to eliminate."
                      }
                  ]
 }

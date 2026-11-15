@@ -42,6 +42,11 @@ Verified 2026-11-14.
 | Agent reports | prose, unbounded | `terse` by default — see *Report contract* in the agent |
 | Delegated-agent returns | narrower than the question; no contract | briefed with `terse` + what it did not inspect |
 
+Measured 2026-11-15: `-Summary` in `verify-all.ps1` was declared and then overwritten by the `-Detail`
+default, so `-Detail full -Summary` printed the full output the caller had asked to suppress. The
+default was already `terse`; only the switch was dead. It is now honoured, and the two are kept as
+one thing: `-Summary` sets `-Detail terse`.
+
 ## Not the same thing as a budget
 
 A byte budget that *refuses* a response (ARC-1's `DataResponseBudget` /
