@@ -73,3 +73,6 @@ state/
 # ---------------------------------------------------------------------------
 Projects/*
 !Projects/README.md
+
+# ARC-1 connection list: one block per SAP logon, with usernames
+arc1-connections.json

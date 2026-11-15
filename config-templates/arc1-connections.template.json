@@ -1,0 +1,22 @@
+{
+    "_comment": "TEMPLATE. Copy to %USERPROFILE%\\.copilot\\state\\arc1-connections.json and fill in. The copy lives outside every repository and is gitignored. One block per SAP logon, the same shape as ABAP FS abapfs.remote. Add or remove a logon with sap-connection.ps1 rather than by hand: it validates the fields and tells you which secret to store.",
+    "_password_rule": "\"@secret\" means the value is in Windows Credential Manager as ARC1:<name>_SAP_PASSWORD. Store it with: powershell -ExecutionPolicy Bypass -File sap-secret.ps1 -Set -Key <name>_SAP_PASSWORD . Any other value is plaintext, and verify-all.ps1 section 9 reports it.",
+    "_active_rule": "\"active\" is the logon a launcher uses when it is started without -Connection.",
+    "active": "gsd-120",
+    "connections": {
+        "gsd-120": {
+            "url": "https://<host>:<port>",
+            "client": "120",
+            "user": "<sap user id>",
+            "language": "EN",
+            "password": "@secret"
+        },
+        "ds4-900": {
+            "url": "https://<host>:<port>",
+            "client": "900",
+            "user": "<sap user id>",
+            "language": "EN",
+            "password": "@secret"
+        }
+    }
+}

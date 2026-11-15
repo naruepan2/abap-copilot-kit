@@ -15,10 +15,10 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
-| `config-templates/` | `mcp.json` and `settings.json` skeletons, plus `arc1.env.template` for the credential-store launcher |
+| `config-templates/` | `mcp.json`, `settings.json` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
-| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot. `sap-secret.ps1` + `sap-arc1-launcher.ps1` read `arc1.env` and resolve any `@secret` line from DPAPI, for harnesses that cannot prompt |
+| `tooling/` | Audit scripts that measure context and check consistency. `sap-connection.ps1` is the logon list (add/remove/list, like ABAP FS's Connection Manager); `sap-secret.ps1` holds each password in DPAPI; `sap-arc1-launcher.ps1` starts `-Connection <name>` |
 | `backup/` | A recovery snapshot of user memory. Not loaded by anything — see its README before restoring |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 

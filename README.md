@@ -24,11 +24,11 @@ hooks/             three detection-only hooks (see below)
 docs/              architecture, tool routing, ownership, anti-hallucination
 docs/reference/    lookup detail kept out of memory: ARC-1, skills, paths, hook contract,
                    detail levels (how much any output should say)
-config-templates/  mcp.json, settings.json and arc1.env skeletons with placeholders
+config-templates/  mcp.json, settings.json, arc1.env and arc1-connections skeletons
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
 tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
-                   sap-secret + sap-arc1-launcher (arc1.env, secrets from DPAPI)
+                   sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher
 backup/            recovery snapshot of user memory (nothing loads it)
 Projects/          convention only — local notebook, gitignored
 ```

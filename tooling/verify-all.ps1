@@ -241,6 +241,40 @@ if (-not (Test-Path $envFile)) {
     else { Write-Output '  envfile  OK      outside every repository' }
 }
 
+# The connection list replaced the single-credential design. It holds one block per SAP logon, so
+# the same two questions apply: is every password a @secret marker, and is the file out of reach of
+# a repository.
+$connFile = "$env:USERPROFILE\.copilot\state\arc1-connections.json"
+if (-not (Test-Path $connFile)) {
+    Write-Output '  conns    absent  (arc1-connections.json not created yet)'
+} else {
+    try { $cj = [System.IO.File]::ReadAllText($connFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    catch { $cj = $null; Write-Output '  conns    ISSUE   arc1-connections.json is not valid JSON' }
+    if ($cj) {
+        $bad = @()
+        foreach ($p in $cj.connections.PSObject.Properties) {
+            $pw = $p.Value.password
+            if ([string]::IsNullOrEmpty($pw)) { $bad += ($p.Name + ' (no password)') }
+            elseif ($pw -ne '@secret') { $bad += ($p.Name + ' (plaintext)') }
+            if ($p.Value.url -notmatch '^https?://') { $bad += ($p.Name + ' (bad url)') }
+            if ($p.Value.client -notmatch '^\d{2,3}$') { $bad += ($p.Name + ' (bad client)') }
+        }
+        $n = @($cj.connections.PSObject.Properties).Count
+        if ($bad.Count -eq 0) { Write-Output ("  conns    OK      {0} connection(s), every password is @secret" -f $n) }
+        else { foreach ($b in $bad) { Write-Output ("  conns    ISSUE   " + $b) } }
+        if ($cj.active -and -not ($cj.connections.PSObject.Properties.Name -contains $cj.active)) {
+            Write-Output ("  conns    ISSUE   active names a missing connection: " + $cj.active)
+        }
+        $dir = Split-Path $connFile -Parent
+        $inRepo = $null
+        while ($dir -and $dir -ne (Split-Path $dir -Parent)) {
+            if (Test-Path (Join-Path $dir '.git')) { $inRepo = $dir; break }
+            $dir = Split-Path $dir -Parent
+        }
+        if ($inRepo) { Write-Output ("  conns    ISSUE   inside a repository: " + $inRepo) }
+    }
+}
+
 Line '8. Credentials in any tracked file'
 Push-Location $REPO
 $hits = 0

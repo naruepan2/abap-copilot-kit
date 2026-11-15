@@ -28,11 +28,11 @@ $ErrorActionPreference = 'Stop'
 $Prefix = 'ARC1:'
 
 if (($Set -or $Read -or $Remove -or $Test) -and -not $Key) {
-    Write-Error 'Specify -Key NAME (for example -Key SAP_PASSWORD).'
+    Write-Error 'Specify -Key NAME (for example -Key SAP_PASSWORD, or gsd-120_SAP_PASSWORD).'
     exit 1
 }
-if ($Key -and $Key -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
-    Write-Error "Invalid key name '$Key'."
+if ($Key -and $Key -notmatch '^[A-Za-z_][A-Za-z0-9_-]*$') {
+    Write-Error "Invalid key name '$Key'. Letters, digits, underscore and dash only."
     exit 1
 }
 $Target = if ($Key) { $Prefix + $Key } else { $Prefix.TrimEnd(':') }
