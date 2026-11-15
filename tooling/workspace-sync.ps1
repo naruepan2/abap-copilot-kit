@@ -95,12 +95,34 @@ $contractFiles = @(
     'spec\CHANGELOG.md'
 )
 
+# Line endings and byte-order marks are normalised before anything is compared or hashed.
+#
+# Measured: a source file written by an editor is CRLF while one written by a script is LF, the mirror
+# copies bytes, and git stores LF because .gitattributes says so. Hashing raw bytes then made a fresh
+# clone report five files as differing on a machine where not one byte of content had changed. Content
+# equality is what a mirror is about, so the comparison is made on normalised text and the stored hash
+# is the hash of that same normalised text - one definition, used by -Check, -Write and the manifest.
+function Get-NormText([string]$path) {
+    $t = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+    return ($t -replace "`r`n", "`n")
+}
+
+function Get-NormBytes([string]$path) {
+    return (New-Object System.Text.UTF8Encoding($false)).GetBytes((Get-NormText $path))
+}
+
 function Get-RelSha([string]$path) {
-    return (Get-FileHash -Path $path -Algorithm SHA256).Hash.ToLower()
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { return ([System.BitConverter]::ToString($sha.ComputeHash((Get-NormBytes $path))) -replace '-', '').ToLower() }
+    finally { $sha.Dispose() }
 }
 
 function Get-LineCount([string]$path) {
-    return @([System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8)).Count
+    $t = Get-NormText $path
+    if ($t -eq '') { return 0 }
+    $n = @($t -split "`n").Count
+    if ($t.EndsWith("`n")) { $n-- }
+    return $n
 }
 
 # Minimal scalar read from a yaml file: first "<key>: value" wins. A real parser would be better,
@@ -238,6 +260,7 @@ if ($Check) {
     $missing = 0
     $differ = 0
     $extra = 0
+    $mfIssues = 0
 
     $expected = @{}
     foreach ($p in $plan + $memoryPlan) { $expected[$p.Rel] = $true }
@@ -252,22 +275,39 @@ if ($Check) {
 
     foreach ($f in Get-ChildItem $Workspace -Recurse -File -ErrorAction SilentlyContinue) {
         $rel = $f.FullName.Substring($Workspace.Length).TrimStart('\')
-        if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -like '.git\*') { continue }
+        if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -eq '.gitattributes' -or $rel -like '.git\*') { continue }
         if (-not $expected.ContainsKey($rel)) { Write-Output ('  EXTRA   ' + $rel); $extra++ }
     }
 
     $manifestFile = Join-Path $Workspace 'manifest.json'
-    if (-not (Test-Path $manifestFile)) { Write-Output '  MISSING manifest.json'; $missing++ }
+    if (-not (Test-Path $manifestFile)) {
+        Write-Output '  MISSING manifest.json'; $missing++
+    }
+    else {
+        # A manifest nobody verifies is decoration: it would keep claiming a hash for a file that has
+        # since changed. Every entry is re-hashed here, and a file present in the mirror but absent
+        # from the manifest is reported too, because that is the case a stale manifest hides.
+        try { $mj = [System.IO.File]::ReadAllText($manifestFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+        catch { $mj = $null; Write-Output '  ISSUE   manifest.json is not valid JSON' }
+        if ($mj) {
+            foreach ($p in $plan + $memoryPlan) {
+                $key = ($p.Rel -replace '\\', '/')
+                $entry = $mj.files.$key
+                if (-not $entry) { Write-Output ('  MANIFEST missing entry: ' + $key); $mfIssues++; continue }
+                if ((Get-RelSha $p.Src) -ne [string]$entry.sha256) { Write-Output ('  MANIFEST stale hash:   ' + $key); $mfIssues++ }
+            }
+        }
+    }
 
     foreach ($w in $sourceWarn) { Write-Output ('  WARN    ' + $w) }
 
     Write-Output ''
-    if ($missing + $differ + $extra -eq 0) {
+    if ($missing + $differ + $extra + $mfIssues -eq 0) {
         Write-Output ('  mirror matches the source: ' + $plan.Count + ' contract file(s), ' + $memoryPlan.Count + ' memory file(s)')
         if ($sourceWarn.Count -gt 0) { Write-Output ('  ' + $sourceWarn.Count + ' source warning(s) - a human decides, -Write cannot fix them') }
         exit 0
     }
-    Write-Output ('  drift: ' + $missing + ' missing, ' + $differ + ' differ, ' + $extra + ' extra - run -Write')
+    Write-Output ('  drift: ' + $missing + ' missing, ' + $differ + ' differ, ' + $extra + ' extra, ' + $mfIssues + ' manifest - run -Write')
     exit 1
 }
 
@@ -282,7 +322,10 @@ foreach ($p in $plan + $memoryPlan) {
     $same = (Test-Path $dest) -and ((Get-RelSha $p.Src) -eq (Get-RelSha $dest))
     if ($same) { $unchanged++; continue }
 
-    Copy-Item $p.Src $dest -Force
+    # Written as normalised text rather than copied, so the mirror has exactly one representation of
+    # a file regardless of which editor wrote the source. Copy-Item would preserve CRLF and force the
+    # next reader to wonder why a byte comparison and a content comparison disagree.
+    [System.IO.File]::WriteAllText($dest, (Get-NormText $p.Src), (New-Object System.Text.UTF8Encoding($false)))
     $copied++
 }
 
@@ -292,7 +335,7 @@ $expected = @{}
 foreach ($p in $plan + $memoryPlan) { $expected[$p.Rel] = $true }
 foreach ($f in Get-ChildItem $Workspace -Recurse -File -ErrorAction SilentlyContinue) {
     $rel = $f.FullName.Substring($Workspace.Length).TrimStart('\')
-    if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -like '.git\*') { continue }
+    if ($rel -eq 'manifest.json' -or $rel -eq 'README.md' -or $rel -eq '.gitattributes' -or $rel -like '.git\*') { continue }
     if (-not $expected.ContainsKey($rel)) { Remove-Item $f.FullName -Force; $removed++ }
 }
 

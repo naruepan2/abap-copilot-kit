@@ -356,9 +356,12 @@ The script refuses to mirror a file that contains a credential-shaped value. A c
 expected in that repository; a password or a token never is, because a private repository is one
 visibility change away from being a public one and history cannot be taken back.
 
-Line endings are pinned to LF by `.gitattributes`. Without it, this machine's system
-`core.autocrlf=true` produced CRLF in a fresh clone while the mirrored source files were LF,
-so one commit had two byte representations on disk.
+**Line endings are normalised, not negotiated.** Hashing and comparison run on text with CRLF folded
+to LF and any byte-order mark removed, `-Write` stores that same normalised text, and the mirror
+repository pins `eol=lf` in its own `.gitattributes`. All three are needed: an editor writes CRLF
+while a script writes LF, so without normalisation a fresh clone reported five files as differing
+when not one byte of content had changed. `-Check` also re-hashes every entry in `manifest.json`;
+a manifest nobody verifies keeps claiming a hash for a file that has since moved on.
 
 ## Releasing
 
