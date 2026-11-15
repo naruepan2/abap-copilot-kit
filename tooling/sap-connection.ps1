@@ -95,15 +95,15 @@ $data = Read-Store
 
 if ($Add) {
     if (-not $Name -or -not $Url -or -not $Client -or -not $User) {
-        Write-Error 'Add needs -Name, -Url, -Client and -User.'
+        [Console]::Error.WriteLine('Add needs -Name, -Url, -Client and -User.')
         exit 1
     }
     if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9_-]*$') {
-        Write-Error "Invalid -Name '$Name'. Letters, digits, underscore and dash; must not start with a symbol."
+        [Console]::Error.WriteLine("Invalid -Name '$Name'. Letters, digits, underscore and dash; must not start with a symbol.")
         exit 1
     }
-    if ($Url -notmatch '^https?://') { Write-Error '-Url must start with http:// or https://'; exit 1 }
-    if ($Client -notmatch '^\d{2,3}$') { Write-Error '-Client must be 2 or 3 digits.'; exit 1 }
+    if ($Url -notmatch '^https?://') { [Console]::Error.WriteLine('-Url must start with http:// or https://'); exit 1 }
+    if ($Client -notmatch '^\d{2,3}$') { [Console]::Error.WriteLine('-Client must be 2 or 3 digits.'); exit 1 }
 
     $entry = [pscustomobject]@{
         url      = $Url
@@ -125,8 +125,8 @@ if ($Add) {
 }
 
 if ($Remove) {
-    if (-not $Name) { Write-Error 'Remove needs -Name.'; exit 1 }
-    if ((Get-Names $data) -notcontains $Name) { Write-Error "No connection named '$Name'."; exit 1 }
+    if (-not $Name) { [Console]::Error.WriteLine('Remove needs -Name.'); exit 1 }
+    if ((Get-Names $data) -notcontains $Name) { [Console]::Error.WriteLine("No connection named '$Name'."); exit 1 }
     $data.connections.PSObject.Properties.Remove($Name)
     if ($data.active -eq $Name) {
         $left = Get-Names $data
@@ -148,8 +148,8 @@ if ($Remove) {
 }
 
 if ($Use) {
-    if (-not $Name) { Write-Error 'Use needs -Name.'; exit 1 }
-    if ((Get-Names $data) -notcontains $Name) { Write-Error "No connection named '$Name'. Run with no action to list."; exit 1 }
+    if (-not $Name) { [Console]::Error.WriteLine('Use needs -Name.'); exit 1 }
+    if ((Get-Names $data) -notcontains $Name) { [Console]::Error.WriteLine("No connection named '$Name'. Run with no action to list."); exit 1 }
     $data.active = $Name
     Write-Store $data
     Write-Output "active: $Name"
@@ -157,8 +157,8 @@ if ($Use) {
 }
 
 if ($Show) {
-    if (-not $Name) { Write-Error 'Show needs -Name.'; exit 1 }
-    if ((Get-Names $data) -notcontains $Name) { Write-Error "No connection named '$Name'."; exit 1 }
+    if (-not $Name) { [Console]::Error.WriteLine('Show needs -Name.'); exit 1 }
+    if ((Get-Names $data) -notcontains $Name) { [Console]::Error.WriteLine("No connection named '$Name'."); exit 1 }
     $c = $data.connections.$Name
     Write-Output ("name      : " + $Name + $(if ($data.active -eq $Name) { '  (active)' } else { '' }))
     Write-Output ("url       : " + $c.url)

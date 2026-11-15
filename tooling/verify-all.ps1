@@ -362,8 +362,20 @@ if (-not $awsOk) {
     Write-Output '  SKIP    repo memory not found (set $env:ABAP_REPO_MEMORY, or open a workspace with notes)'
 } else {
 foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
-    $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
-    $mirror = ($t -match '^\|.*ARC-1.*\|') -or ($t -match '^\|.*ADT MCP.*\|')
+    # The last unguarded read in a loop. Under EAP=Continue a failed ReadAllText is only
+    # statement-terminating: $t keeps the PREVIOUS file's text and the rest of the body still runs, so
+    # a locked file was reported with another file's verdict while stderr held the IOException.
+    $t = $null
+    try { $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ("  ISSUE   unreadable repo-memory file: " + $f.Name); Note 'ISSUE' 1; continue }
+    # (?m) is required: without it ^ anchors at the start of the whole string, so a table row on any
+    # line but the first never matched - the probe had been dead since it was written.
+    #
+    # A mention of a server name is not a routing table. The row has to START with the server or tool
+    # name, which is how every row of the real table in the agent file begins. Matching any row that
+    # merely contains "ARC-1" flagged an index line that only says where the password pipeline is
+    # documented, and a probe that fires on prose is a probe someone turns off.
+    $mirror = $t -match '(?m)^\|\s*`?(arc-1|adt-mcp-server|abap-fs|SAPRead|SAPWrite|SAPSearch|SAPContext)\b'
     $dated = $t -match 'verified \d{4}-\d{2}-\d{2}'
     $rmN++; if ($mirror) { $rmMirror++ }
     if (-not $Summary -or $mirror) {
@@ -381,14 +393,19 @@ Note 'ISSUE' $rmMirror
 # no skill, so it was effectively invisible for the 11 days it existed.
 $rmIndex = Join-Path $AWS 'INDEX.md'
 if (Test-Path $rmIndex) {
-    $idxText = [System.IO.File]::ReadAllText($rmIndex, [System.Text.Encoding]::UTF8)
+    # $null -notmatch <anything> is True, so an unreadable index reported every file as an orphan.
+    $idxText = $null
+    try { $idxText = [System.IO.File]::ReadAllText($rmIndex, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ('  ISSUE   INDEX.md is unreadable: ' + $_.Exception.GetType().Name); Note 'ISSUE' 1 }
     $orphans = @()
+    if ($null -ne $idxText) {
     foreach ($f in Get-ChildItem $AWS -Recurse -File -Filter *.md) {
         if ($f.Name -eq 'INDEX.md') { continue }
         $rel = ($f.FullName.Substring($AWS.Length).TrimStart('\') -replace '\\', '/')
         if ($idxText -notmatch [regex]::Escape($f.Name) -and $idxText -notmatch [regex]::Escape($rel)) {
             $orphans += $rel
         }
+    }
     }
     if ($orphans.Count -eq 0) {
         Write-Output '  OK      every repo-memory file is named in INDEX.md'
@@ -513,8 +530,11 @@ if (-not (Test-Path $envFile)) {
 } else {
     $plainSecrets = @()
     $envLines = @()
+    $envReadable = $true
     try { $envLines = [System.IO.File]::ReadAllLines($envFile, [System.Text.Encoding]::UTF8) }
-    catch { Write-Output ("  envfile  ISSUE   unreadable: " + $_.Exception.GetType().Name); Note 'ISSUE' 1 }
+    # The catch used to fall through to the OK branch: an unreadable file printed ISSUE and then
+    # "OK every secret line uses @secret" on the next line, because an empty list trivially passes.
+    catch { Write-Output ("  envfile  ISSUE   unreadable: " + $_.Exception.GetType().Name); Note 'ISSUE' 1; $envReadable = $false }
     foreach ($l in $envLines) {
         $s = $l.Trim()
         if ($s -eq '' -or $s.StartsWith('#')) { continue }
@@ -527,7 +547,8 @@ if (-not (Test-Path $envFile)) {
             $plainSecrets += $key
         }
     }
-    if ($plainSecrets.Count -eq 0) { Write-Output '  envfile  OK      every secret line uses @secret' }
+    if (-not $envReadable) { }
+    elseif ($plainSecrets.Count -eq 0) { Write-Output '  envfile  OK      every secret line uses @secret' }
     else {
         foreach ($s in $plainSecrets) { Write-Output ("  envfile  ISSUE   plaintext secret or bad line: " + $s) }
         Note 'HIT' $plainSecrets.Count

@@ -57,6 +57,10 @@ if (-not $Projects) {
     if ($KitRoot) { $Projects = Join-Path $KitRoot 'Projects' }
 }
 if (-not $Workspace) { $Workspace = $env:ABAP_WORKSPACE }
+# The audit reads $env:ABAP_REPO_MEMORY; this script must read the same variable, or an env-driven
+# invocation that works for verify-all silently mirrors zero memory and then reports the folder as
+# extra. It is not guessed from a hash - it is only honoured when it is set.
+if (-not $RepoMemory) { $RepoMemory = $env:ABAP_REPO_MEMORY }
 
 if ($ShowPaths) {
     Write-Output ("kit root  : " + $(if ($KitRoot) { $KitRoot } else { '(not found)' }))
@@ -156,11 +160,18 @@ function Get-YamlValue([string]$path, [string]$key) {
 # means a .gitignore, a LICENSE or a .github/ folder in the workspace repository was destroyed on
 # every run. Now the rule is the inverse: only files under `programs\` or `memory\` are considered
 # mirror output, and anything else in that repository belongs to the repository.
+#
+# A second guard matters more than the naming: a run that did NOT cover `memory\` must not delete it.
+# -RepoMemory is optional, and with it omitted the expected set was empty for that folder, so a
+# routine -Write removed all nine mirrored memory files. Deleting what the current invocation did not
+# look at is never correct, whatever the file happens to be.
+$memoryCovered = [bool]$RepoMemory
 function Test-RepoOwnedFile([string]$rel) {
     $r = $rel -replace '\\', '/'
     if ($r -eq 'manifest.json' -or $r -eq 'README.md' -or $r -eq '.gitattributes') { return $true }
     if ($r -like '.git/*' -or $r -like '.github/*') { return $true }
     if ($r.StartsWith('.')) { return $true }
+    if (-not $memoryCovered -and $r -like 'memory/*') { return $true }
     return (-not ($r -like 'programs/*' -or $r -like 'memory/*'))
 }
 
@@ -404,11 +415,40 @@ Add-Line '  },'
 
 Add-Line '  "files": {'
 $all = @($plan) + @($memoryPlan)
+
+# When -RepoMemory was not given, the memory files were not examined - so their hashes are carried
+# forward from the previous manifest rather than dropped. A run that did not look at a folder must not
+# make a claim about it, in either direction: deleting the files would be wrong, and silently
+# forgetting their hashes is the same mistake with a smaller blast radius.
+$carried = [ordered]@{}
+if (-not $memoryCovered) {
+    $prevManifest = Join-Path $Workspace 'manifest.json'
+    if (Test-Path $prevManifest) {
+        try {
+            $mj = [System.IO.File]::ReadAllText($prevManifest, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+            foreach ($p in @($mj.files.PSObject.Properties)) {
+                if ($p.Name -like 'memory/*') { $carried[$p.Name] = $p.Value }
+            }
+        } catch { }
+    }
+}
+
 for ($i = 0; $i -lt $all.Count; $i++) {
     $p = $all[$i]
     $rel = $p.Rel -replace '\\', '/'
-    $comma = if ($i -lt $all.Count - 1) { ',' } else { '' }
+    $isLast = ($i -eq $all.Count - 1) -and ($carried.Count -eq 0)
+    $comma = if ($isLast) { '' } else { ',' }
     Add-Line ('    "' + $rel + '": { "sha256": "' + (Get-RelSha $p.Src) + '", "bytes": ' + (Get-NormBytes $p.Src).Length + ', "lines": ' + (Get-LineCount $p.Src) + ' }' + $comma)
+}
+# Comma placement is computed from the combined list, not guessed from the first list's last index:
+# getting it wrong produced a manifest that was one comma away from valid and emitted no error until
+# something tried to read it.
+$ck = @($carried.Keys)
+for ($i = 0; $i -lt $ck.Count; $i++) {
+    $k = $ck[$i]
+    $v = $carried[$k]
+    $comma = if ($i -lt $ck.Count - 1) { ',' } else { '' }
+    Add-Line ('    "' + $k + '": { "sha256": "' + $v.sha256 + '", "bytes": ' + $v.bytes + ', "lines": ' + $v.lines + ' }' + $comma)
 }
 Add-Line '  }'
 Add-Line '}'
