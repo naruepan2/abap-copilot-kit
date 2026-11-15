@@ -16,7 +16,7 @@ accumulating instructions that were true once.
 `%USERPROFILE%`, and the scripts are PowerShell 5.1. The agent, skill and hook files are
 portable; the tooling is not.
 
-**Contents.** [What is here](#what-is-here) · [Read this first](#one-fact-worth-reading-before-anything-else) · [Hooks](#hooks) · [Design](#design-in-one-diagram) · [Install](#install) · [Not here](#what-is-deliberately-not-here) · [Releasing](#releasing) · [Adapting](#adapting-it) · [License](#license)
+**Contents.** [What is here](#what-is-here) · [Read this first](#one-fact-worth-reading-before-anything-else) · [Hooks](#hooks) · [Design](#design-in-one-diagram) · [Install](#install) · [Not here](#what-is-deliberately-not-here) · [Contract backup](#where-a-programs-contract-is-backed-up) · [Releasing](#releasing) · [Adapting](#adapting-it) · [License](#license)
 
 ## What is here
 
@@ -37,9 +37,10 @@ templates/         yaml + README + spec + changes templates for a project, progr
 tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
                    sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher,
                    sap-auth-probe (does the stored password still work),
+                   workspace-sync (mirror a program contract into the private workspace repo),
                    install-kit (copy agents/tooling/skills into place on a machine)
 backup/            recovery snapshot of user memory (nothing loads it)
-Projects/          convention only — local notebook, gitignored
+Projects/          convention only - local notebook, gitignored, mirrored to a private repository
 ```
 
 ## One fact worth reading before anything else
@@ -316,6 +317,39 @@ connection, memory, or project records — those are user-scoped and must be reb
 which is why `config-templates/` and `memory-templates/` exist. For the exact file list, run
 `git ls-files` rather than trusting a number written here: a count in prose goes stale the next
 time a file is added, and that has already happened once in this repository.
+
+## Where a program's contract is backed up
+
+`Projects\<PROJECT>\<PROGRAM>` is gitignored on purpose — it carries a customer SID, client and
+transport numbers, and in the vendored case a functional's specification. That decision has a cost
+nobody should discover the hard way: **the contract had no history and no off-machine copy.** One
+disk failure from gone, because the folder that must not be committed is also the folder the work
+happens in.
+
+The fix is a second, private repository that holds the contract and nothing else.
+`tooling/workspace-sync.ps1` mirrors it by **allowlist**:
+
+| Mirrored | Never mirrored |
+| --- | --- |
+| `README.md`, `project.yaml`, `program.yaml`, `changes.md` | `spec\source\**` — the functional's document |
+| `spec\INDEX.md`, `spec\notes.md` | `.baseline\**` — customer source captured before a transfer |
+| `manifest.json` with sha256, bytes, lines per file | any file the script does not name |
+
+An allowlist, not a denylist, for the same reason as the agent roster: a file type added tomorrow is
+not mirrored until a human names it, so nothing leaks by default. The specification is excluded but
+its integrity is still watched — `program.yaml` records `spec_lines` and `spec_bytes`, and `-Check`
+compares them against the file on disk. A mismatch means the functional sent a new version and the
+section map now describes an older document, which no script can fix and a human must.
+
+```powershell
+tooling\workspace-sync.ps1 -Workspace <clone>            # what would be mirrored
+tooling\workspace-sync.ps1 -Workspace <clone> -Check     # drift; exit 1 if any
+tooling\workspace-sync.ps1 -Workspace <clone> -Write     # copy and refresh the manifest
+```
+
+The script refuses to mirror a file that contains a credential-shaped value. A customer name is
+expected in that repository; a password or a token never is, because a private repository is one
+visibility change away from being a public one and history cannot be taken back.
 
 Line endings are pinned to LF by `.gitattributes`. Without it, this machine's system
 `core.autocrlf=true` produced CRLF in a fresh clone while the mirrored source files were LF,
