@@ -393,9 +393,149 @@
                          "id":  "F-045",
                          "verified_by":  "deep audit 2026-11-15",
                          "where":  "hooks/lesson-capture.cjs",
-                         "reason":  "Measured 125 bytes per row and a full read plus rewrite at lines 141 and 157: about 6.2 GB cumulative after 10,000 events (ESTIMATE from the per-row measurement). Per-event wall time is still nearly flat at this size (88 ms at one row, 91 ms at 8,000), so the cost is not yet real. Switching to append-only would mean the row format has to survive partial writes, which is a design change to the lesson ledger rather than a fix.",
+                         "reason":  "Measured 125 bytes per row and a full read plus rewrite at lines 141 and 157: about 6.2 GB cumulative after 10,000 events (ESTIMATE from the per-row measurement). Per-event wall time is still nearly flat at this size (88 ms at one row, 91 ms at 8,000), so the cost is not yet real. Switching to append-only would mean the row format has to survive partial writes, which is a design change to the lesson ledger rather than a fix. Bounded since 2026-11-16 by the 256 KB cap added in F-056: the quadratic term stops at roughly 4,000 rows. The per-event whole-file rewrite remains, and remains accepted.",
                          "title":  "lesson-capture rewrites the whole ledger for every event, so cumulative I/O grows with the square of the row count",
                          "status":  "wontfix"
+                     },
+                     {
+                         "id":  "F-046",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/measure-context.ps1:23-33",
+                         "title":  "Read-Utf8 promised a sentinel string in its own comment and returned an empty string, so an unreadable memory or SKILL file was summed as a zero-char file and the TOTAL shrank with no warning",
+                         "status":  "fixed",
+                         "note":  "The comment said \"returning a sentinel string makes the failure visible\"; the code returned \u0027\u0027. Every call site summed it. Measured 2026-11-16 with memory-setup.md held open FileShare.None: before the fix the tool printed a smaller TOTAL and exit 0; after it prints \"WARNING 1 file(s) unreadable, their chars are NOT in this total: memory/memory-setup.md\".",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-047",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1:467, tooling/measure-context.ps1:79",
+                         "title":  "A trailing newline was counted as a line, so the 200-line memory budget reported 102 lines for 99 and could fail a compliant tree at the boundary",
+                         "status":  "fixed",
+                         "note":  "Measured on the live memory folder: split=21/56/25 against real 20/55/24. The budget is a gate, so at 198 real lines it printed \"exceeds the 200-line budget by 1\" and exited 1. workspace-sync.ps1 already contained the correct definition in Get-LineCount, so the repository held the right rule in one file and the wrong one in two.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-048",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/sap-secret.ps1:90-103, :265-289",
+                         "title":  "Every CredRead failure was reported as ABSENT, so a logon-session or ACL failure told the user to re-enter a password that was already stored",
+                         "status":  "fixed",
+                         "note":  "GetLastWin32Error was discarded. ERROR_NOT_FOUND is 1168; 1312 (no such logon session) and 5 (access denied) are not the same fact. -Test now prints ABSENT only for 1168 and UNKNOWN plus the Win32 error otherwise; sap-connection.ps1 already maps anything that is neither PRESENT nor ABSENT to ERROR, so no caller changed.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-049",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "hooks/lesson-capture.cjs:139-157",
+                         "title":  "A failed ledger read was treated as \"no ledger\", and the next line overwrote the real ledger with a header plus one row",
+                         "status":  "fixed",
+                         "note":  "catch set existing=\u0027\u0027, then \"if (!existing.trim()) existing = HEADER\", then writeFileSync. One sharing violation destroyed every captured failure and reset the occurrence counter that is the hook\u0027s only output. Only ENOENT now means \"no ledger yet\". Measured: with the file held FileShare.None the hook printed \"cannot read ... (EBUSY); ledger not touched\" and the 5-line ledger stayed at 5 lines; unlocked it appended to 6.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-050",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/workspace-sync.ps1:283",
+                         "title":  "-ErrorAction SilentlyContinue made an unscannable file look clean in the one gate that exists to stop a password reaching a repository",
+                         "status":  "fixed",
+                         "note":  "The override beat the script\u0027s top-level Stop, the enumeration yielded nothing, and an empty set is exactly what a clean file produces. An unreadable file is now a refusal, the rule verify-all section 9 already applies to itself. Measured: with a contract file held FileShare.None the script printed \"refusing to mirror - cannot scan for credentials\" and exited 1; unlocked it printed the plan and exited 0.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-051",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1:1372-1390",
+                         "title":  "The evidence check compared git cat-file\u0027s raw output line to \u0027commit\u0027, so the \u0027no such object\u0027 branch could never fire and a missing commit was misdiagnosed",
+                         "status":  "fixed",
+                         "note":  "Proved 2026-11-16: \"deadbeef...\" through git cat-file --batch-check=\"%(objecttype)\" prints \"deadbeef... missing\" and exits 0, so the whole line was compared and the diagnostic read \"resolves to a deadbeef... missing, not a commit\". Get-EvidenceType now strips the missing marker, and a four-case self-test runs on every audit.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-052",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1:496-499, :648-670, hooks/session-drift.cjs:179-190",
+                         "title":  "The audit and the drift hook read only .file on the allow side while the roster\u0027s own comment and the hook allow files:[...], so a valid roster produced a false GONE and a false exit 1",
+                         "status":  "fixed",
+                         "note":  "The other half of F-035: the hook was taught both spellings, the three readers that feed the gate were not. Measured by adding \"files\": [\"zz-symmetry-probe\"] to a live roster entry: before, known stayed 17 and nothing was reported; after, known=18 GONE=1 and two more probe cases. Roster restored byte-identical.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-053",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "hooks/subagent-rules.cjs:61-85, :119-131",
+                         "title":  "The derived short display name sat on the ALLOW list, so an agent installed as \u003cdisplay minus \" by X\"\u003e was trusted although the roster never named it",
+                         "status":  "fixed",
+                         "note":  "For this roster the three keys were sap-se38-report-tester, sap-st22-dump-analyst and sap-abap-reverse-engineering-analyst, none of which equals a file stem. Section 5c could not see it because it probed only .file. The spelling is still used, but on the deny side, where a wider match is the safe direction; section 5c now probes it and expects RESTRICTED. Proved by the audit failing with three ISSUEs against the installed hook before it was reinstalled, and passing after.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-054",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/install-kit.ps1:35, tooling/workspace-sync.ps1:47",
+                         "title":  "Two copies of the kit-root pin read ran unguarded under ErrorActionPreference Stop, so an unreadable pin killed the script instead of falling through to the next resolution step",
+                         "status":  "fixed",
+                         "note":  "verify-all.ps1:46-48 is the fixed form and documents the trap; the other two copies did not. Measured: with kit-root.txt held FileShare.None, install-kit -Check now reports the source and exits 0 through the parent-folder fallback.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-055",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1:637-643",
+                         "title":  "A killed audit left its hookprobe-* home in TEMP for ever, because the cleanup lives only in a finally that a hard kill never reaches",
+                         "status":  "fixed",
+                         "note":  "Measured 2026-11-16: hookprobe-15060 from the previous night was still present with two files. One directory and about 5.5 KB per killed run. Section 5c now sweeps homes older than an hour at start, which cannot touch a concurrent run.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-056",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "hooks/lesson-capture.cjs:168-179",
+                         "title":  "The lesson ledger had no cap, so it grew without limit and every failure rewrote the whole file",
+                         "status":  "fixed",
+                         "note":  "Measured +71 bytes per event, about 750 KB at 10,000 failures, and the whole file was re-read and rewritten each time. Capped at 256 KB keeping the header and the newest 250 rows, the cap subagent-rules.cjs already uses. The quadratic rewrite itself is F-045 and stays accepted.",
+                         "evidence":  "c719093"
+                     },
+                     {
+                         "id":  "F-057",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1 section 5c",
+                         "title":  "Caching the 11 subagent-gate probes would save about 465 ms, and a cached security gate can report a verdict it did not compute",
+                         "status":  "wontfix",
+                         "reason":  "Measured: 470 ms for 11 node spawns at 42.7 ms each, 85% process startup. A content-hash cache would still be a green result nobody recomputed, which is the defect class this repository has spent four rounds removing. Running the probes concurrently needs 11 redirected stdio pairs and can deadlock; the audit is not on a hot path, so the coverage stays and the milliseconds go."
+                     },
+                     {
+                         "id":  "F-058",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1 sections 1b, 1c, 9a",
+                         "title":  "Sections 1b and 1c both parse the same PowerShell files, and 9a scans every tracked file twice",
+                         "status":  "wontfix",
+                         "reason":  "Measured: 1b is 226 ms of which 148 ms is four node --check processes, and 1c parses only the 3 files that can lie, not all 8, so sharing the AST saves about 30 ms. 9a\u0027s two passes keep HIT and SHAPE apart on purpose and run under -ErrorAction Stop inside a try; merging them risks the split for 50 ms. Neither repays the coupling."
+                     },
+                     {
+                         "id":  "F-059",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\senior-abap-development\\SKILL.md",
+                         "title":  "The skill restated CDS and RAP design rules that sap-abap-cds and rap-development also state, so two copies could drift",
+                         "status":  "fixed",
+                         "note":  "Not a file in this repository, so no commit can prove it. Done 2026-11-16: the CDS/RAP checkpoints (2,792 chars) and the per-program-type checklist (804 chars) moved verbatim into references\\cds-rap-design-checkpoints.md and references\\requirement-checks-by-program-type.md, each with a deferral sentence at the point of use. SKILL.md 14,855 -\u003e 12,338 chars. Section 2 of verify-all now fails on a references/ link that does not resolve.",
+                         "evidence":  "live change 2026-11-16, file outside this repository"
+                     },
+                     {
+                         "id":  "F-060",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\senior-abap-development\\ and the 66 always-on skill descriptions",
+                         "title":  "Four kit skill descriptions could lose 191 chars, and two toolkit skills carry an identical 307-char clause",
+                         "status":  "wontfix",
+                         "reason":  "Measured: new-program 542 -\u003e 437, capture-lesson 495 -\u003e 437, rap-lifecycle 392 -\u003e 369, long-task-control 315 -\u003e 310, total 191 chars or about 48 tokens per request. The risk is skill selection, which depends on those words, and 48 tokens does not buy it. The abap-debugging / abap-runtime-analysis pair is worth about 419 chars but both are hash-tracked by the SAP toolkit, so any edit is reverted by the next upgrade and reported as EDITED by section 5b; the fix is a decision about which one wins, not an edit."
+                     },
+                     {
+                         "id":  "F-061",
+                         "verified_by":  "deep audit 2026-11-16",
+                         "where":  "tooling/verify-all.ps1 section 1b",
+                         "title":  "The audit is about 100 ms slower than before, because section 5c now probes 14 shapes instead of 11",
+                         "status":  "wontfix",
+                         "reason":  "Measured A/B, four alternating runs of HEAD and the working tree: old 2,526 ms, new 2,625 ms. Three derived-name probes at 42.7 ms each plus the TEMP sweep. Accepted: the three probes are the only thing that would notice F-053 coming back, and 0.1 s on a manual audit buys nothing."
                      }
                  ]
 }
