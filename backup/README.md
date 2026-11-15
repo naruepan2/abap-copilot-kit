@@ -12,6 +12,11 @@ from here only when the live copy is gone; never edit here and expect a change i
 | `../tooling/` | `verify-all.ps1`, `measure-context.ps1`, `who-locks.ps1`, `surface.json` | No — authored |
 | `../roster.json` | the delegation allowlist | No — a human decision |
 
+**Repo memory is not here.** It is backed up instead by `tooling/workspace-sync.ps1 -RepoMemory`,
+which mirrors it into the private workspace repository beside the program contracts. That is a
+better home: repo memory is project fact, and the project it belongs to is there. Keeping a second
+copy here would be a third place to forget to update.
+
 Third-party skills and agents are **not** copied here, on purpose. `~/.agents/skills`,
 `~/.copilot/skills` and the SAP AI Dev Toolkit are installed and upgraded by their own commands;
 a copy in this repository would drift from the installer and mislead whoever reads it. Re-run the

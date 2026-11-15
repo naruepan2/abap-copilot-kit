@@ -347,6 +347,11 @@ tooling\workspace-sync.ps1 -Workspace <clone> -Check     # drift; exit 1 if any
 tooling\workspace-sync.ps1 -Workspace <clone> -Write     # copy and refresh the manifest
 ```
 
+Add `-RepoMemory <path>` to include the per-workspace memory folder. It is never guessed, because
+its folder name is a hash of the workspace path. Memory is a **mirror**, not a move: VS Code keeps
+reading the live folder, so the copy here is a backup that survives a dead disk, and nothing loads
+it back automatically.
+
 The script refuses to mirror a file that contains a credential-shaped value. A customer name is
 expected in that repository; a password or a token never is, because a private repository is one
 visibility change away from being a public one and history cannot be taken back.
