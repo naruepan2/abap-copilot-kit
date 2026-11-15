@@ -95,23 +95,45 @@ foreach ($k in $dest.Keys) {
     if (-not (Test-Path $dest[$k])) { New-Item -ItemType Directory -Path $dest[$k] -Force | Out-Null }
 }
 
-$added = 0; $same = 0; $conflict = @(); $forced = 0
+$added = 0; $same = 0; $conflict = @(); $forced = 0; $normalised = 0
+
+# Copies are written as normalised text, not copied byte for byte.
+#
+# The comparison below already normalises line endings, so a CRLF live copy and an LF source count as
+# "identical" - but a byte comparison of the same pair disagrees, and the two answers look like a bug
+# to anyone who checks with a hash. Measured: sap-arc1-launcher.ps1 was repo-LF and live-CRLF, and
+# every check said identical while Get-FileHash said otherwise. Writing the normalised form makes
+# both answers agree, and matches what .gitattributes pins in the repository.
+function Write-Normalised([string]$src, [string]$dest) {
+    $t = [System.IO.File]::ReadAllText($src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
+    [System.IO.File]::WriteAllText($dest, $t, (New-Object System.Text.UTF8Encoding($false)))
+}
 
 foreach ($i in $plan) {
     if (-not (Test-Path $i.Dest)) {
         if (-not $Check) {
             $parent = Split-Path $i.Dest -Parent
             if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
-            Copy-Item $i.Src $i.Dest -Force
+            Write-Normalised $i.Src $i.Dest
         }
         $added++
         continue
     }
     $a = [System.IO.File]::ReadAllText($i.Src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
     $b = [System.IO.File]::ReadAllText($i.Dest, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
-    if ($a -eq $b) { $same++; continue }
+    if ($a -eq $b) {
+        # Same content, but the bytes may still disagree - a CRLF live copy against an LF source. That
+        # is not a conflict (nobody's work is at risk) and it is not "identical" either, because a
+        # hash comparison says otherwise. Rewriting it costs one file write and makes the two answers
+        # agree; leaving it means every future check has to explain itself.
+        $bytesDiffer = -not ((Get-FileHash $i.Src).Hash -eq (Get-FileHash $i.Dest).Hash)
+        if ($bytesDiffer -and -not $Check) { Write-Normalised $i.Src $i.Dest; $normalised++ }
+        elseif ($bytesDiffer) { $normalised++ }
+        else { $same++ }
+        continue
+    }
     if ($Force) {
-        if (-not $Check) { Copy-Item $i.Src $i.Dest -Force }
+        if (-not $Check) { Write-Normalised $i.Src $i.Dest }
         $forced++
     }
     else {
@@ -122,7 +144,7 @@ foreach ($i in $plan) {
 $mode = if ($Check) { 'check only' } else { 'applied' }
 $verb = if ($Check) { 'would copy' } else { 'copied' }
 Write-Output ("install-kit: {0}   source {1}" -f $mode, $KitRoot)
-Write-Output ("  {0} {1}, {2} already identical, {3} differ{4}" -f $added, $verb, $same, $conflict.Count, $(if ($forced -gt 0) { ", $forced overwritten by -Force" } else { '' }))
+Write-Output ("  {0} {1}, {2} already identical, {3} differ{4}{5}" -f $added, $verb, $same, $conflict.Count, $(if ($normalised -gt 0) { ", $normalised line-ending only" } else { '' }), $(if ($forced -gt 0) { ", $forced overwritten by -Force" } else { '' }))
 foreach ($c in $conflict) {
     Write-Output ("  DIFFERS  {0}\{1}" -f $c.Kind, $c.Name)
 }
