@@ -298,13 +298,13 @@ the target, so the information moved rather than disappeared.
 The history was rewritten once, for the same reason. A scanner in `tooling/verify-all.ps1` had
 carried a real user id, two customer domains and the first characters of a token as literal
 patterns, and skipped its own file so it would not flag itself. Those values, and one absolute CA
-path from an early commit, are not in the history any more. Section 8 of `verify-all.ps1` derives
+path from an early commit, are not in the history any more. Section 9 of `verify-all.ps1` derives
 the values at run time from the gitignored connection store instead, so the check holds them
 without the repository holding them.
 
 **A working-tree scan cannot find this class of mistake, because the mistake is usually already
 gone from the working tree.** The leak above survived sixteen commits while every check passed.
-Section 8 now scans every commit as well as every tracked file, which costs about a tenth of a
+Section 9 now scans every commit as well as every tracked file, which costs about a tenth of a
 second at this size and reports the commit, the path and the line. If it ever finds something, the
 only fix is a rewritten history — so the check exists to make that rare enough to stay cheap.
 

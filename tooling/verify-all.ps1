@@ -37,7 +37,12 @@ $REPO = $env:ABAP_KIT_ROOT
 if (-not $REPO -or -not (Test-Path (Join-Path $REPO 'INDEX.md'))) {
     $pin = Join-Path $PSScriptRoot 'kit-root.txt'
     if (Test-Path $pin) {
-        $pinned = ([System.IO.File]::ReadAllText($pin, [System.Text.Encoding]::UTF8)).Trim()
+        # Guarded even though a failure here only falls through to the next resolution step: an
+        # unguarded read under EAP=Continue leaves $pinned holding whatever it held before, which is
+        # the same defect that produced a confident wrong diagnosis further down this file.
+        $pinned = $null
+        try { $pinned = ([System.IO.File]::ReadAllText($pin, [System.Text.Encoding]::UTF8)).Trim() }
+        catch { $pinned = $null }
         if ($pinned -and (Test-Path (Join-Path $pinned 'INDEX.md'))) { $REPO = $pinned }
     }
 }
@@ -145,6 +150,122 @@ Ran 'agents' $agCount
 Note 'ISSUE' $agBad
 }
 
+Line '1b. Every script parses (the cheapest check that would have caught my own mistakes)'
+# A syntax error is the least subtle defect a file can have and the easiest to produce: a bad edit that
+# eats a newline breaks a PowerShell script and the tool still reads as "present". Two separate edits
+# in one session produced exactly that, and neither was caught until something ran the file. Parsing is
+# static, fast, and needs no execution.
+$psBad = 0; $psCount = 0; $jsBad = 0; $jsCount = 0
+if ($repoOk) {
+    foreach ($f in @(Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.ps1' -ErrorAction SilentlyContinue) +
+                     @(Get-ChildItem (Join-Path $REPO 'hooks') -File -Filter '*.cjs' -ErrorAction SilentlyContinue) +
+                     @(Get-ChildItem (Join-Path $REPO 'hooks') -File -Filter '*.ps1' -ErrorAction SilentlyContinue)) {
+        if ($f.Extension -eq '.ps1') {
+            $psCount++
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errs)
+            if (@($errs).Count -gt 0) {
+                $psBad++
+                foreach ($e in @($errs | Select-Object -First 2)) {
+                    Write-Output ("  ISSUE   {0}:L{1} {2}" -f $f.Name, $e.Extent.StartLineNumber, $e.Message)
+                }
+            }
+        }
+        else {
+            $jsCount++
+            $node = (Get-Command node -ErrorAction SilentlyContinue)
+            if (-not $node) { continue }
+            $out = & $node.Source --check $f.FullName 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                $jsBad++
+                Write-Output ("  ISSUE   {0}: does not parse ({1})" -f $f.Name, (($out | Select-Object -First 1) -join ''))
+            }
+        }
+    }
+    foreach ($f in Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.js' -ErrorAction SilentlyContinue) {
+        $jsCount++
+        $node = (Get-Command node -ErrorAction SilentlyContinue)
+        if (-not $node) { continue }
+        $out = & $node.Source --check $f.FullName 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $jsBad++
+            Write-Output ("  ISSUE   {0}: does not parse ({1})" -f $f.Name, (($out | Select-Object -First 1) -join ''))
+        }
+    }
+    if ($psBad -eq 0 -and $jsBad -eq 0) {
+        Write-Output ("  {0} PowerShell file(s) and {1} Node file(s) parse" -f $psCount, $jsCount)
+    }
+    Ran 'scripts' ($psCount + $jsCount)
+    Note 'ISSUE' ($psBad + $jsBad)
+    if ($psCount -eq 0) { Write-Output '  ISSUE   no .ps1 found to parse'; Note 'ISSUE' 1 }
+}
+else {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+}
+
+Line '1c. No read can lie (a failed read must not leave a previous value behind)'
+# This is the single most productive defect class in this repository: nine instances across four audit
+# rounds. The mechanism is always the same. Under ErrorActionPreference = Continue, a failed .NET read
+# is statement-terminating only: the assignment does not happen, the variable keeps the value from the
+# previous loop iteration, and the rest of the block runs. The report then describes a file nobody
+# opened, in the confident voice of a measurement.
+#
+# Files with EAP=Stop are excluded on purpose: a failed read there terminates the script, which is
+# loud and safe. Narrowing to the files that CAN lie is what makes this output actionable.
+#
+# The check parses each file and asks the syntax tree whether the read node sits inside a try body.
+# A text scan with a brace counter was tried first and produced a false positive on a multi-line try,
+# which is worse than no check: "no output" has to mean "none".
+if ($repoOk) {
+    # The filter reads each file to decide whether it can lie, so that read is guarded too - the gate
+    # caught itself on the first run, which is the best evidence that it works.
+    $lieFiles = @()
+    foreach ($cand in @(Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.ps1' -ErrorAction SilentlyContinue)) {
+        $candText = $null
+        try { $candText = [System.IO.File]::ReadAllText($cand.FullName) } catch { continue }
+        if ($candText -match "(?m)^\`$ErrorActionPreference\s*=\s*'Continue'") { $lieFiles += $cand }
+    }
+    $unguarded = @()
+    $lieChecked = 0
+    foreach ($file in $lieFiles) {
+        $tok = $null; $err = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tok, [ref]$err)
+        if (@($err).Count -gt 0) { continue }
+        $tryBodies = @()
+        foreach ($t in $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.TryStatementAst] }, $true)) {
+            $tryBodies += , @($t.Body.Extent.StartOffset, $t.Body.Extent.EndOffset)
+        }
+        $reads = $ast.FindAll({
+            param($n)
+            if ($n -is [System.Management.Automation.Language.InvokeMemberExpressionAst]) {
+                $m = $n.Member.Extent.Text
+                return ($m -match "^'?(ReadAllText|ReadAllBytes|ReadAllLines)'?$")
+            }
+            if ($n -is [System.Management.Automation.Language.CommandAst]) { return ($n.GetCommandName() -eq 'Get-Content') }
+            return $false
+        }, $true)
+        foreach ($r in $reads) {
+            $lieChecked++
+            $off = $r.Extent.StartOffset
+            $guarded = $false
+            foreach ($tb in $tryBodies) { if ($off -ge $tb[0] -and $off -le $tb[1]) { $guarded = $true; break } }
+            if (-not $guarded) { $unguarded += ($file.Name + ':' + $r.Extent.StartLineNumber) }
+        }
+    }
+    if ($unguarded.Count -eq 0) {
+        Write-Output ("  {0} read(s) in {1} continue-on-error script(s), all inside try" -f $lieChecked, $lieFiles.Count)
+    }
+    else {
+        foreach ($u in $unguarded) { Write-Output ("  ISSUE   unguarded read can report a stale value: " + $u) }
+    }
+    Ran 'reads' $lieChecked
+    Note 'ISSUE' $unguarded.Count
+    if ($lieFiles.Count -eq 0) { Write-Output '  ISSUE   no continue-on-error script found to check'; Note 'ISSUE' 1 }
+}
+else {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+}
+
 Line '2. Skill frontmatter parses (both roots)'
 foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
     if (-not (Test-Path $root)) {
@@ -173,6 +294,38 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
     Note 'BAD' $bad
 }
 
+Line '2b. Parked skills stayed parked (a designed state must not revert silently)'
+# Every skill's name and description loads into every request, so an irrelevant skill costs tokens
+# forever. Parking one in `skills-disabled\` is the only way to stop that, and it is not durable:
+# measured 2026-11-15, eleven toolkit-owned skills were parked, the toolkit was upgraded, and all
+# eleven came back into the live folder - 805 tokens per request, with the parked copies still on
+# disk. Nothing reported it, because the state that reverted was a designed state rather than a
+# failure. A probe that only looks for breakage cannot see a restored default.
+$parkedDir = "$env:USERPROFILE\.copilot\skills-disabled"
+$revived = @(); $parkedCost = 0
+if (Test-Path $parkedDir) {
+    foreach ($d in Get-ChildItem $parkedDir -Directory -ErrorAction SilentlyContinue) {
+        $liveSkill = Join-Path (Join-Path $SK $d.Name) 'SKILL.md'
+        if (-not (Test-Path $liveSkill)) { continue }
+        $revived += $d.Name
+        $t = $null
+        try { $t = [System.IO.File]::ReadAllText($liveSkill, [System.Text.Encoding]::UTF8) } catch { continue }
+        if ($t -match '(?s)^---\r?\n(.*?)\r?\n---') { $parkedCost += $Matches[1].Length }
+    }
+}
+if (-not (Test-Path $parkedDir)) {
+    Write-Output '  SKIP    no skills-disabled folder - nothing is parked'
+}
+elseif ($revived.Count -eq 0) {
+    Write-Output '  parked skills stayed parked'
+}
+else {
+    foreach ($r in $revived) { Write-Output ("  ISSUE   parked but live again: " + $r) }
+    Write-Output ("  unparking cost ~{0} chars (~{1} tokens) in every request" -f $parkedCost, [math]::Round($parkedCost / 4))
+    Note 'ISSUE' $revived.Count
+}
+Ran 'parked' (1)
+
 Line '3. Cross-file rule duplication (a rule must have one home)'
 # Every file a probe reads is guarded. A missing skill file used to throw inside the ordered
 # literal, which left $probes null and printed "0 of 0 flagged" - a pass-shaped line for a check
@@ -186,12 +339,26 @@ if ($missingProbeInputs.Count -gt 0) {
     foreach ($m in $missingProbeInputs) { Write-Output ("  ISSUE   duplication probe input missing: " + $m) }
     Note 'ISSUE' $missingProbeInputs.Count
 } else {
-$agent = [System.IO.File]::ReadAllText($agentFile, [System.Text.Encoding]::UTF8)
+# Under ErrorActionPreference=Continue a failed .NET read is only statement-terminating: the assignment
+# does not happen, the variable KEEPS ITS PREVIOUS VALUE, and the rest of the block runs. Three reads
+# here fed six probes, so a locked agent file produced "agent lost the detail-levels pointer" - a
+# confident wrong diagnosis about a file nobody had opened. Reset to $null, read inside try, and treat
+# a failure as an ISSUE that skips the probes rather than as a probe result.
+$agent = $null; $auditText = $null; $lessonText = $null
+$readFailed = @()
+try { $agent = [System.IO.File]::ReadAllText($agentFile, [System.Text.Encoding]::UTF8) } catch { $readFailed += 'agent' }
+try { $auditText = [System.IO.File]::ReadAllText($auditSkill, [System.Text.Encoding]::UTF8) } catch { $readFailed += 'mcp-surface-audit' }
+try { $lessonText = [System.IO.File]::ReadAllText($lessonSkill, [System.Text.Encoding]::UTF8) } catch { $readFailed += 'capture-lesson' }
+if ($readFailed.Count -gt 0) {
+    Write-Output ("  ISSUE   probe input unreadable: " + ($readFailed -join ', '))
+    Note 'ISSUE' $readFailed.Count
+}
+else {
 # Each probe is TRUE when the duplication EXISTS - that is the failure state.
 $probes = [ordered]@{
     'agent hardcodes a roster count'      = $agent -match '\b\d+ (known|not delegatable|delegatable\b)'
-    'audit skill hardcodes a roster count' = ([System.IO.File]::ReadAllText($auditSkill)) -match '\b\d+ (known|live)\b'
-    'capture-lesson restates the evidence rule' = ([System.IO.File]::ReadAllText($lessonSkill)) -match 'never guess'
+    'audit skill hardcodes a roster count' = $auditText -match '\b\d+ (known|live)\b'
+    'capture-lesson restates the evidence rule' = $lessonText -match 'never guess'
     'agent restates the delegation table' = ($agent -split 'roster.json').Count -gt 3
     'agent lost the detail-levels pointer' = $agent -notmatch 'detail-levels\.md'
     'agent copies the detail-level rules' = $agent -match 'enum is closed|terse is deterministic'
@@ -203,7 +370,12 @@ $selfPath = $PSCommandPath
 if ($selfPath -and (Test-Path $selfPath)) {
     $seen = @{}
     $clash = @()
-    foreach ($line in [System.IO.File]::ReadAllLines($selfPath, [System.Text.Encoding]::UTF8)) {
+    # Guarded for the same reason as the reads above: a failed read skipped the loop body, found no
+    # clash, and printed OK - a silent pass on the check that exists to catch a silent pass.
+    $selfLines = @()
+    try { $selfLines = [System.IO.File]::ReadAllLines($selfPath, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ('  ISSUE   cannot read own source for the collision probe: ' + $_.Exception.GetType().Name); Note 'ISSUE' 1 }
+    foreach ($line in $selfLines) {
         if ($line.TrimStart().StartsWith('#')) { continue }
         foreach ($m in [regex]::Matches($line, '\$([A-Za-z_][A-Za-z0-9_]*)')) {
             $n = $m.Groups[1].Value
@@ -222,6 +394,7 @@ foreach ($k in $probes.Keys) {
 if ($Summary) { Write-Output ("  duplication probes: {0} of {1} flagged" -f @($probes.Keys | Where-Object { $probes[$_] }).Count, $probes.Count) }
 Ran 'probes' $probes.Count
 Note 'DUP' @($probes.Keys | Where-Object { $probes[$_] }).Count
+}
 }
 
 Line '4. Memory budget and shape'
@@ -321,12 +494,19 @@ if (-not (Test-Path $TK)) {
     try { $tkDoc = Get-Content $TK -Raw | ConvertFrom-Json }
     catch { Write-Output '  ISSUE   toolkit manifest is not valid JSON'; Note 'ISSUE' 1 }
     $map = if ($tkDoc) { @($tkDoc.files)[0] } else { $null }
-    $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @()
+    $tkAgents = @(); $tkSkills = @(); $hashDrift = @(); $gone = @(); $parkedGone = @()
     foreach ($p in @(if ($map) { $map.PSObject.Properties })) {
         if ($p.Name -like 'agents\*') { $tkAgents += ($p.Name -replace '^agents\\', '' -replace '\.agent\.md$', '') }
         elseif ($p.Name -like 'skills\*') { $tkSkills += @(($p.Name -split '\\')[1]) }
         $f = Join-Path "$env:USERPROFILE\.copilot" $p.Name
-        if (-not (Test-Path $f)) { $gone += $p.Name; continue }
+        if (-not (Test-Path $f)) {
+            # A file the toolkit installed but which is deliberately parked is not missing - it is
+            # where a human put it. Section 2b reports parking as its own state; this section must not
+            # count the same decision as a defect, or the audit can never pass once a skill is parked.
+            $parkedCopy = Join-Path "$env:USERPROFILE\.copilot\skills-disabled" ($p.Name -replace '^skills\\', '')
+            if ($p.Name -like 'skills\*' -and (Test-Path $parkedCopy)) { $parkedGone += $p.Name; continue }
+            $gone += $p.Name; continue
+        }
         # An unreadable file threw here and left the drift count at zero, so a locked file read as
         # "not edited since install". Reading is guarded and reported as drift instead.
         try { $actual = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
@@ -349,7 +529,7 @@ if (-not (Test-Path $TK)) {
         }
         Note 'ISSUE' $undecided.Count
     }
-    Write-Output ("  {0} toolkit files edited since install, {1} missing" -f $hashDrift.Count, $gone.Count)
+    Write-Output ("  {0} toolkit files edited since install, {1} missing{2}" -f $hashDrift.Count, $gone.Count, $(if ($parkedGone.Count -gt 0) { ", $($parkedGone.Count) parked on purpose" } else { '' }))
     foreach ($h in $hashDrift) { Write-Output ("          EDITED  " + $h) }
     foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
     Ran 'toolkit' $tkAgents.Count
@@ -496,7 +676,7 @@ Note 'MISSING' $missingLive.Count
 Pop-Location
 }
 
-Line '9. SAP password in any harness config: literal, or indirection?'
+Line '8. SAP password in any harness config: literal, or indirection?'
 # VS Code supports ${input:...} and ~/.copilot/mcp.json already uses it. The Copilot CLI accepts
 # only --env KEY=VALUE, so its config had the real password as plaintext - invisible to a scan
 # that only looks at the repository. A literal here is an ISSUE wherever the file lives.
@@ -688,7 +868,7 @@ function Test-LauncherWiring($path, $rootKey, $label) {
 Test-LauncherWiring "$env:USERPROFILE\.copilot\mcp-config.json" 'mcpServers' 'launcher'
 Test-LauncherWiring "$env:APPDATA\Code\User\mcp.json" 'servers' 'launcher2'
 
-Line '8. Sensitive values in any tracked file'
+Line '9. Sensitive values in any tracked file'
 if (-not $repoOk) {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
 } else {
@@ -742,7 +922,12 @@ if ($repoOk) { $candidates += (Join-Path $REPO 'tooling') }
 foreach ($dir in @($candidates | Where-Object { $_ } | Select-Object -Unique)) {
     $extraFile = Join-Path $dir 'verify-patterns.local.txt'
     if (-not (Test-Path $extraFile)) { continue }
-    foreach ($raw in [System.IO.File]::ReadAllLines($extraFile, [System.Text.Encoding]::UTF8)) {
+    # An unreadable list silently reduced the pattern set, which weakens the scan without saying so -
+    # the exact failure mode this section exists to prevent.
+    $extraLines = @()
+    try { $extraLines = [System.IO.File]::ReadAllLines($extraFile, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ('  ISSUE   unreadable pattern list: ' + $extraFile); Note 'ISSUE' 1; continue }
+    foreach ($raw in $extraLines) {
         $t = $raw.Trim()
         if ($t -eq '' -or $t.StartsWith('#')) { continue }
         $patterns += [regex]::Escape($t); $extraCount++
@@ -850,6 +1035,70 @@ Note 'HIT' $hits
 Note 'SHAPE' $shapes
 Note 'HISTORY' $histHits
 Pop-Location
+}
+
+Line '10. Findings ledger: is anything still open?'
+# Why this section exists, in one sentence: a finding reported into a chat log is forgotten, and a
+# finding reported into a file that gates the build is not.
+#
+# Measured 2026-11-15. An audit round found that hooks/subagent-rules.cjs evaluates its allow list
+# before its deny list. It was reported in prose. Four later audit rounds never re-read it, because
+# each round started from the code rather than from the list of things already known to be wrong. Two
+# days later it was still shipping. The same happened to a malformed markdown table that a fix commit
+# claimed to repair, and to a section numbering the report printed out of order. Detection was never
+# the weak part; remembering was.
+if (-not $repoOk) {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+} else {
+    $findingsFile = Join-Path $REPO 'tooling\findings.json'
+    if (-not (Test-Path $findingsFile)) {
+        Write-Output '  ISSUE   no findings ledger at tooling\findings.json'
+        Note 'ISSUE' 1
+    }
+    else {
+        $fl = $null
+        try { $fl = [System.IO.File]::ReadAllText($findingsFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+        catch { Write-Output '  ISSUE   findings.json is not valid JSON'; Note 'ISSUE' 1 }
+        if ($fl -and -not ($fl.PSObject.Properties.Name -contains 'findings')) {
+            Write-Output '  ISSUE   findings.json has no findings member'
+            Note 'ISSUE' 1
+        }
+        elseif ($fl) {
+            $open = @(); $badStatus = @(); $noEvidence = @(); $staleRef = @()
+            $valid = @('open', 'fixed', 'wontfix')
+            foreach ($f in @($fl.findings)) {
+                if (-not $f -or -not $f.id) { continue }
+                if ($valid -notcontains $f.status) { $badStatus += ($f.id + ' (' + $f.status + ')'); continue }
+                if ($f.status -eq 'open') { $open += $f; continue }
+                if ($f.status -eq 'wontfix' -and -not $f.reason) { $noEvidence += ($f.id + ' (wontfix with no reason)'); continue }
+                if ($f.status -eq 'fixed') {
+                    if (-not $f.evidence) { $noEvidence += ($f.id + ' (fixed with no evidence)'); continue }
+                    # The evidence must still resolve. A commit id that does not exist means the
+                    # ledger is describing a fix nobody can find, which is the same failure as an
+                    # open finding with better paperwork.
+                    if ($f.evidence -match '^[0-9a-f]{7,40}$') {
+                        Push-Location $REPO
+                        $exists = git cat-file -e ($f.evidence + '^{commit}') 2>$null
+                        $rc = $LASTEXITCODE
+                        Pop-Location
+                        if ($rc -ne 0) { $staleRef += ($f.id + ' -> ' + $f.evidence + ' (no such commit)') }
+                    }
+                }
+            }
+            $total = @($fl.findings).Count
+            if ($open.Count -eq 0 -and $badStatus.Count -eq 0 -and $noEvidence.Count -eq 0 -and $staleRef.Count -eq 0) {
+                Write-Output ("  {0} finding(s) recorded, none open" -f $total)
+            }
+            else {
+                foreach ($o in $open) { Write-Output ("  ISSUE   open finding {0}: {1}" -f $o.id, $o.title) }
+                foreach ($b in $badStatus) { Write-Output ("  ISSUE   invalid status: " + $b) }
+                foreach ($n in $noEvidence) { Write-Output ("  ISSUE   " + $n) }
+                foreach ($s in $staleRef) { Write-Output ("  ISSUE   evidence does not resolve: " + $s) }
+            }
+            Ran 'findings' $total
+            Note 'ISSUE' ($open.Count + $badStatus.Count + $noEvidence.Count + $staleRef.Count)
+        }
+    }
 }
 
 # The verdict. Two things it must distinguish, because this check exists to be trusted:

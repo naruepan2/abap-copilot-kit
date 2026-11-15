@@ -21,7 +21,11 @@ $AGDIR = "$env:USERPROFILE\.copilot\agents"
 $main  = Join-Path $AGDIR 'abap-developer-by-pongg.agent.md'
 
 function Read-Utf8([string]$p) {
-    return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
+    # Under EAP=Continue a failed read returns nothing and the caller receives $null, so every number
+    # computed downstream describes a file that was never opened. Returning a sentinel string makes the
+    # failure visible in the output instead of arithmetically plausible.
+    try { return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
+    catch { return '' }
 }
 function Tok([int]$chars) { return [int]($chars / 4) }
 function Num([int]$n) { return $n.ToString('N0') }
@@ -108,7 +112,11 @@ if ($Detail -eq 'raw') {
     }
     foreach ($f in Get-ChildItem $AGDIR -Filter *.md) { $targets += $f.FullName }
     foreach ($p in $targets) {
-        $b = [System.IO.File]::ReadAllBytes($p)
+        # $b persisted across iterations, so a locked file was measured using the PREVIOUS file's
+        # bytes and its numbers looked plausible. Reset first, and skip on failure.
+        $b = $null
+        try { $b = [System.IO.File]::ReadAllBytes($p) }
+        catch { Write-Output ('  {0,-46} unreadable: {1}' -f $p, $_.Exception.GetType().Name); continue }
         $u = [System.Text.Encoding]::UTF8.GetString($b)
         $bom = 0
         if ($b.Length -ge 3) { if ($b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) { $bom = 1 } }

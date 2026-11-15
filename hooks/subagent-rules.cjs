@@ -67,22 +67,27 @@ function classify(agentName, roster) {
         for (const f of g.files || []) blocked.push({ file: f, reason: g.reason || '' });
     }
 
-    const findIn = (list) => {
-        // Exact match first: "abap-developer-by-pongg" must not be reported as the
-        // sibling entry "abap-developer" just because that name is a prefix of it.
-        let hit = list.find((e) => normalise(e.file) === want);
-        if (hit) return hit;
-        hit = list.find((e) => {
-            const n = normalise(e.file);
-            return want.startsWith(`${n}-`) || n.startsWith(`${want}-`);
-        });
-        return hit || null;
-    };
+    // Two different questions, so two different matching rules. Collapsing them into one fuzzy search
+    // was a real defect: `findIn(allowed)` ran first and accepted a bidirectional prefix match, so an
+    // agent named after an allowed one - `<allowed>-anything`, or a truncated prefix of it - was
+    // classified TRUSTED. Latent while the roster happens to be free of such collisions, and armed
+    // the moment somebody installs an agent whose name starts like a delegatable one.
+    //
+    // The allow list is a permission, so it requires an exact match: nothing but the roster entry
+    // itself may inherit its trust. The deny list is a restriction, so a broader match is the safe
+    // direction - if a name resembles something the roster refused, refuse it.
+    const exact = (list) => list.find((e) => normalise(e.file) === want) || null;
+    const fuzzy = (list) => list.find((e) => {
+        const n = normalise(e.file);
+        return want.startsWith(`${n}-`) || n.startsWith(`${want}-`);
+    }) || null;
 
-    const allow = findIn(allowed);
+    const allow = exact(allowed);
     if (allow) return { trusted: true, role: allow.role };
 
-    const deny = findIn(blocked);
+    // Deny is checked with both, and deny wins over "not listed": the reason is more useful when it
+    // names the entry the roster actually refused.
+    const deny = exact(blocked) || fuzzy(blocked);
     if (deny) {
         return {
             trusted: false,

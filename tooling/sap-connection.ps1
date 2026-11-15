@@ -12,7 +12,7 @@
 #                    "language": "EN", "password": "@secret" } } }
 #
 # "password": "@secret" means the value is in Windows Credential Manager under
-# ARC1:<connection>_SAP_PASSWORD. Any other non-empty value is plaintext, and section 9 of
+# ARC1:<connection>_SAP_PASSWORD. Any other non-empty value is plaintext, and section 8 of
 # verify-all.ps1 reports it.
 #
 #   (no action)                                        list every connection and its secret state

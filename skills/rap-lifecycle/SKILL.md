@@ -1,6 +1,6 @@
 ---
 name: rap-lifecycle
-description: The ordered create-and-publish chain for a RAP business object, with the owning server for each step and the checks that stop a half-published service. Use when creating a RAP service or business object from scratch, adding a layer to an existing one (table, CDS entity, projection, behavior definition, service definition, service binding), publishing or unpublishing an OData service, or when asked "build the RAP stack", "add a projection", "generate a behavior pool", or "publish this service". Do not use for editing the logic inside an existing behavior implementation — that is a normal code change.
+description: The ordered create-and-publish chain for a RAP business object: which server owns each step, and the checks that stop a half-published service. Use when building a RAP stack, adding a layer (table, CDS entity, projection, behavior definition, service definition, service binding), or publishing an OData service. Not for editing the logic inside a behavior implementation that already exists.
 ---
 
 # RAP lifecycle

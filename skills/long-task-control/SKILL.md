@@ -1,6 +1,6 @@
 ---
 name: long-task-control
-description: How to run, checkpoint, and stop a task that outlives one request — the stop condition, the handoff when stopping early, and the rule that evidence expires when it leaves context. Use when a task will span multiple objects or layers, when it is about to hit a request or context limit, when asked to "continue where we left off", "write a handoff", "what is left", or when resuming work from a previous session. Do not use for a single-object change that fits in one turn.
+description: Run, checkpoint and stop a task that outlives one request: the stop condition, the handoff when stopping early, and why evidence expires. Use when work spans multiple objects or requests, near a request or context limit, when resuming a previous session, or asked "what is left". Not for work that fits in one turn.
 ---
 
 # Long-task control

@@ -1,0 +1,76 @@
+{
+    "$comment": "Every finding from every audit, with a status. verify-all.ps1 fails while any entry is 'open'. This file exists because one finding - the allow-before-deny bug in hooks/subagent-rules.cjs - was found by an audit, reported, and then never re-read by four later audits, so it shipped for two days. An audit that reports into a chat log cannot remember; an audit that reports into a file that gates the build cannot forget.",
+    "version": 1,
+    "rules": {
+        "open": "the audit fails. Fix it, or change the status with a reason.",
+        "fixed": "must carry 'evidence' - the commit or the command that proves it. verify-all checks that the cited commit exists.",
+        "wontfix": "must carry 'reason'. A defect accepted on purpose, with the reason someone can disagree with later.",
+        "verified_by": "the audit round that found it, so a re-read is possible."
+    },
+    "findings": [
+        {
+            "id": "F-001",
+            "title": "subagent-rules.cjs evaluates the allow list before the deny list, and both use bidirectional prefix fuzz, so an agent named <allowed>-anything is treated as trusted",
+            "where": "hooks/subagent-rules.cjs:82-88, :77",
+            "status": "open",
+            "verified_by": "audit round 1, 2026-11-15",
+            "note": "Latent today (0 collisions among 3 allow / 14 deny names). Exploitable the moment an agent file named like an allowed one is installed. The safe shape is exact match for allow, fuzz only for deny."
+        },
+        {
+            "id": "F-002",
+            "title": "docs/reference/skills.md line 25 is a 4-cell row in a 3-column table",
+            "where": "docs/reference/skills.md:25",
+            "status": "open",
+            "verified_by": "audit round 4, 2026-11-15",
+            "note": "Commit 1f3f7bd claimed to fix this and changed only the cell text. The row is still malformed. Measured: cols=4 against a header of cols=3."
+        },
+        {
+            "id": "F-003",
+            "title": "Three file reads in verify-all.ps1 are unguarded, so a failed read can leave the previous iteration's value in the variable",
+            "where": "tooling/verify-all.ps1:274, :278, :279",
+            "status": "open",
+            "verified_by": "audit round 2, 2026-11-15",
+            "note": "The same class was fixed at six other sites. These three were not found because the fix was applied where it was noticed rather than searched for."
+        },
+        {
+            "id": "F-004",
+            "title": "verify-all.ps1 had no exit statement, so every finding printed and the exit code was always 0",
+            "where": "tooling/verify-all.ps1",
+            "status": "fixed",
+            "evidence": "a1f9fb2",
+            "verified_by": "audit round 1, 2026-11-15"
+        },
+        {
+            "id": "F-005",
+            "title": "workspace-sync.ps1 -Write deleted the whole memory mirror when -RepoMemory was omitted",
+            "where": "tooling/workspace-sync.ps1",
+            "status": "fixed",
+            "evidence": "acd5e3d",
+            "verified_by": "audit round 2, 2026-11-15"
+        },
+        {
+            "id": "F-006",
+            "title": "sap-auth-probe.js built an https request for an http URL, threw at module scope, and exited 1 - which the contract defines as STALE",
+            "where": "tooling/sap-auth-probe.js",
+            "status": "fixed",
+            "evidence": "08fa036",
+            "verified_by": "audit round 1, 2026-11-15"
+        },
+        {
+            "id": "F-007",
+            "title": "Secret-Present returned a boolean or the string 'ERROR', and PowerShell coerces the right operand of -eq, so a healthy secret compared equal to 'ERROR'",
+            "where": "tooling/sap-connection.ps1",
+            "status": "fixed",
+            "evidence": "fe37ab7",
+            "verified_by": "audit round 3, 2026-11-15"
+        },
+        {
+            "id": "F-008",
+            "title": "Parked skills were silently reinstalled by the toolkit upgrade, costing 805 tokens per request, with no check able to see it",
+            "where": "~/.copilot/skills vs ~/.copilot/skills-disabled",
+            "status": "fixed",
+            "evidence": "verify-all.ps1 section 2b",
+            "verified_by": "measured 2026-11-15"
+        }
+    ]
+}
