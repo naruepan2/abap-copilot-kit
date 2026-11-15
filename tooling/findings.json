@@ -536,6 +536,15 @@
                          "title":  "The audit is about 100 ms slower than before, because section 5c now probes 14 shapes instead of 11",
                          "status":  "wontfix",
                          "reason":  "Measured A/B, four alternating runs of HEAD and the working tree: old 2,526 ms, new 2,625 ms. Three derived-name probes at 42.7 ms each plus the TEMP sweep. Accepted: the three probes are the only thing that would notice F-053 coming back, and 0.1 s on a manual audit buys nothing."
+                     },
+                     {
+                         "id":  "F-062",
+                         "verified_by":  "cleanup review 2026-11-16",
+                         "where":  "backup/README.md, backup/user-memory/",
+                         "title":  "The recovery snapshot could silently reinstate a rule that had been disproved, and nothing recorded which of its lines are not literal copies of the live machine",
+                         "status":  "fixed",
+                         "note":  "The snapshot committed on 2026-11-15 still said hooks do not fire in this harness (disproved the same day), carried the pre-verify-all way of counting the 200-line budget, and pointed tool-surface matching at an agent comment block instead of the skill. README.md said only \"check first\" before Copy-Item *.md -Force, and it did not say that arc-1-mcp.md is stored sanitised. Measured 2026-11-16: memory-setup.md was 208 chars behind live and differed on all four points; arc-1-mcp.md differs on exactly 1 of 20 lines, the real NODE_EXTRA_CA_CERTS path, which contains a customer name. A restore is silent on success, so the false rule would have come back with no signal.",
+                         "evidence":  "0cf8571"
                      }
                  ]
 }
