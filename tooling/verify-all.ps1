@@ -138,6 +138,29 @@ foreach ($f in Get-ChildItem "$AWS" -Recurse -File -Filter *.md) {
 }
 if ($Summary) { Write-Output ("  {0} repo-memory files, {1} mirror the agent table" -f $rmN, $rmMirror) }
 
+# A note that nothing points at is the same as no note. Measured 2026-11-15: the most expensive
+# file in this folder (a 14.5 KB reverse-engineering deliverable) was named in no index and read by
+# no skill, so it was effectively invisible for the 11 days it existed.
+$rmIndex = Join-Path $AWS 'INDEX.md'
+if (Test-Path $rmIndex) {
+    $idxText = [System.IO.File]::ReadAllText($rmIndex, [System.Text.Encoding]::UTF8)
+    $orphans = @()
+    foreach ($f in Get-ChildItem $AWS -Recurse -File -Filter *.md) {
+        if ($f.Name -eq 'INDEX.md') { continue }
+        $rel = ($f.FullName.Substring($AWS.Length).TrimStart('\') -replace '\\', '/')
+        if ($idxText -notmatch [regex]::Escape($f.Name) -and $idxText -notmatch [regex]::Escape($rel)) {
+            $orphans += $rel
+        }
+    }
+    if ($orphans.Count -eq 0) {
+        Write-Output '  OK      every repo-memory file is named in INDEX.md'
+    } else {
+        foreach ($o in $orphans) { Write-Output ("  ISSUE   repo-memory file not in INDEX.md: " + $o) }
+    }
+} else {
+    Write-Output '  ISSUE   repo memory has no INDEX.md'
+}
+
 Line '7. Git state of the kit'
 Push-Location $REPO
 Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f (git rev-parse --short HEAD), (git rev-parse --short origin/main), ((git rev-parse HEAD) -eq (git rev-parse origin/main)), @(git status --porcelain).Count)
@@ -146,7 +169,7 @@ $drift = @()
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
 # working tree unnoticed - which is exactly what happened to the reverse-engineer agent.
 $agentMirrors = @(Get-ChildItem "$REPO\agents" -Filter '*-by-pongg.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { 'agents\' + $_.Name })
-$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1')
+$pairs = @() + $agentMirrors + @('skills\mcp-surface-audit\SKILL.md', 'skills\capture-lesson\SKILL.md', 'roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\surface.json')
 foreach ($rel in $pairs) {
     $src = if ($rel -eq 'roster.json') { "$env:USERPROFILE\.copilot\roster.json" }
            elseif ($rel -like 'agents*') { Join-Path $AG (Split-Path $rel -Leaf) }

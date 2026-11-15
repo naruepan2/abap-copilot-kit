@@ -41,6 +41,26 @@ Copy-Item 'D:\abap-copilot-kit\roster.json' "$env:USERPROFILE\.copilot\roster.js
 Then run `verify-all.ps1` — it reports drift between this repository and the live copies, so a
 restore that went wrong shows up as `DRIFT`.
 
+## Repo memory is not snapshotted here either
+
+`…\workspaceStorage\<hash>\GitHub.copilot-chat\memory-tool\memories\repo\` holds workspace notes
+that carry system ids and package names. They are not copied into this repository. Before deleting
+one, take a local snapshot:
+
+```powershell
+$stamp = Get-Date -Format 'yyyyMMdd-HHmm'
+$src = "$env:APPDATA\Code\User\workspaceStorage\<hash>\GitHub.copilot-chat\memory-tool\memories\repo"
+Copy-Item "$src\*" "$env:USERPROFILE\.copilot\backups\repo-memory-$stamp" -Recurse -Force
+```
+
+That protects against an accidental delete, **not** against disk failure: it sits on the same
+volume. Off-machine copies carry the customer-identifier question, which is a decision for the
+owner of the data, not for this repository.
+
+Repo memory costs almost nothing in context: measured in `extension.js`, only the **top-level
+names** are injected per request (`getLocalRepoMemoryFiles` reads one directory, non-recursively),
+and contents are read on demand. So size is not a reason to prune it; staleness and orphans are.
+
 ## What is deliberately not here
 
 `mcp.json` and `settings.json` are not snapshotted. They hold internal hostnames, a real SAP user
