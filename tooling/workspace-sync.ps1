@@ -337,8 +337,15 @@ if ($Check) {
         # since changed. Every entry is re-hashed here, and a file present in the mirror but absent
         # from the manifest is reported too, because that is the case a stale manifest hides.
         try { $mj = [System.IO.File]::ReadAllText($manifestFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
-        catch { $mj = $null; Write-Output '  ISSUE   manifest.json is not valid JSON' }
-        if ($mj) {
+        catch { $mj = $null; Write-Output '  ISSUE   manifest.json is not valid JSON'; $mfIssues++ }
+        # The shape is checked, not the truthiness. `false`, `0` and `[]` parse without error, are
+        # falsy, and carry no `files` member - so the whole verification was skipped and -Check
+        # printed "mirror matches the source" and exited 0 on a manifest it could not read.
+        if ($null -ne $mj -and -not ($mj.PSObject.Properties.Name -contains 'files')) {
+            Write-Output '  ISSUE   manifest.json has no files member'
+            $mfIssues++
+        }
+        elseif ($null -ne $mj) {
             foreach ($p in $plan + $memoryPlan) {
                 $key = ($p.Rel -replace '\\', '/')
                 $entry = $mj.files.$key

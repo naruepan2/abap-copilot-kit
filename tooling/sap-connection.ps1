@@ -155,7 +155,11 @@ if ($Remove) {
     if ((Get-Names $data) -notcontains $Name) { [Console]::Error.WriteLine("No connection named '$Name'."); exit 1 }
     $data.connections.PSObject.Properties.Remove($Name)
     if ($data.active -eq $Name) {
-        $left = Get-Names $data
+        # @(...) matters: a function that returns a one-element array is unrolled to a scalar by
+        # PowerShell, and indexing a string yields its first CHARACTER. Measured: removing the second
+        # of three connections set active to the single letter 'd', and the store then pointed at a
+        # connection that did not exist.
+        $left = @(Get-Names $data)
         $data.active = if ($left.Count -gt 0) { $left[0] } else { $null }
     }
     Write-Store $data
@@ -191,7 +195,7 @@ if ($Show) {
     Write-Output ("client    : " + $c.client)
     Write-Output ("user      : " + $c.user)
     Write-Output ("language  : " + $c.language)
-    Write-Output ("password  : " + $(if ($c.password -eq '@secret') { 'in the credential store' } elseif ([string]::IsNullOrEmpty($c.password)) { 'not set' } else { 'PLAINTEXT IN FILE' }))
+    Write-Output ("password  : " + $(if ([string]$c.password -eq '@secret') { 'in the credential store' } elseif ([string]::IsNullOrEmpty([string]$c.password)) { 'not set' } else { 'PLAINTEXT IN FILE' }))
     $sp = Secret-State $Name
     $state = if ($sp -eq 'ERROR') { 'UNKNOWN (helper failed)' } else { $sp }
     Write-Output ("secret key: " + (Secret-Key $Name) + "  " + $state)
@@ -211,7 +215,7 @@ foreach ($n in $names) {
     $c = $data.connections.$n
     $mark = if ($data.active -eq $n) { '*' } else { ' ' }
     $sp = Secret-State $n
-    $sec = if ($sp -eq 'ERROR') { 'UNKNOWN' } elseif ($sp -eq 'PRESENT') { 'stored' } elseif ($c.password -eq '@secret') { 'MISSING' } else { 'PLAINTEXT' }
+    $sec = if ($sp -eq 'ERROR') { 'UNKNOWN' } elseif ($sp -eq 'PRESENT') { 'stored' } elseif ([string]$c.password -eq '@secret') { 'MISSING' } else { 'PLAINTEXT' }
     Write-Output ("{0} {1,-16} {2,-8} {3,-42} {4}" -f $mark, $n, $c.client, $c.url, $sec)
 }
 Write-Output ''
