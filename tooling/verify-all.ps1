@@ -119,8 +119,14 @@ if (-not (Test-Path $AG)) {
     Write-Output ("  ISSUE   agent folder not found: " + $AG)
     Note 'ISSUE' 1
 } else {
-foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Sort-Object Name) {
-    $b = [System.IO.File]::ReadAllBytes($f.FullName)
+foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Where-Object { -not $_.PSIsContainer } | Sort-Object Name) {
+    # Two traps here, both measured. ReadAllBytes throws on a locked file, which aborted the loop and
+    # left the summary reporting a healthy count. And `-Filter *.agent.md` matches a DIRECTORY with
+    # that name; the directory was then validated using the previous file's bytes and counted as a
+    # passing agent. So the read is guarded and non-files are excluded before anything else.
+    $b = $null
+    try { $b = [System.IO.File]::ReadAllBytes($f.FullName) }
+    catch { $agCount++; $agBad++; Write-Output ("  ISSUE  " + $f.Name + " (unreadable: " + $_.Exception.GetType().Name + ")"); continue }
     $u = [System.Text.Encoding]::UTF8.GetString($b)
     $lines = $u -split "`r?`n"
     $fm = 0; for ($i = 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -eq '---') { $fm = $i + 1; break } }
@@ -223,8 +229,12 @@ if (-not (Test-Path $MEM)) {
     Write-Output ("  SKIP    user memory folder not found: " + $MEM)
 } else {
 $tot = 0; $rules = 0; $facts = 0
+$memRead = 0
 foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
-    $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
+    $t = $null
+    try { $t = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ("  ISSUE   unreadable memory file: " + $f.Name); Note 'ISSUE' 1; continue }
+    $memRead++
     $tot += ($t -split "`r?`n").Count
     foreach ($l in ($t -split "`r?`n")) {
         if ($l -match '^\s*[-*]\s' -and $l -match '\b(never|always|do not|prefer|ask|verify)\b') { $rules++ }
@@ -233,6 +243,13 @@ foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
 }
 $over = $tot - 200
 Write-Output ("  used={0}/200 lines  headroom={1}  rule-bullets={2}  fact-bullets={3}" -f $tot, (0 - $over), $rules, $facts)
+# Coverage, in this branch specifically. The section had no Ran call at all, so an empty memory
+# folder printed used=0/200 and the verdict could not tell it from a memory that was read and fine.
+Ran 'memory.budget' $memRead
+if ($memRead -eq 0) {
+    Write-Output '  ISSUE   the user memory folder holds no .md files'
+    Note 'ISSUE' 1
+}
 # The budget is the one number in this file that is a limit rather than a report. Exceeding it used to
 # print a negative headroom and still exit 0, which is a check that cannot fail.
 if ($over -gt 0) {
@@ -253,23 +270,32 @@ if (-not (Test-Path $rosterPath)) {
     Note 'ISSUE' 1
 } else {
 $roster = $null
+$parseFailed = $false
 try { $roster = Get-Content $rosterPath -Raw | ConvertFrom-Json }
-catch { Write-Output '  ISSUE   roster.json is not valid JSON'; Note 'ISSUE' 1 }
+catch { $parseFailed = $true; Write-Output '  ISSUE   roster.json is not valid JSON'; Note 'ISSUE' 1 }
 # `false`, `0`, `""` and `[]` all parse without error and are falsy, and null never has the two
 # arrays. The test is on the shape, not on truthiness: only something carrying `delegatable` or
 # `not_delegatable` can answer the question this section asks.
-if ($null -eq $roster) {
-    if (Test-Path $rosterPath) { Write-Output '  ISSUE   roster.json parsed to nothing' }
+#
+# The null branch used to print an ISSUE without counting it, and it also fired after the catch above,
+# so one broken file produced two ISSUE lines and one count. Both are fixed: the branch is skipped
+# when the parse already failed, and it Notes what it prints.
+if (-not $parseFailed -and $null -eq $roster) {
+    Write-Output '  ISSUE   roster.json parsed to nothing'
+    Note 'ISSUE' 1
 }
-elseif (-not ($roster.PSObject.Properties.Name -contains 'delegatable') -and -not ($roster.PSObject.Properties.Name -contains 'not_delegatable')) {
+elseif (-not $parseFailed -and -not ($roster.PSObject.Properties.Name -contains 'delegatable') -and -not ($roster.PSObject.Properties.Name -contains 'not_delegatable')) {
     Write-Output '  ISSUE   roster.json has neither delegatable nor not_delegatable'
     Note 'ISSUE' 1
 }
-else {
+elseif (-not $parseFailed) {
 foreach ($d in $roster.delegatable) { if ($d -and $d.file) { $known += $d.file } }
 foreach ($g in $roster.not_delegatable) { if ($g -and $g.files) { $known += $g.files } }
-$rosterOk = $true
-$live = @(Get-ChildItem $AG -Filter *.agent.md -ErrorAction SilentlyContinue | ForEach-Object { $_.Name -replace '\.agent\.md$', '' })
+# An empty allowlist is not a usable roster: it would make every installed toolkit agent "not in
+# roster", which is the roster's defect reported N times as the toolkit's.
+if ($known.Count -gt 0) { $rosterOk = $true }
+else { Write-Output '  ISSUE   roster.json lists no agents at all'; Note 'ISSUE' 1 }
+$live = @(Get-ChildItem $AG -Filter *.agent.md -ErrorAction SilentlyContinue | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $_.Name -replace '\.agent\.md$', '' })
 Write-Output ("  roster known={0} live={1} NEW={2} GONE={3}" -f $known.Count, $live.Count, @($live | Where-Object { $known -notcontains $_ }).Count, @($known | Where-Object { $live -notcontains $_ }).Count)
 # GONE is a defect: the roster names an agent that is not installed. NEW is a decision pending -
 # a human has to classify it - so it is reported but does not fail the run.
@@ -433,8 +459,13 @@ $credChecked = 0
 foreach ($k in $configs.Keys) {
     $p = $configs[$k]
     if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); continue }
+    # $t is read inside the guard and reset each iteration. Reading it outside a guard meant a
+    # throwing read left the PREVIOUS config's text in $t, so a directory in place of mcp.json
+    # produced "OK no literal secret" for a file that was never opened.
+    $t = $null
+    try { $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ("  {0,-8} ISSUE   unreadable: {1}" -f $k, $_.Exception.GetType().Name); Note 'ISSUE' 1; continue }
     $credChecked++
-    $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
     # A literal is a quoted value on a secret-bearing key that is not ${input:...} and not a
     # placeholder. The key list covers what ARC-1 itself reads as a secret (SAP_PASSWORD,
     # SAP_COOKIE_STRING, SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, ...) - a narrower list than that was
@@ -455,7 +486,10 @@ if (-not (Test-Path $envFile)) {
     Write-Output '  envfile  absent  (arc1.env not created yet - credential-store mode inactive)'
 } else {
     $plainSecrets = @()
-    foreach ($l in [System.IO.File]::ReadAllLines($envFile, [System.Text.Encoding]::UTF8)) {
+    $envLines = @()
+    try { $envLines = [System.IO.File]::ReadAllLines($envFile, [System.Text.Encoding]::UTF8) }
+    catch { Write-Output ("  envfile  ISSUE   unreadable: " + $_.Exception.GetType().Name); Note 'ISSUE' 1 }
+    foreach ($l in $envLines) {
         $s = $l.Trim()
         if ($s -eq '' -or $s.StartsWith('#')) { continue }
         $eq = $s.IndexOf('=')
@@ -552,6 +586,9 @@ function Test-LauncherWiring($path, $rootKey, $label) {
         Write-Output ("  {0,-8} absent  ({1})" -f $label, (Split-Path $path -Leaf))
         return
     }
+    # Recorded so the verdict knows this harness was examined. Without it, both harnesses absent
+    # reached the verdict as a clean run with the launcher wiring wholly unverified.
+    $script:verified++
     try { $cfg = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
     catch { Write-Output ("  {0,-8} ISSUE   {1} is not valid JSON" -f $label, (Split-Path $path -Leaf)); $script:issues++; return }
 
@@ -668,18 +705,32 @@ $placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.'
 $hits = 0
 $shapes = 0
 $scanned = 0
+$unreadable = @()
 foreach ($f in git ls-files) {
-    $scanned++
-    $m = Select-String -Path (Join-Path $REPO $f) -Pattern $patterns -ErrorAction SilentlyContinue
-    if ($m) { foreach ($x in $m) { Write-Output ("  HIT   " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $hits++ } }
-
-    $s = Select-String -Path (Join-Path $REPO $f) -Pattern $shape -ErrorAction SilentlyContinue
-    if ($s) {
-        foreach ($x in $s) {
-            if ($x.Line -match $placeholder) { continue }
-            Write-Output ("  SHAPE " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $shapes++
-        }
+    $fp = Join-Path $REPO $f
+    # A file listed by the index but absent from the working tree (deleted, never checked out) made
+    # Select-String throw inside -ErrorAction SilentlyContinue, which leaves $m and $s holding the
+    # PREVIOUS file's matches. The result was a HIT counter with no evidence line, or - worse - a
+    # "no literal secret" for a file that was never opened. Both are silent because the evidence line
+    # is exactly what goes missing, so only a file actually read counts as scanned.
+    if (-not (Test-Path $fp)) { $unreadable += ($f + ' (absent from the working tree)'); continue }
+    $m = @()
+    $s = @()
+    try {
+        $m = @(Select-String -Path $fp -Pattern $patterns -ErrorAction Stop)
+        $s = @(Select-String -Path $fp -Pattern $shape -ErrorAction Stop)
     }
+    catch { $unreadable += ($f + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); continue }
+    $scanned++
+    foreach ($x in $m) { Write-Output ("  HIT   " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $hits++ }
+    foreach ($x in $s) {
+        if ($x.Line -match $placeholder) { continue }
+        Write-Output ("  SHAPE " + $f + ":" + $x.LineNumber + "  " + $x.Line.Trim()); $shapes++
+    }
+}
+if ($unreadable.Count -gt 0) {
+    foreach ($u in $unreadable) { Write-Output ("  ISSUE   not scanned: " + $u) }
+    Note 'ISSUE' $unreadable.Count
 }
 
 if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
@@ -719,6 +770,9 @@ if ($revs.Count -gt 0) {
 
 if ($histHits -gt 0) {
     Write-Output ("  history  {0} hit(s) across {1} commit(s) - a rewritten history is the only fix" -f $histHits, $revs.Count)
+} elseif ($revs.Count -eq 0) {
+    # The pass line used to print first and be contradicted by the ISSUE below it.
+    Write-Output '  history  not scanned - no commits to scan'
 } else {
     Write-Output ("  history  clean across {0} commit(s)" -f $revs.Count)
 }
