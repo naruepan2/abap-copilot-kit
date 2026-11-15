@@ -8,7 +8,7 @@ from here only when the live copy is gone; never edit here and expect a change i
 
 | Folder | What it holds | Regenerable? |
 |---|---|---|
-| `user-memory/` | the three user memory files that load into every request | **No** — collected from sessions |
+| `user-memory/` | the three user memory files that load into every request (refreshed 2026-11-16) | **No** — collected from sessions |
 | `../tooling/` | `verify-all.ps1`, `measure-context.ps1`, `who-locks.ps1`, `surface.json` | No — authored |
 | `../roster.json` | the delegation allowlist | No — a human decision |
 
@@ -33,7 +33,35 @@ Set `$kit` once, so this works wherever the repository was cloned.
 
 ```powershell
 $kit = if ($env:ABAP_KIT_ROOT) { $env:ABAP_KIT_ROOT } else { Split-Path $PSScriptRoot -Parent }
+```
 
+### Read the diff before you overwrite, one file at a time
+
+A snapshot is only as good as the day it was taken, and two of these files are not literal copies
+of the live machine:
+
+- **`arc-1-mcp.md` is sanitised on purpose.** The real `NODE_EXTRA_CA_CERTS` value contains a
+  customer name, so the snapshot stores `"<absolute path to your CA bundle .crt>"` instead. This
+  is the only line that differs from the machine it was taken on — verified 2026-11-16 by a full
+  line-for-line comparison. Copying the live file over it would put that identifier back into a
+  tracked file, which is the rule both files open by forbidding.
+- **`memory-setup.md` is refreshed, and it has already been wrong once.** The snapshot committed on
+  2026-11-15 (`b89c6b7`) still said hooks do not fire in this harness; that was disproved on
+  2026-11-15 and the live file now carries a per-event table. Restoring that snapshot would have
+  reinstated a false rule with no warning, because a restore prints nothing on success.
+
+So diff, then restore only the file you need:
+
+```powershell
+$dst = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
+Compare-Object (Get-Content "$kit\backup\user-memory\memory-setup.md") (Get-Content "$dst\memory-setup.md")
+# read the diff — '<=' only in the snapshot, '=>' only live — then copy that one file
+Copy-Item "$kit\backup\user-memory\memory-setup.md" $dst -Force
+```
+
+The `*.md` glob below is the recovery path when the whole folder is gone, not the normal one.
+
+```powershell
 # memory: overwrite the live copy (this is the destructive step — check first)
 $dst = "$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"
 Copy-Item "$kit\backup\user-memory\*.md" $dst -Force

@@ -3,12 +3,9 @@
 ## Where memory lives
 
 User memory: `%APPDATA%\Code\User\globalStorage\github.copilot-chat\memory-tool\memories\*.md` —
-roughly the first **200 lines** load into every request, across all workspaces. Measure before
-adding anything, because length is a per-request cost, not a one-time one:
-
-```powershell
-$m="$env:APPDATA\Code\User\globalStorage\github.copilot-chat\memory-tool\memories"; $t=0; Get-ChildItem $m -Filter *.md | ForEach-Object { $t+=(Get-Content $_.FullName).Count }; "used=$t headroom=$((200-$t))"
-```
+roughly the first **200 lines** load into every request, across all workspaces. Length is a
+per-request cost, not a one-time one, so measure before adding: `verify-all.ps1` section 4 prints
+`used=/200 headroom=` on every run, and it fails the run when the budget is exceeded.
 
 Repo memory: per-workspace, under `…\workspaceStorage\<hash>\GitHub.copilot-chat\memory-tool\memories\repo\<PROJECT>\`,
 read on demand.
@@ -21,8 +18,10 @@ Exact paths, the hook JSON contract, and the repository table:
 `D:\abap-copilot-kit\docs\reference\environment.md`
 
 - Framework repo `D:\abap-copilot-kit` = GitHub `naruepan2/abap-copilot-kit`. **Deliberately
-  private** (2026-11-13): its routing table keeps real system names because that is the table's
-  value. Do not sanitize it or propose making the repo public without asking. Unauthenticated
+  private.** The routing table no longer names a system: which server reaches which system is in
+  `Projects\_routing.local.md` (gitignored), and history was rewritten on 2026-11-15 to remove the
+  names that had leaked into a scanner pattern. Do not put a system, client, customer, host or user
+  back into a tracked file — that decision was made twice and reversed twice. Unauthenticated
   `curl` returns 404 for a private repo while `git ls-remote` succeeds, so **404 never proves a
   repo is absent**.
 - `~/.claude/CLAUDE.md` loads into every request (`chat.useClaudeMdFile` defaults `true`).
@@ -47,9 +46,10 @@ Exact paths, the hook JSON contract, and the repository table:
 
 ## Two rules that bite in practice
 
-- **Hooks do not fire in the Copilot harness.** Measured: `surface.json` `takenAt` unchanged across
-  a reload. Run any drift check manually, and never report a hook as having run.
+- **Hook firing is per event, not per harness** (2026-11-15): `subagentStart` fires (logged per
+  spawn); `postToolUseFailure` has never written a ledger here; `sessionStart` moves
+  `surface.json` `takenAt` but its event name is unverified. Never report a hook as having run
+  without a log line or a changed file as evidence.
 - **Agent `tools:` prefixes**: an MCP server is matched by its **`mcp.json` key**; an extension tool
   needs **one explicit `<extensionId>/<toolName>` line each**, because a wildcard yields zero,
-  silently. Full verified/failed list: the comment block in
-  `~/.copilot/agents/abap-developer-by-pongg.agent.md`.
+  silently. Full verified/failed list: skill `mcp-surface-audit`, section "Tool entry matching".
