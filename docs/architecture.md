@@ -55,12 +55,14 @@ flowchart TD
     class G gate
 ```
 
-> **Harness caveat (measured 2026-11-13).** In this VS Code build the Copilot harness does not
-> fire hooks: `chat.useHooks` and `chat.hookFilesLocations` are documented as Local-harness only,
-> while `chat.defaultToCopilotHarness` defaults to `true`. A reload left
-> `~/.copilot/state/surface.json`'s `takenAt` unchanged. The layer-2 inbox therefore has two
-> producers: the hook when hooks fire, and a manual request otherwise. Keep this caveat until a
-> firing is actually observed.
+> **Harness caveat (measured 2026-11-13, corrected 2026-11-15).** Hook firing is per event, not per
+> harness. `subagentStart` is observed firing here — its log gains an entry per spawn — while
+> `postToolUseFailure` has never written a session ledger, and `sessionStart` moves
+> `~/.copilot/state/surface.json`'s `takenAt` without the event name itself being confirmed.
+> `chat.useHooks` and `chat.hookFilesLocations` are documented as Local-harness only, while
+> `chat.defaultToCopilotHarness` defaults to `true`. So the layer-2 inbox has two producers: the hook
+> where it is observed to fire, and a manual request otherwise. Per-event table and evidence live in
+> `docs/reference/environment.md`; re-measure rather than generalising from one event again.
 
 Two properties matter:
 

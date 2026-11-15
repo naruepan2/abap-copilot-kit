@@ -84,7 +84,14 @@ function classify(agentName, roster) {
     // Carry every spelling through. Building this object with only `file` was the second half of the
     // same defect: the roster had a display name, and the projection to {file, role} threw it away.
     const allowed = [];
-    for (const d of roster.delegatable || []) allowed.push({ file: d.file, display: d.display, role: d.role || '' });
+    for (const d of roster.delegatable || []) {
+        // Carry the entry through whole. The projection to {file, display, role} silently dropped
+        // `files` and `displays`, which keys() supports and which the deny list uses - so a
+        // delegatable entry written in the sibling shape was classified as not listed and its agent
+        // was RESTRICTED. Section 5/5c of verify-all reads only .file too, so the audit could not see
+        // it either. Measured 2026-11-15 with a roster using files:[...].
+        allowed.push({ file: d.file, display: d.display, files: d.files, displays: d.displays, role: d.role || '' });
+    }
 
     // Keep the roster's own wording per blocked entry, so the injected reason names the
     // entry that actually matched instead of whichever substring happened to hit first.
@@ -158,6 +165,21 @@ function untrustedBlock(reason, agentName) {
 function log(line) {
     try {
         fs.mkdirSync(STATE_DIR, { recursive: true });
+        // Bounded on purpose. This file is appended to on every subagent start - about 88 bytes each,
+        // measured - and had no cap, rotation or truncation path, so it grew without limit for the
+        // life of the machine (0.84 MB after 10,000 events). The last 500 lines are enough to answer
+        // "why was this agent restricted" without turning a log into an archive; when the cap is
+        // crossed the file is rewritten with its newest half.
+        const MAX_BYTES = 64 * 1024;
+        try {
+            const st = fs.statSync(LOG);
+            if (st.size > MAX_BYTES) {
+                const keep = fs.readFileSync(LOG, 'utf8').split('\n').filter(Boolean).slice(-250);
+                fs.writeFileSync(LOG, keep.join('\n') + '\n');
+            }
+        } catch {
+            /* no log yet, or unreadable: appending below is still the best effort */
+        }
         fs.appendFileSync(LOG, `${new Date().toISOString()}\t${line}\n`);
     } catch {
         /* logging is best effort */

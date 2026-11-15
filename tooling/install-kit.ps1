@@ -102,6 +102,10 @@ foreach ($f in Get-ChildItem (Join-Path $KitRoot 'hooks') -File -Filter '*.cjs' 
 }
 
 foreach ($k in $dest.Keys) {
+    # -Check promises to copy nothing, and creating the destination tree is a change to the machine.
+    # Measured 2026-11-15: with ~/.copilot absent, -Check created agents\, hooks\, skills\ and state\
+    # and still exited 0. The guard is here because this loop runs before the per-file -Check tests.
+    if ($Check) { continue }
     if (-not (Test-Path $dest[$k])) { New-Item -ItemType Directory -Path $dest[$k] -Force | Out-Null }
 }
 

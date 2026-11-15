@@ -71,6 +71,7 @@ $targets = if ($ProcessId.Count -gt 0) {
 } else {
     Get-Process | Where-Object { $_.ProcessName -in @('powershell', 'pwsh', 'Code', 'node', 'cmd') }
 }
+$rows = 0
 foreach ($p in $targets) {
     $cwd = $null
     try { $cwd = Get-ProcCwd -processId $p.Id } catch { $cwd = $null }
@@ -79,4 +80,13 @@ foreach ($p in $targets) {
     if ($null -eq $cwd) { $cwd = '?' } elseif ($cwd -eq '') { $cwd = '(none)' }
     if ($Match -ne '' -and $cwd -notlike $Match) { continue }
     Write-Output ("pid={0,-7} {1,-14} cwd={2}" -f $p.Id, $p.ProcessName, $cwd)
+    $rows++
+}
+# Zero rows used to be indistinguishable from "nothing holds it": a nonexistent -Pid listed no
+# processes and exited 0, and so did a -Match that matched no directory. Both read as a measurement
+# when nothing had been examined. Say which case happened instead.
+if ($rows -eq 0) {
+    if ($ProcessId.Count -gt 0) { Write-Output ("no such process: pid {0}" -f ($ProcessId -join ', ')) }
+    elseif ($Match -ne '') { Write-Output ("no process holds a directory matching: {0}" -f $Match) }
+    else { Write-Output 'no candidate process found' }
 }

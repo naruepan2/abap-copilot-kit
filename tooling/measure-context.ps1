@@ -49,10 +49,18 @@ function Get-Sections([string]$path) {
 }
 
 # -- gather: one source of truth for every level, so the levels cannot drift --
+# The memory folder is guarded, like the skill roots and the agent folder below. It was the one root
+# read without a Test-Path, so on a machine whose memories folder had not been created yet the tool
+# printed "memory 0 files 0 chars", a smaller TOTAL, and exit 0 - the same failure the WARNING lines
+# exist to prevent for the other roots. Measured 2026-11-15: APPDATA redirected to an empty tree gave
+# "memory 0 files", TOTAL 25,574 instead of 31,625, and no warning at all.
 $memRows = @()
-foreach ($f in Get-ChildItem $MEM -File -Filter *.md | Sort-Object Name) {
-    $t = Read-Utf8 $f.FullName
-    $memRows += [pscustomobject]@{ Name = $f.Name; Chars = $t.Length; Lines = (($t -split "`r?`n").Count) }
+$memMissing = -not (Test-Path $MEM)
+if (-not $memMissing) {
+    foreach ($f in Get-ChildItem $MEM -File -Filter *.md | Sort-Object Name) {
+        $t = Read-Utf8 $f.FullName
+        $memRows += [pscustomobject]@{ Name = $f.Name; Chars = $t.Length; Lines = (($t -split "`r?`n").Count) }
+    }
 }
 $grand = 0
 foreach ($r in $memRows) { $grand += $r.Chars }
@@ -83,6 +91,7 @@ if ($Detail -eq 'terse') {
     $always = $grand + $skillTotal
     Write-Output ("always-on  memory  {0,3} files  {1,7} chars  ~{2,6} tok" -f $memRows.Count, (Num $grand), (Num (Tok $grand)))
     Write-Output ("           skills  {0,3} files  {1,7} chars  ~{2,6} tok" -f $skillCount, (Num $skillTotal), (Num (Tok $skillTotal)))
+    if ($memMissing) { Write-Output ("           WARNING memory folder not found, its notes are NOT in this total: {0}" -f $MEM) }
     foreach ($mr in $missingRoots) { Write-Output ("           WARNING root not found, its skills are NOT in this total: {0}" -f $mr) }
     if (-not (Test-Path $AGDIR)) { Write-Output ("           WARNING agent folder not found: {0}" -f $AGDIR) }
     Write-Output ("           TOTAL           {0,7} chars  ~{1,6} tok   every request" -f (Num $always), (Num (Tok $always)))
@@ -108,7 +117,7 @@ if ($Detail -eq 'raw') {
     Write-Output '=== byte/encoding audit (chars from a decoded read, bytes from disk) ==='
     Write-Output ("  {0,-46} {1,8} {2,8} {3,4} {4,6} {5,7}" -f 'file', 'bytes', 'chars', 'BOM', 'CRLF', 'U+FFFD')
     $targets = @()
-    foreach ($f in Get-ChildItem $MEM -File -Filter *.md) { $targets += $f.FullName }
+    if (-not $memMissing) { foreach ($f in Get-ChildItem $MEM -File -Filter *.md) { $targets += $f.FullName } }
     foreach ($root in $ROOTS) {
         if (-not (Test-Path $root)) { continue }
         foreach ($d in Get-ChildItem $root -Directory) {
@@ -176,10 +185,13 @@ Get-Sections $main | Sort-Object Chars -Descending | Select-Object -First 12 | F
 
 Write-Output ''
 Write-Output '=== 5. MEMORY - 10 heaviest sections ==='
+if ($memMissing) { Write-Output ("  memory folder not found: {0}" -f $MEM) }
+else {
 foreach ($f in Get-ChildItem $MEM -File -Filter *.md) {
     foreach ($s in (Get-Sections $f.FullName | Sort-Object Chars -Descending | Select-Object -First 4)) {
         Write-Output ("  {0,-18} {1,5} chars {2,3} lines  {3}" -f $f.Name, $s.Chars, $s.Lines, $s.Section)
     }
+}
 }
 
 Write-Output ''

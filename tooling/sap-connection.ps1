@@ -171,8 +171,16 @@ if ($Remove) {
         $prev = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Remove -Key (Secret-Key $Name) 2>$null | Out-Null
+        $secretRc = $LASTEXITCODE
         $ErrorActionPreference = $prev
-        Write-Output ("also removed its stored secret: " + (Secret-Key $Name))
+        # The helper's exit code was never read, so "also removed its stored secret" printed even when
+        # the removal failed - while Secret-State, two lines earlier in this same script, correctly
+        # reports UNKNOWN for the same failure. A statement of fact has to come from the result.
+        if ($secretRc -eq 0) { Write-Output ("also removed its stored secret: " + (Secret-Key $Name)) }
+        else {
+            Write-Output ("WARNING the connection was removed but its stored secret was NOT (helper exit " + $secretRc + "): " + (Secret-Key $Name))
+            Write-Output ("         remove it yourself with: " + $SecretScript + " -Remove -Key " + (Secret-Key $Name))
+        }
     } else {
         Write-Output ("its stored secret was kept: " + (Secret-Key $Name) + "  (add -AlsoSecret to remove it)")
     }

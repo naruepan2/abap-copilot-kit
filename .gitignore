@@ -82,3 +82,10 @@ arc1-connections.json
 # store. It is ignored because the file records exactly what must never be committed -
 # which makes the file itself the first thing that must not be committed.
 tooling/verify-patterns.local.txt
+
+# PowerShell's own analysis cache. It appears inside the current directory when a child
+# powershell.exe runs with LOCALAPPDATA unset or redirected, which is exactly what a sandboxed
+# parent does. 67 KB of machine cache appeared in this repository on 2026-11-15 and was one
+# 'git add -A' away from being committed.
+Microsoft/
+**/ModuleAnalysisCache

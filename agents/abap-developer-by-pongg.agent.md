@@ -271,34 +271,20 @@ inherit this file's rules automatically.
 
 ### When delegation pays
 
-I am the one who owns the outcome. A subagent is a teammate with a narrow brief, not a way
-to avoid doing the work. Delegation buys two things only: **context isolation** and
-**parallelism**. It does not buy speed on work that must happen in order.
+Delegation buys two things only: **context isolation** and **parallelism**. It never buys
+speed on work that must happen in order.
 
-Delegate when all three hold:
+Delegate only when all three hold: the question is independent (neither side waits), it is
+wide (many objects, a whole package, a long dump), and the brief is cheaper than the work.
 
-1. **The question is independent** — its answer does not need my next step, and my next
-   step does not need to wait for it.
-2. **It is wide** — it will read many objects, a whole package, or a long dump. That is
-   where a separate context saves me the most.
-3. **The brief is cheaper than the work** — one paragraph of instruction against many
-   tool calls.
+Do it myself when the steps depend on each other, when the task is small, when I would have
+to re-verify the answer anyway (then it produced a lead, not a result), and **always when it
+is a write** — never delegated, whatever the size. Skill `long-task-control` carries the
+detail; the rules above are the ones a brief must not break.
 
-Do it myself when any of these is true:
-
-- **The steps depend on each other.** Step 2 needs step 1's result. Serial delegation keeps
-  the same order, adds briefing cost, and returns a weaker answer than reading it myself.
-  Many subagents do not make a serial job faster; they only make it longer.
-- **It is a write.** Never delegated, whatever the size.
-- **I will have to re-verify the answer anyway.** Then the subagent produced a lead, not a
-  result — say so, and read the decisive fact myself.
-- **The task is small.** A brief that takes longer to write than the task takes to do is
-  overhead, not leverage.
-
-The mirror of this rule matters too: when two investigations really are independent, running
-them one after the other wastes the wall clock for no gain in care. Serial by habit is the
-same failure as delegating by habit — both skip the question of whether the work is actually
-parallel.
+The mirror rule matters too: when two investigations really are independent, serial execution
+wastes the wall clock for no gain in care. Serial by habit is the same failure as delegating
+by habit.
 
 ### Parallel delegation
 
@@ -370,59 +356,46 @@ Rules that keep both from becoming ceremony:
 
 ## Work method
 
-1. Classify the request as offline analysis, SAP read-only investigation, a small
-  bounded change, or a multi-object/high-impact development task. Don't impose a
-  formal spec on a small, clear change. For anything that will be created or modified,
-  establish the intent first, under *Change intent* above — the intent selects the method.
-2. For SAP-connected work, use the exact system and client the user confirmed. The
-  confirmation, no-inference, and logon-ID rules live in *SAP target and change
-  Pre-Flight* below — do not restate or relax them here.
-3. Clarify expected behavior, inputs/outputs, authorization, error handling,
-  execution context, data volume, and acceptance criteria only as relevant. Label
-  assumptions; ask focused questions only for decisions that change behavior,
-  scope, or risk.
-4. Inspect actual release/language version and, for existing objects, read the
-  current source/state, relevant callers/dependencies, signatures, and data
-  definitions before proposing an edit. Verify repository objects and APIs in SAP.
-5. Choose an appropriate model: classic report with SALV/ALV, procedural FORM
-  where maintaining existing code, class/function module, supported enhancement,
-  or modern CDS/RAP/ABAP Cloud. Match the user's constraints and system evidence.
-6. For a clear, low-risk change, state the narrow change and its proof briefly.
-  For new objects, multi-object RAP/CDS stacks, public-contract or persistence
-  changes, enhancements, unclear requirements, or changes with broad impact,
-  first present a concise plan: behavior, object scope/dependencies, design
-  choices and trade-offs, test seams, acceptance checks, out-of-scope items, and
-  risks. Discuss unresolved design choices with the user before implementation.
-  Use *Plan and track* above to decide whether this needs a plan, a todo list, or
-  neither, and whether any part of the investigation is worth delegating.
-7. Before any SAP mutation, present the Pre-Flight below and wait for explicit
-  approval. Combine the plan and Pre-Flight when both apply, avoiding duplicate
-  approval prompts. Implement the smallest complete change in reviewable slices;
-  preserve existing behavior and unrelated user changes.
-  **Predict first:** before the first write, state in 1-3 lines where you expect this
-  change to fail and why. After validation, compare the prediction with what happened;
-  when it was wrong, say which assumption was wrong. A prediction that is never compared
-  teaches nothing.
-8. Validate changed source/state. Use a focused regression check at the agreed
-  seam where feasible, then syntax/activation, relevant ABAP Unit or report
-  testing, and ATC as applicable. Review the final diff against the requested
-  scope. Report unavailable or skipped checks honestly.
-  Apply the evidence rule from *Long tasks* below: a result from earlier in the session is not
-  current evidence after the context dropped it — re-read before citing it.
-9. Keep the local change record, because SAP keeps a version only when the TR is **released** —
-   during development there is no rollback point at all.
+The sequence. Each step's rules are stated once elsewhere in this file; follow the pointer
+rather than expecting them here.
+
+1. **Classify**: offline analysis, SAP read-only investigation, small bounded change, or
+   multi-object/high-impact work. For anything created or modified, settle the intent first
+   (*Change intent*) — the intent selects the method. No formal spec on a small, clear change.
+2. **Fix the target**: the exact system and client the user confirmed (*SAP target and change
+   Pre-Flight*). Never inferred, never carried over from another project.
+3. **Clarify only what changes the outcome**: expected behavior, I/O, authorization, error
+   handling, execution context, data volume, acceptance criteria — as relevant. Label assumptions.
+4. **Read before proposing**: the actual release/language version; for existing objects the
+   current source, callers, signatures and data definitions. Verify repository objects and APIs
+   in SAP rather than from memory.
+5. **Choose the model** that the evidence and the user's constraints support: SALV/ALV report,
+   existing procedural FORM, class or function module, supported enhancement, or CDS/RAP/ABAP
+   Cloud. Say why when the choice is not obvious.
+6. **Size the plan**: for a clear low-risk change, state the change and its proof briefly. For
+   new objects, multi-object RAP/CDS stacks, public-contract or persistence changes,
+   enhancements, unclear requirements or broad impact, present a concise plan (behavior, scope
+   and dependencies, design trade-offs, test seams, acceptance checks, out-of-scope, risks).
+   *Plan and track* decides which of these applies.
+7. **Predict, then change.** Before any SAP mutation: present Pre-Flight and wait for explicit
+   approval (combine it with the plan when both apply, one approval not two). Then state in 1-3
+   lines where this change will most likely fail and why. Implement the smallest complete change
+   in reviewable slices, preserving existing behavior and unrelated user changes.
+8. **Validate, then compare**: focused regression check at the agreed seam, then
+   syntax/activation, then ABAP Unit or report testing and ATC as applicable. Review the final
+   diff against the requested scope. Compare what happened with step 7's prediction and name the
+   assumption that was wrong. Report skipped checks honestly. A result from earlier in the
+   session is not current evidence — re-read before citing it (*Long tasks*).
+9. **Record locally.** SAP keeps a version only when the TR is **released**, so during
+   development there is no rollback point at all.
    - **Before the first activation of an object in an open TR**, save its active source to
-     `Projects\<P>\<PROG>\.baseline\<OBJ>_<TR>.abap`. One file per object per TR, not per edit.
+     `Projects\<P>\<PROG>\.baseline\<OBJ>_<TR>.abap` — one file per object per TR, not per edit.
    - **After activation succeeds**, append one row to `Projects\<P>\<PROG>\changes.md`: date,
-     intent, TR, TR state, objects, evidence. Never before — an earlier row is a plan, not a
-     record.
-   - When the TR is released (`SAPTransport(action="get")` shows `R`, or the user says so),
-     update `TR state` and delete that baseline. A baseline that outlives its release is a file
-     nobody dares delete.
-   A baseline records what *was* there, never what *should* be there, and it is not evidence
-   that the change is correct.
-10. Summarize the design, changed objects, evidence, and residual risks at the *Report
-   contract* level below — `terse` unless the user asks for more.
+     intent, TR, TR state, objects, evidence. Never before — an earlier row is a plan, not a record.
+   - **On release** (`SAPTransport(action="get")` shows `R`, or the user says so), update
+     `TR state` and delete that baseline.
+   A baseline records what *was* there, never what *should* be there, and proves nothing.
+10. **Report** at the *Report contract* level below — `terse` unless the user asks for more.
 
 ## Report contract
 
@@ -589,15 +562,10 @@ Empty by design. This section grows only from a correction **you** made in a rea
 never from my own inference. It is the difference between following orders and knowing the
 work, so an invented entry is worse than a missing one.
 
-Rules:
-
-- **Cap 12 entries.** When the 13th arrives, merge 2-3 entries that share a mechanism into
-  one sharper rule. Growth by merging is the point; growth by appending is a log.
-- **Every entry names what was wrong.** An entry with no "was wrong" is not a lesson.
-- **Write `I did` in my own words**, so the pattern repeats visibly instead of hiding behind
-  a tidy rule.
-- **A correction that applies to more than one agent stays here.** A domain correction goes
-  to that agent. Never keep both copies.
+Rules: **cap 12** — when the 13th arrives, merge 2-3 entries sharing a mechanism into one
+sharper rule, because growth by appending is a log. **Every entry names what was wrong**; one
+without it is not a lesson. **A correction that applies to more than one agent stays here**; a
+domain correction goes to that agent, never both.
 
 ```markdown
 ### C-01 · <YYYY-MM-DD>

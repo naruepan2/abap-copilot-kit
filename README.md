@@ -131,9 +131,11 @@ flowchart TD
 the VS Code user data folder, repo memory from the per-workspace folder. Copying either into the
 repository would create a second copy that nothing loads and nobody updates.
 
-**The capture step is a skill, not a hook, on purpose.** The detection hooks cannot fire in the
-Copilot harness, so a loop that depends on them never runs. `capture-lesson` drives the same loop
-on purpose, while the finding is still in context.
+**The capture step is a skill, not a hook, on purpose.** Hook support differs per event in this
+harness: `subagentStart` is observed firing, while `postToolUseFailure` has never produced a ledger
+here (measured 2026-11-15, table in `docs/reference/environment.md`). A loop that depends on the
+unverified event never runs, so `capture-lesson` drives the same loop while the finding is still in
+context.
 
 ## Install
 

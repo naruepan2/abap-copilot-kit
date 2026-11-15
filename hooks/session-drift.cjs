@@ -20,7 +20,12 @@ const STATE_DIR = path.join(COPILOT, 'state');
 const SNAPSHOT = path.join(STATE_DIR, 'surface.json');
 const PREV = path.join(STATE_DIR, 'surface.prev.json');
 const ROSTER = path.join(COPILOT, 'roster.json');
-const MCP_JSON = path.join(process.env.APPDATA || '', 'Code', 'User', 'mcp.json');
+// APPDATA is not guaranteed: when it is unset the old expression produced a RELATIVE path
+// ('Code\\User\\mcp.json'), the read failed, and the snapshot then recorded "zero MCP servers" as a
+// measured fact. The next session reported all five as newly added. lesson-capture.cjs already had
+// this fallback; this file did not. Measured 2026-11-15 with APPDATA cleared.
+const APPDATA = process.env.APPDATA || path.join(HOME, 'AppData', 'Roaming');
+const MCP_JSON = path.join(APPDATA, 'Code', 'User', 'mcp.json');
 // The Copilot CLI's own list. Referenced by serverNamesCli below - it was not declared at all in the
 // first version of that function, so buildSurface() threw on every run, the catch turned it into an
 // empty object, and the snapshot was never written. `node --check` cannot see a missing identifier.
@@ -189,7 +194,16 @@ function main() {
     fs.mkdirSync(STATE_DIR, { recursive: true });
 
     const prev = readJson(SNAPSHOT);
+    // "No previous snapshot" and "a previous snapshot I could not parse" are different facts, and the
+    // old code treated both as a first run. A half-written file - the snapshot was written with a
+    // single non-atomic writeFileSync - therefore disabled drift detection for that session and was
+    // then overwritten, so the mistake removed its own evidence. Measured 2026-11-15: a truncated
+    // snapshot plus a deliberately added agent produced '{}', exit 0, and no drift line.
+    const hadSnapshotFile = fs.existsSync(SNAPSHOT);
     const lines = [];
+    if (hadSnapshotFile && !prev) {
+        lines.push('previous surface snapshot was unreadable and has been replaced; this session cannot report what changed since it was taken');
+    }
 
     if (prev) {
         diffList('agents', prev.agents || [], surface.agents, lines);
@@ -210,7 +224,15 @@ function main() {
             /* rotation is best effort */
         }
     }
-    fs.writeFileSync(SNAPSHOT, JSON.stringify(surface, null, 2));
+    // Written through a temporary file and renamed, so an interrupted write cannot leave a truncated
+    // snapshot that silently disables the next comparison.
+    try {
+        const tmp = `${SNAPSHOT}.tmp`;
+        fs.writeFileSync(tmp, JSON.stringify(surface, null, 2));
+        fs.renameSync(tmp, SNAPSHOT);
+    } catch {
+        /* a snapshot that cannot be written must not block the session */
+    }
 
     if (lines.length === 0) {
         process.stdout.write('{}');

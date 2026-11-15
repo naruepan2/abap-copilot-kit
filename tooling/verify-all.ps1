@@ -239,7 +239,14 @@ if ($repoOk) {
     foreach ($cand in @(Get-ChildItem (Join-Path $REPO 'tooling') -File -Filter '*.ps1' -ErrorAction SilentlyContinue)) {
         $candText = $null
         try { $candText = [System.IO.File]::ReadAllText($cand.FullName) } catch { continue }
-        if ($candText -match "(?m)^\`$ErrorActionPreference\s*=\s*'Continue'") { $lieFiles += $cand }
+        # Population rule, corrected 2026-11-15. This selected scripts that contain a literal
+        # `$ErrorActionPreference = 'Continue'` declaration, which excluded every script that never
+        # mentions the variable - and those inherit Continue, the very mode that lets a read fail
+        # silently while the block keeps running. who-locks.ps1 was outside this gate for that
+        # reason, so its reads were never examined and the summary still claimed to have covered
+        # "M continue-on-error script(s)". A script is now examined unless it opts into the loud
+        # behaviour with a top-level 'Stop'.
+        if ($candText -notmatch "(?m)^\`$ErrorActionPreference\s*=\s*'Stop'") { $lieFiles += $cand }
     }
     $unguarded = @()
     $lieChecked = 0
@@ -733,7 +740,28 @@ if (-not $repoOk) {
     Write-Output '  SKIP    kit repository not found (clone it, or set $env:ABAP_KIT_ROOT)'
 } else {
 Push-Location $REPO
-Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f (git rev-parse --short HEAD), (git rev-parse --short origin/main), ((git rev-parse HEAD) -eq (git rev-parse origin/main)), @(git status --porcelain).Count)
+# One git process instead of four, and failure must not read as a pass.
+# Measured 2026-11-15: four separate `git rev-parse` calls plus status cost 214 ms; the batched form
+# costs 88 ms. More important is the correctness half: `(git rev-parse HEAD) -eq (git rev-parse
+# origin/main)` compares $null with $null when git fails, and $null -eq $null is True - so a broken
+# repository, a missing origin, or a git that is not on PATH all printed the GOOD state. The same
+# shape applied to dirty: `@(git status --porcelain).Count` is 0 when the command failed, so an
+# unreadable repository reported zero changes. Both are now read from the exit code first.
+$refs = @(git rev-parse HEAD origin/main 2>$null)
+$refRc = $LASTEXITCODE
+$dirtyLines = @(git status --porcelain 2>$null)
+$dirtyRc = $LASTEXITCODE
+if ($refRc -ne 0 -or $refs.Count -lt 2 -or $dirtyRc -ne 0) {
+    Write-Output ("  ISSUE   git could not report state (rev-parse rc={0}, status rc={1}, {2} ref(s))" -f $refRc, $dirtyRc, $refs.Count)
+    Note 'ISSUE' 1
+}
+else {
+    $headFull = [string]$refs[0]
+    $origFull = [string]$refs[1]
+    # A short hash is a prefix of the full one; --short's collision extension is not reproduced here,
+    # because git refuses to batch --short for two revisions (`Needed a single revision`).
+    Write-Output ("  HEAD={0}  origin={1}  synced={2}  dirty={3}" -f $headFull.Substring(0, 7), $origFull.Substring(0, 7), ($headFull -eq $origFull), $dirtyLines.Count)
+}
 $drift = @()
 # Every user-owned agent is mirrored, not just the main one. Before this, only
 # abap-developer-by-pongg was compared, so an edit to any of the other three agents sat in the
@@ -750,7 +778,12 @@ $skillMirrors = @(Get-ChildItem "$REPO\skills" -Directory -ErrorAction SilentlyC
 # previous release replaced - and no section noticed, because the installer had never copied hooks/
 # either. A file that runs on every session and is compared nowhere is the worst place to be stale.
 $hookMirrors = @(Get-ChildItem "$REPO\hooks" -Filter '*.cjs' -ErrorAction SilentlyContinue | ForEach-Object { 'hooks\' + $_.Name })
-$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1')
+$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1', 'tooling\findings.json')
+# findings.json is on the list because install-kit copies it: the installer's tooling filter takes
+# every .ps1, .js and .json except surface.json, so the ledger became a live file that no section
+# compared. Measured 2026-11-15: the live copy held 26 findings in 14,721 bytes while the clone held
+# 26 in 17,834 - a divergence with no DRIFT line, and -Force would have silently replaced the live
+# one. A file the installer writes and the audit does not compare is the exact hole hooks/ fell in.
 # tooling\surface.json is deliberately absent from the list. It is runtime state: the sessionStart
 # hook rewrites the LIVE copy on every run, so comparing it against the repository snapshot would
 # report DRIFT forever, from the first session in which the hook fires. A check that can only fail is
@@ -794,28 +827,85 @@ $configs = [ordered]@{
     'vscode'   = "$env:APPDATA\Code\User\mcp.json"
     'copilot'  = "$env:USERPROFILE\.copilot\mcp-config.json"
 }
+# A literal is a quoted value on a secret-bearing key that is not ${input:...} and not a
+# placeholder. The key list covers what ARC-1 itself reads as a secret (SAP_PASSWORD,
+# SAP_COOKIE_STRING, SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, ...) - a narrower list than that was
+# measured to miss three of them. Keys ending _FILE hold a path, not a secret, so they are out.
+$litRx = '"[A-Za-z0-9_]*(?:PASSWORD|SECRET|TOKEN|COOKIE|SERVICE_KEY|API_KEY|_KEYS|CRED)[A-Za-z0-9_]*(?<!_FILE)"\s*:\s*"(?!\$\{input:)(?!<)[^"]{1,200}"'
+# The second syntax, and the reason this section exists at all: the Copilot CLI has no ${input:...}
+# support and takes the secret as `"--env", "SAP_PASSWORD=..."`. The JSON-shape regex cannot see
+# that - it needs `"KEY":` with a quote after the colon - and the SHAPE check in section 9 needs a
+# quote immediately after '=', so a secret in argument form was invisible to BOTH sections while the
+# run printed "OK no literal secret" and exited 0. Measured 2026-11-15: an object-form secret scored
+# 1 here; the identical secret written as an --env argument pair scored 0 here and 0 in section 9.
+$argRx = '(?<![A-Za-z0-9_])(?<k>[A-Za-z0-9_]*(?:PASSWORD|SECRET|TOKEN|COOKIE|SERVICE_KEY|API_KEY|_KEYS|CRED)[A-Za-z0-9_]*)=(?<v>[^"\s,]{1,200})'
+
+# Both detectors are self-tested before they are trusted, because on 2026-11-15 this section twice
+# produced a line that was wrong in a way nothing noticed. A detector that cannot fire is worse than
+# no detector: "OK no literal secret" is the one line in this toolkit whose being wrong cannot be
+# undone once it is pushed.
+#
+# Four independent assertions, written out. The first version packed them into nested arrays and the
+# labels came back as "1" and "0" - which the self-test itself reported as a failure, so the shape was
+# wrong in an obvious way rather than a quiet one.
+$stObjectHit = ([regex]::Matches('{"env":{"SAP_PASSWORD":"hunter2secret"}}', $litRx)).Count
+$stObjectInd = ([regex]::Matches('{"env":{"SAP_PASSWORD":"${input:p}"}}', $litRx)).Count
+$stArgHit = @([regex]::Matches('["--env","SAP_PASSWORD=hunter2secret"]', $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
+$stArgInd = @([regex]::Matches('["--env","SAP_PASSWORD=${input:p}"]', $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
+if ($stObjectHit -ne 1) { Write-Output '  ISSUE   secret detector self-test: the object form was not detected'; Note 'ISSUE' 1 }
+if ($stObjectInd -ne 0) { Write-Output '  ISSUE   secret detector self-test: ${input:...} was reported as a literal'; Note 'ISSUE' 1 }
+if ($stArgHit -ne 1) { Write-Output '  ISSUE   secret detector self-test: the KEY=VALUE form was not detected'; Note 'ISSUE' 1 }
+if ($stArgInd -ne 0) { Write-Output '  ISSUE   secret detector self-test: a KEY=${input:...} was reported as a literal'; Note 'ISSUE' 1 }
+Ran 'secret-selftest' 4
+
 $credChecked = 0
+# Every config that was examined must produce exactly one verdict line. Two versions of this loop
+# threw inside the reporting statement - once because ${input:...} expanded to nothing in a
+# double-quoted string, once because the same text was a format placeholder for -f and -f threw under
+# EAP=Continue, which is statement-terminating - so the detector found the secret and the run printed
+# no line about it. Counting the verdicts makes a swallowed finding impossible to miss.
+$cfgVerdicts = 0
 foreach ($k in $configs.Keys) {
     $p = $configs[$k]
-    if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); continue }
+    if (-not (Test-Path $p)) { Write-Output ("  {0,-8} no config" -f $k); $cfgVerdicts++; continue }
     # $t is read inside the guard and reset each iteration. Reading it outside a guard meant a
     # throwing read left the PREVIOUS config's text in $t, so a directory in place of mcp.json
     # produced "OK no literal secret" for a file that was never opened.
     $t = $null
     try { $t = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
-    catch { Write-Output ("  {0,-8} ISSUE   unreadable: {1}" -f $k, $_.Exception.GetType().Name); Note 'ISSUE' 1; continue }
+    catch { Write-Output ("  {0,-8} ISSUE   unreadable: {1}" -f $k, $_.Exception.GetType().Name); Note 'ISSUE' 1; $cfgVerdicts++; continue }
     $credChecked++
-    # A literal is a quoted value on a secret-bearing key that is not ${input:...} and not a
-    # placeholder. The key list covers what ARC-1 itself reads as a secret (SAP_PASSWORD,
-    # SAP_COOKIE_STRING, SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, ...) - a narrower list than that was
-    # measured to miss three of them. Keys ending _FILE hold a path, not a secret, so they are out.
-    $lit = [regex]::Matches($t, '"[A-Za-z0-9_]*(?:PASSWORD|SECRET|TOKEN|COOKIE|SERVICE_KEY|API_KEY|_KEYS|CRED)[A-Za-z0-9_]*(?<!_FILE)"\s*:\s*"(?!\$\{input:)(?!<)[^"]{1,200}"')
-    if ($lit.Count -eq 0) { Write-Output ("  {0,-8} OK      no literal secret" -f $k) }
-    else {
-        Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count)
-        foreach ($m in $lit) { Write-Output ("           key: " + (($m.Value -split '"')[1])) }
-        Note 'HIT' $lit.Count
+    $lit = [regex]::Matches($t, $litRx)
+    $argHits = @()
+    foreach ($m in [regex]::Matches($t, $argRx)) {
+        $secretKey = $m.Groups['k'].Value
+        $val = $m.Groups['v'].Value
+        if ($secretKey -match '_FILE$') { continue }
+        # ${input:...}, @secret, %VAR%, $env:NAME and <PLACEHOLDER> are indirections, not values.
+        if ($val -match '^(\$\{|\$env:|@secret$|%|<)') { continue }
+        if ($val -match 'PLACEHOLDER|CHANGEME|xxxx') { continue }
+        $argHits += $secretKey
     }
+    if ($lit.Count -eq 0 -and $argHits.Count -eq 0) { Write-Output ("  {0,-8} OK      no literal secret" -f $k) }
+    else {
+        if ($lit.Count -gt 0) {
+            Write-Output ("  {0,-8} ISSUE   {1} literal secret field(s) - move to a credential store" -f $k, $lit.Count)
+            foreach ($m in $lit) { Write-Output ("           key: " + (($m.Value -split '"')[1])) }
+        }
+        if ($argHits.Count -gt 0) {
+            # Built by concatenation, not with -f. In a double-quoted string "${input:...}" is a
+            # variable and expands to empty; in a single-quoted string passed through -f, "{input:...}"
+            # is a format placeholder and -f throws. Measured both, 2026-11-15.
+            Write-Output ('  ' + $k.PadRight(8) + ' ISSUE   ' + $argHits.Count + ' secret(s) passed as KEY=VALUE - use ${input:...} or a credential store')
+            foreach ($a in $argHits) { Write-Output ("           key: " + $a) }
+        }
+        Note 'HIT' ($lit.Count + $argHits.Count)
+    }
+    $cfgVerdicts++
+}
+if ($cfgVerdicts -ne $configs.Count) {
+    Write-Output ("  ISSUE   {0} of {1} config(s) produced a verdict - a finding may have been swallowed" -f $cfgVerdicts, $configs.Count)
+    Note 'ISSUE' 1
 }
 
 # The env file that replaced those literals needs the same check, in a different syntax: a secret
@@ -1263,6 +1353,25 @@ if (-not $repoOk) {
         elseif ($fl) {
             $open = @(); $badStatus = @(); $noEvidence = @(); $staleRef = @()
             $valid = @('open', 'fixed', 'wontfix')
+            # Every evidence ref resolved in ONE git process, before the loop.
+            # Measured 2026-11-15: 23 findings x one `git cat-file -e` = 1,030 ms, because each ref
+            # spawned a process; the same refs through a single `git cat-file --batch-check` = 50 ms.
+            # The batch form also asks a better question than -e did: it reports the object TYPE, so
+            # evidence that resolves to a tree or a blob is rejected instead of accepted merely for
+            # existing. Missing refs come back as the literal 'missing'.
+            $evShas = @($fl.findings | Where-Object { $_ -and $_.status -eq 'fixed' -and $_.evidence -match '^[0-9a-f]{7,40}$' } | ForEach-Object { [string]$_.evidence })
+            $evTypes = @{}
+            if ($evShas.Count -gt 0) {
+                Push-Location $REPO
+                $bc = @($evShas | & git cat-file --batch-check="%(objecttype)" 2>$null)
+                Pop-Location
+                for ($bi = 0; $bi -lt $evShas.Count; $bi++) {
+                    # A hashtable keyed by the ref as written. Duplicate refs are harmless: the same
+                    # value is stored twice. A short ref answers with its own line, which is why the
+                    # lookup uses the input string and not the resolved object name.
+                    $evTypes[$evShas[$bi]] = if ($bi -lt $bc.Count) { ([string]$bc[$bi]).Trim() } else { 'missing' }
+                }
+            }
             foreach ($f in @($fl.findings)) {
                 if (-not $f -or -not $f.id) { continue }
                 if ($valid -notcontains $f.status) { $badStatus += ($f.id + ' (' + $f.status + ')'); continue }
@@ -1274,11 +1383,11 @@ if (-not $repoOk) {
                     # ledger is describing a fix nobody can find, which is the same failure as an
                     # open finding with better paperwork.
                     if ($f.evidence -match '^[0-9a-f]{7,40}$') {
-                        Push-Location $REPO
-                        $exists = git cat-file -e ($f.evidence + '^{commit}') 2>$null
-                        $rc = $LASTEXITCODE
-                        Pop-Location
-                        if ($rc -ne 0) { $staleRef += ($f.id + ' -> ' + $f.evidence + ' (no such commit)') }
+                        $etype = [string]$evTypes[[string]$f.evidence]
+                        if ($etype -ne 'commit') {
+                            $why = if ([string]::IsNullOrEmpty($etype)) { 'ref not resolved' } else { 'resolves to a ' + $etype + ', not a commit' }
+                            $staleRef += ($f.id + ' -> ' + $f.evidence + ' (' + $why + ')')
+                        }
                     }
                 }
             }

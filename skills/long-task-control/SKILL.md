@@ -31,6 +31,17 @@ session, split it into independently verifiable slices with dependencies and cle
 criteria. Do not create external tickets, branches, or delegate work unless the user asks and the
 environment supports it.
 
+### Delegating part of it
+
+Delegation buys context isolation and parallelism, nothing else. It is worth it when the question
+is independent (neither side waits), wide (many objects, a package, a long dump), and the brief is
+cheaper than the work.
+
+Do it yourself when the steps are serial — many subagents do not make an ordered job faster, only
+longer — when the task is smaller than its brief, when you would re-verify the answer anyway (that
+is a lead, not a result), and always when it is a write. When two investigations genuinely are
+independent, running them one after the other wastes wall-clock time for no gain in care.
+
 ## 3. Stopping before completion: write a handoff, not a status report
 
 A status report says what happened. A handoff lets the next session continue. It needs exactly:

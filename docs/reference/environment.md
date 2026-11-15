@@ -66,7 +66,16 @@ One file, `~/.copilot/hooks/hooks.json`:
 
 - `hookEventName` must equal the event that fired. A **top-level** `additionalContext` is
   ignored, and a mismatched `hookEventName` is stripped.
-- **Hooks do not fire in the Copilot harness.** Measured: `~/.copilot/state/surface.json`
-  `takenAt` did not change across a reload, while the installed hook config was unchanged. Treat
-  `chat.useHooks` and `chat.hookFilesLocations` as Local-harness settings; never report a hook as
-  having run until a firing is observed in `takenAt` or a log file.
+- **Which hook events fire: measure per event, never assume.** This section used to say "hooks do
+  not fire in the Copilot harness", dated from a reload in which `surface.json`'s `takenAt` did not
+  move. That is a conclusion about one event, and it was later contradicted:
+
+  | Event | Status 2026-11-15 | Evidence |
+  | --- | --- | --- |
+  | `subagentStart` | **fires** | `~/.copilot/state/subagent-rules.log` gained five entries during one session (`trusted` / `restricted` per spawn) |
+  | `sessionStart` | **writes**, event name unverified | `surface.json` `takenAt` moved twice in one session (`17:00:56Z`, `17:01:34Z`); attribution to this event versus a manual run was not established |
+  | `postToolUseFailure` | **no evidence** | no lesson ledger has ever existed at either documented path |
+
+  The rule that survives: **never report a hook as having run until a log line or a changing file
+  says so**, and re-measure per event rather than generalising from one. Treat `chat.useHooks` and
+  `chat.hookFilesLocations` as Local-harness settings.
