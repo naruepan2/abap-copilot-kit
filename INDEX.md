@@ -15,10 +15,10 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `hooks/` | Detection-only hooks; only `*.json.template` is committed |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
-| `config-templates/` | `mcp.json` and `settings.json` skeletons |
+| `config-templates/` | `mcp.json` and `settings.json` skeletons, plus `arc1.env.template` for the credential-store launcher |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |
-| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot. `sap-secret.ps1` + `sap-arc1-launcher.ps1` keep the SAP password in Windows Credential Manager for harnesses that cannot prompt |
+| `tooling/` | The audit scripts that measure context and check consistency, plus a tool-surface snapshot. `sap-secret.ps1` + `sap-arc1-launcher.ps1` read `arc1.env` and resolve any `@secret` line from DPAPI, for harnesses that cannot prompt |
 | `backup/` | A recovery snapshot of user memory. Not loaded by anything — see its README before restoring |
 | `Projects/README.md` | How to add a project; project folders are not committed |
 

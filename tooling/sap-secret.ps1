@@ -1,11 +1,18 @@
-# sap-secret.ps1 - keep the SAP password in Windows Credential Manager instead of in JSON.
+# sap-secret.ps1 - keep ARC-1 secrets in Windows Credential Manager instead of in JSON or .env.
 #
-# Copilot CLI reads ~/.copilot/mcp-config.json and can only pass secrets as --env KEY=VALUE,
-# so there is no ${input:...} there. That file used to hold the password in plaintext.
-#   -Read   print the stored password to stdout (for a launcher to capture)
-#   -Set    prompt once and store it (interactive; the value never enters a chat or a file)
-#   -Remove delete the stored entry
-#   -Test   report whether an entry exists, without reading it
+# Copilot CLI reads ~/.copilot/mcp-config.json and can only pass secrets as --env KEY=VALUE, so
+# there is no ${input:...} there. ~/.copilot also grants CodexSandboxUsers ReadAndExecute, so a
+# plaintext file in that folder is not private. This stores each secret as its own credential
+# entry, addressed by the ARC-1 variable name.
+#
+#   -Set -Key NAME   prompt once and store (interactive; the value never enters a chat or a file)
+#   -Read -Key NAME   print it to stdout (the launcher captures it)
+#   -Test -Key NAME   report PRESENT/ABSENT and the length, without revealing the value
+#   -Remove -Key NAME delete the entry
+#   -List             list the ARC1 entries that exist
+#
+# Any ARC-1 secret works without editing this script: SAP_PASSWORD, SAP_COOKIE_STRING,
+# SAP_BTP_SERVICE_KEY, ARC1_API_KEYS, or one it gains later.
 #
 # ASCII only, on purpose: a .ps1 without a BOM is decoded as ANSI here.
 param(
@@ -13,10 +20,22 @@ param(
     [switch]$Set,
     [switch]$Remove,
     [switch]$Test,
-    [string]$Target = 'SAP_ARC1_PASSWORD'
+    [switch]$List,
+    [string]$Key
 )
 
 $ErrorActionPreference = 'Stop'
+$Prefix = 'ARC1:'
+
+if (($Set -or $Read -or $Remove -or $Test) -and -not $Key) {
+    Write-Error 'Specify -Key NAME (for example -Key SAP_PASSWORD).'
+    exit 1
+}
+if ($Key -and $Key -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+    Write-Error "Invalid key name '$Key'."
+    exit 1
+}
+$Target = if ($Key) { $Prefix + $Key } else { $Prefix.TrimEnd(':') }
 
 $sig = @'
 using System;
@@ -86,18 +105,39 @@ public static class CredMan {
     public static bool Delete(string target) {
         return CredDelete(target, CRED_TYPE_GENERIC, 0);
     }
+
+    [DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool CredEnumerate(string filter, uint flags, out uint count, out IntPtr credentials);
+
+    // Returns the target names whose credential target starts with the given prefix. Names only -
+    // never the secrets themselves.
+    public static string[] Enumerate(string prefix) {
+        uint count;
+        IntPtr ptr;
+        if (!CredEnumerate(prefix + "*", 0, out count, out ptr)) return new string[0];
+        try {
+            string[] result = new string[count];
+            for (int i = 0; i < count; i++) {
+                IntPtr item = Marshal.ReadIntPtr(ptr, i * IntPtr.Size);
+                CREDENTIAL cred = (CREDENTIAL)Marshal.PtrToStructure(item, typeof(CREDENTIAL));
+                string target = Marshal.PtrToStringUni(cred.TargetName);
+                result[i] = target.StartsWith(prefix) ? target.Substring(prefix.Length) : target;
+            }
+            return result;
+        } finally { CredFree(ptr); }
+    }
 }
 '@
 
 if (-not ('CredMan' -as [type])) { Add-Type -TypeDefinition $sig -Language CSharp }
 
 if ($Set) {
-    $sec = Read-Host -AsSecureString "SAP password for ARC-1 (stored as $Target)"
+    $sec = Read-Host -AsSecureString "Value for $Key (stored as $Target)"
     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
     try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-    if ([string]::IsNullOrEmpty($plain)) { Write-Error 'Empty password - nothing stored.'; exit 1 }
-    if ([CredMan]::Write($Target, 'sap', $plain)) { Write-Output "stored in Windows Credential Manager: $Target" }
+    if ([string]::IsNullOrEmpty($plain)) { Write-Error 'Empty value - nothing stored.'; exit 1 }
+    if ([CredMan]::Write($Target, $Key, $plain)) { Write-Output "stored: $Target" }
     else { Write-Error ("CredWrite failed: " + [Runtime.InteropServices.Marshal]::GetLastWin32Error()); exit 1 }
     exit 0
 }
@@ -115,9 +155,17 @@ if ($Test) {
 
 if ($Read) {
     $v = [CredMan]::Read($Target)
-    if ($null -eq $v) { Write-Error "no credential stored as $Target - run: sap-secret.ps1 -Set"; exit 1 }
+    if ($null -eq $v) { Write-Error "nothing stored for $Key - run: sap-secret.ps1 -Set -Key $Key"; exit 1 }
     Write-Output $v
     exit 0
 }
 
-Write-Output 'Usage: sap-secret.ps1 -Set | -Test | -Remove | -Read'
+if ($List) {
+    $names = @([CredMan]::Enumerate($Prefix))
+    if ($names.Count -eq 0) { Write-Output "no entries under $Prefix" ; exit 0 }
+    foreach ($n in ($names | Sort-Object)) { Write-Output ("  " + $n) }
+    Write-Output ("{0} entries under {1}" -f $names.Count, $Prefix)
+    exit 0
+}
+
+Write-Output 'Usage: sap-secret.ps1 -Set|-Read|-Test|-Remove -Key NAME   |   -List'

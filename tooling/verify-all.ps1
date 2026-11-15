@@ -208,6 +208,39 @@ foreach ($k in $configs.Keys) {
     }
 }
 
+# The env file that replaced those literals needs the same check, in a different syntax: a secret
+# key whose value is not the @secret marker is a plaintext secret sitting in the user profile.
+$envFile = "$env:USERPROFILE\.copilot\state\arc1.env"
+if (-not (Test-Path $envFile)) {
+    Write-Output '  envfile  absent  (arc1.env not created yet - credential-store mode inactive)'
+} else {
+    $plainSecrets = @()
+    foreach ($l in [System.IO.File]::ReadAllLines($envFile, [System.Text.Encoding]::UTF8)) {
+        $s = $l.Trim()
+        if ($s -eq '' -or $s.StartsWith('#')) { continue }
+        $eq = $s.IndexOf('=')
+        if ($eq -lt 1) { $plainSecrets += 'malformed: ' + $s; continue }
+        $key = $s.Substring(0, $eq).Trim()
+        $val = $s.Substring($eq + 1).Trim()
+        if ($key -match '(PASSWORD|SECRET|TOKEN|COOKIE|SERVICE_KEY|API_KEY|_KEYS|CRED)' -and
+            $key -notmatch '_FILE$' -and $val -ne '@secret' -and $val -ne '') {
+            $plainSecrets += $key
+        }
+    }
+    if ($plainSecrets.Count -eq 0) { Write-Output '  envfile  OK      every secret line uses @secret' }
+    else { foreach ($s in $plainSecrets) { Write-Output ("  envfile  ISSUE   plaintext secret or bad line: " + $s) } }
+
+    # And it must not sit inside a repository, where a stray `git add -f` could publish it.
+    $dir = Split-Path $envFile -Parent
+    $inRepo = $null
+    while ($dir -and $dir -ne (Split-Path $dir -Parent)) {
+        if (Test-Path (Join-Path $dir '.git')) { $inRepo = $dir; break }
+        $dir = Split-Path $dir -Parent
+    }
+    if ($inRepo) { Write-Output ("  envfile  ISSUE   arc1.env is inside a repository: " + $inRepo) }
+    else { Write-Output '  envfile  OK      outside every repository' }
+}
+
 Line '8. Credentials in any tracked file'
 Push-Location $REPO
 $hits = 0
