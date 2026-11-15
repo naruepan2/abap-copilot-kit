@@ -26,8 +26,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Same resolution order as verify-all.ps1, so the two never disagree about where the kit is.
+# Same resolution order as verify-all.ps1, so the two never disagree about where the kit is:
+# environment variable, then the pin written by a previous run, then the parent folder.
 if (-not $KitRoot) { $KitRoot = $env:ABAP_KIT_ROOT }
+if (-not $KitRoot -or -not (Test-Path (Join-Path $KitRoot 'INDEX.md'))) {
+    $pinPath = Join-Path $PSScriptRoot 'kit-root.txt'
+    if (Test-Path $pinPath) {
+        $pinned = ([System.IO.File]::ReadAllText($pinPath, [System.Text.Encoding]::UTF8)).Trim()
+        if ($pinned -and (Test-Path (Join-Path $pinned 'INDEX.md'))) { $KitRoot = $pinned }
+    }
+}
 if (-not $KitRoot -or -not (Test-Path (Join-Path $KitRoot 'INDEX.md'))) {
     $up = Split-Path $PSScriptRoot -Parent
     if ($up -and (Test-Path (Join-Path $up 'INDEX.md'))) { $KitRoot = $up }
