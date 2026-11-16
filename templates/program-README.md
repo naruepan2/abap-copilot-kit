@@ -15,8 +15,13 @@ One-line purpose.
 |---|---|
 | Deployed source | <SAP object name and type — the system is the owner of the source> |
 | Builder | `program.yaml` / the object that generates it |
+| **Pre-release change log** | `changes.md` — what was activated, in what order, while the TR is open |
 | Decisions | <link to the note or memory card entry that records why> |
 | Memory card | <repo memory path, or "not created"> |
+
+`changes.md` is the AI's index for rollback before TR release: it names the version and the exact
+baseline path. `.baseline/` holds the byte-exact source. After release, SAP version management
+takes over and the baselines are deleted — do not keep a second copy here.
 
 ## Test focus
 
