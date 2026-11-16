@@ -2304,7 +2304,9 @@ foreach ($log in $preReleaseLogs) {
 if ($logBad -eq 0) {
     Write-Output ("  {0} change log(s), {1} open row(s), every baseline present and no stale file" -f $logSeen, $logRows)
 }
-Ran 'pre-release-log' $logRows
+# An empty Projects folder is a decision that was examined, not a section that saw nothing.
+# Counting zero there made the whole audit inconclusive (exit 2) on a machine with no records.
+Ran 'pre-release-log' $(if ($logSeen -eq 0) { 1 } else { $logSeen + $logRows })
 Note 'ISSUE' $logBad
 
 Line '11. Every file on disk is inventoried, or says why it is not'
