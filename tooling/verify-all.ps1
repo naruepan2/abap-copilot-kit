@@ -1882,7 +1882,17 @@ if ($repoOk -and (Test-Path $notesDir)) {
         $noteFile = Join-Path $notesDir ('release-notes-' + $tg + '.md')
         if (-not (Test-Path $noteFile)) { continue }
         $tagCompared++
-        $body = (& git tag -l --format='%(contents)' $tg) -join "`n"
+        # Native output is decoded with [Console]::OutputEncoding, which is windows-874 on this
+        # machine (F-164). A clean UTF-8 arrow E2 86 92 in the v0.9.4.9 annotation was decoded as
+        # U+0E42 U+0086 U+2019 and reported as mojibake, while the raw tag object had zero damaged
+        # sequences. Scope UTF-8 to this read, then restore: changing the console encoding for the
+        # whole audit would alter every other native command in ways this section does not check.
+        $prevOutEnc = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+            $body = (& git tag -l --format='%(contents)' $tg) -join "`n"
+        }
+        finally { [Console]::OutputEncoding = $prevOutEnc }
         # Guarded: section 1c flags an unguarded read in a Continue-mode script, and it flagged this
         # one on the first run of the section. A notes file that cannot be read must skip the tag, not
         # abort the loop and leave the count short.
