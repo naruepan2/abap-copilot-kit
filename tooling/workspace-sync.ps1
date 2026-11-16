@@ -254,8 +254,13 @@ if ($plan.Count -eq 0) {
 # id is expected here and is not flagged. A password or a token value is different: it must never be
 # in any file, private or not, because a private repository is one visibility change away from being
 # a public one and history cannot be taken back.
-$shape = '(?i)(password|passwd|secret|token|api[_-]?key|service[_-]?key)\s*[:=]\s*["'']([^"'']{8,})["'']'
-$placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.|_SAP_PASSWORD'
+# This is the gate that decides what may enter the private mirror, so it must be at least as strict
+# as the audit's copy in verify-all.ps1 section 9. The old pattern required quotes on both sides of
+# the value: `password: hunter2secret` and `"SAP_PASSWORD": "hunter2secret"` both scored zero and
+# were mirrored. It also lacked the `pwd` spelling. Keep the two patterns in sync; the placeholder
+# list is the union of both copies, because templates and launcher keys are expected here.
+$shape = '(?im)(?:^|[{,;])\s*["'']?[\w.\-]*(passwd|pwd|password|secret|token|api[_-]?key|service[_-]?key)["'']?\s*[:=]\s*["'']?([^"''\s]{8,})'
+$placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.|\{\{|_SAP_PASSWORD'
 
 # Repo memory is workspace-scoped and its folder name is a hash, so it is never guessed: the path is
 # given explicitly or memory is not mirrored at all.
