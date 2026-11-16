@@ -154,11 +154,6 @@ function main() {
 
     const file = ledgerPath();
     const dir = path.dirname(file);
-    try {
-        fs.mkdirSync(dir, { recursive: true });
-    } catch {
-        return;
-    }
 
     // A failed read is not an empty ledger. The old catch set `existing = ''`, the next line replaced
     // it with HEADER, and the write below then overwrote the real ledger with a header plus one row -

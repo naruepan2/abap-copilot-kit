@@ -75,10 +75,10 @@ not as an edit that the next upgrade overwrites.
 | "build a RAP service for Z booking" | `generate-rap-service` / `generate-rap-service-researched` | the plain one, unless the user asked for research or a production plan | the researched variant is 23,289 B larger and does a planning loop the request did not ask for |
 | "create a CDS view for X" | `sap-abap-cds` / `cds-development` | `cds-development` to write or change one; `sap-abap-cds` for annotations, DCL, or a CDS error | 17,457 vs 6,294 B, and the reference skill is the one with the annotation catalogue |
 | "investigate this runtime error" | `sap-st22-dump-analysis` / `abap-runtime-analysis` | `sap-st22-dump-analysis` when there is a dump ID; the other for a live debugger session | 15,553 vs 5,580 B, and the dump skill is the one with the ST22 procedure |
-| "debug why this fails" | `abap-debugging` / `abap-runtime-analysis` | `abap-runtime-analysis` | the two descriptions share a 293-character sentence verbatim; the runtime one is the superset |
+| "debug why this fails" | `abap-debugging` / `abap-runtime-analysis` | `abap-runtime-analysis` | 78% of the shorter description (314 of 404 chars) is byte-identical to the other, so the pair is one capability described twice |
 | "build a Fiori app on my RAP service" | `convert-ui5-to-fiori-elements` / `generate-rap-service` / `sapui5` | `convert-ui5-to-fiori-elements` only when a V4 service already exists | 52,493 / 36,374 / 16,967 B; generating the service is a different task from consuming it |
 | "migrate this Z program" | `migrate-custom-code` / `migrate-segw-to-rap` | `migrate-custom-code` for ATC-driven clean-core work; the SEGW one only for an OData V2 service | 14,747 vs 57,672 B |
-| "modernize this UI5 app" | `modernize-ui5-app` / `sapui5` | `modernize-ui5-app` for a legacy upgrade, `sapui5` for new development | 79,726 vs 16,967 B |
+| "modernize this UI5 app" | `modernize-ui5-app` / `sapui5` | `modernize-ui5-app` for a legacy upgrade, `sapui5` for new development | 80,252 vs 16,967 B |
 | "clean core check for this package" | `sap-clean-core-atc` / `sap-migration-dossier` | `sap-clean-core-atc` for the A–D classification, the dossier for a shareable report | 10,903 vs 16,390 B |
 
 Rules that keep this list honest:

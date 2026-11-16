@@ -40,9 +40,9 @@ function Get-LineCount([string]$t) {
 function Tok([int]$chars) { return [int]($chars / 4) }
 # What a skill actually costs per request is its name and description, not its whole YAML block. The
 # frontmatter of every skill in this tree was summed whole, which counted licence, maintainer,
-# orientation metadata and keyword lists that VS Code never sends. Measured 2026-11-16 across 58
-# skills: 23,805 chars of frontmatter against 21,133 that can be injected - over-counted by 2,672,
-# concentrated in three third-party skills (sap-abap-cds +930, sapui5 +873, sap-abap +408).
+# orientation metadata and keyword lists that VS Code never sends. The gap is measurable on every run:
+# the tool prints it, with its three largest contributors, rather than restating a figure here that
+# goes stale whenever a skill is upgraded or deleted.
 # The tool's only job is that number, so it now counts the injected keys and prints the difference
 # when there is one; a reader can then see which file to look at instead of trusting a total.
 function Get-InjectedFrontmatter([string]$fm) {

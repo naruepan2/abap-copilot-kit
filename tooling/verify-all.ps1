@@ -335,6 +335,22 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         catch { Write-Output ("    BAD  " + $d.Name + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); $bad++; continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
         if (-not $m.Success -or $t -notmatch 'name:' -or $t -notmatch 'description:') { $bad++; Write-Output ("    BAD  " + $d.Name) }
+        # `name` must equal the folder name. Until now the test above was a bare substring match on
+        # 'name:', which is satisfied by the word appearing anywhere in the file - including inside the
+        # body - so a skill whose frontmatter names something else passed. The check is worth a few
+        # lines because the folder is what the loader indexes and `name` is what the model is told;
+        # when they disagree the skill is selectable under a name that resolves to nothing.
+        # Borrowed from the upstream validator (likweitan/abap-skills, scripts/validate_skills.py:
+        # `if name != skill_file.parent.name`), which is one of four SKILL.md invariants we did not check.
+        if ($m.Success) {
+            $nm = [regex]::Match($m.Groups[1].Value, '(?m)^name:\s*(.+?)\s*$')
+            if ($nm.Success) {
+                $declared = $nm.Groups[1].Value.Trim().Trim('"').Trim("'")
+                if ($declared -cne $d.Name) {
+                    $bad++; Write-Output ("    BAD  " + $d.Name + ' (frontmatter name is "' + $declared + '", folder is "' + $d.Name + '")')
+                }
+            }
+        }
         # A deferral to references/ is only worth writing if the target exists. A skill collection met
         # in the wild on 2026-11-16 had a 9,333-char reference its SKILL.md never mentioned and no
         # check that could notice; the reverse - a link to a file nobody wrote - fails at the moment
@@ -821,8 +837,9 @@ else {
     $wrong = 0
     try {
         $env:USERPROFILE = $probeHome
-        # Sequential, and measured twice before it stayed that way. Section 5c was 786 ms of a 2,081 ms
-        # run - 55%, the slowest thing in the audit - and the obvious fix is to overlap the probes.
+        # Sequential, and measured twice before it stayed that way. Section 5c is the slowest section
+        # in the audit - 786 ms of a 2,081 ms run when it was first instrumented, and still about a
+        # quarter of the run at 505 items - and the obvious fix is to overlap the probes.
         # Built and measured, 2026-11-16: 14 node children started together through .NET Process with
         # redirected streams (no temp file, no runspace, ~1.2 KB of output each so no pipe can block).
         # In isolation it was 3.5x faster - 2,435 -> 697 ms - and inside the audit it made the whole
@@ -960,7 +977,10 @@ if ($dupInProjects.Count -gt 0) {
 # Registered, because an unregistered check is invisible to the examined-nothing verdict. This block
 # only ever printed on a hit, so a run in which it compared nothing was indistinguishable from one in
 # which it compared everything and found nothing. $dupInProjects was measured empty on 2026-11-16.
-Ran 'memory.dup' ([Math]::Max(1, @(Get-ChildItem $AWS -Recurse -File -Filter *.md -ErrorAction SilentlyContinue).Count))
+# No Max(1,...) floor: a floor of one makes the registration unable to report zero, which is the exact
+# state this line exists to expose. As written before, Ran always got at least 1 and the section could
+# never reach the exit-2 list its own comment promised.
+Ran 'memory.dup' @(Get-ChildItem $AWS -Recurse -File -Filter *.md -ErrorAction SilentlyContinue).Count
 }
 
 Line '7. Git state of the kit'
@@ -1256,9 +1276,11 @@ function Test-LauncherWiring($path, $rootKey, $label) {
         $script:launcherAbsent++
         return
     }
-    # Recorded so the verdict knows this harness was examined. Without it, both harnesses absent
-    # reached the verdict as a clean run with the launcher wiring wholly unverified.
-    $script:verified++
+    # Coverage is registered through Ran, not by incrementing $script:verified directly. The direct
+    # increment inflated the "clean - N item(s)" count while leaving the launcher out of the
+    # coverage set, so the examined-nothing verdict could not see it. Measured 2026-11-16: 505 items
+    # against a ran-sum of 503, the difference being exactly these two call sites.
+    Ran 'launcher' 1
     try { $cfg = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
     catch { Write-Output ("  {0,-8} ISSUE   {1} is not valid JSON" -f $label, (Split-Path $path -Leaf)); $script:issues++; return }
 
@@ -1505,7 +1527,8 @@ if ($patterns.Count -eq 1 -and $extraCount -eq 0) {
 # The working tree is not the whole repository. A value removed by a later commit stays readable from
 # history forever, and nothing here used to look at the past: a scanner carried a user id, two
 # customer domains and a token fragment for sixteen commits while every working-tree check passed.
-# A scan of every commit costs about a tenth of a second at this size, so there is no reason to skip
+# A scan of every commit costs about a quarter of a second at this size (measured 2026-11-16:
+# 224/238/224 ms over 85 commits), so there is no reason to skip
 # it, and the cost is the only argument that ever made skipping it defensible.
 $histHits = 0
 $revs = @(git rev-list --all 2>$null)
@@ -1664,7 +1687,9 @@ if (-not $repoOk) {
             # than a commit - one a repair whose artifact lives outside this repository, one a section
             # name - and both are legitimate. What is not acceptable is that they were counted as
             # verified facts with no number printed, so a reader could not tell how much of the ledger
-            # is checkable. Measured 2026-11-16: 2 of 64 fixed findings cite non-commit evidence.
+            # is checkable. The count is printed on the summary line rather than restated here, because
+            # a hard-coded number goes stale the moment a finding is added - this comment said "2 of 64"
+            # while the line below it printed 4 of 115.
             $softEvidence = @($fl.findings | Where-Object { $_ -and $_.status -eq 'fixed' -and $_.evidence -and $_.evidence -notmatch '^[0-9a-f]{7,40}$' })
             if ($softEvidence.Count -gt 0 -and $open.Count -eq 0 -and $badStatus.Count -eq 0 -and $noEvidence.Count -eq 0 -and $staleRef.Count -eq 0) {
                 Write-Output ("  {0} finding(s) recorded, none open; {1} cite evidence that is not a commit ({2})" -f $total, $softEvidence.Count, (($softEvidence | ForEach-Object { $_.id }) -join ', '))

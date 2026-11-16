@@ -101,7 +101,6 @@ function Secret-State($n) {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $o = & $PwshExe -NoProfile -ExecutionPolicy Bypass -File $SecretScript -Test -Key (Secret-Key $n) 2>$null
-    $rc = $LASTEXITCODE
     $ErrorActionPreference = $prev
     # The verdict comes from the OUTPUT, not from the exit code. A helper that crashes exits 1, and so
     # does -Read when nothing is stored, so the code alone cannot tell "no credential" from "the
