@@ -74,16 +74,10 @@ Two properties matter:
 
 ## Ownership
 
-Files are classified by who can safely edit them, not by where they sit.
-
-| Class | How to recognise it | Editing it |
-| --- | --- | --- |
-| User-owned | filename ends `-by-pongg`; a skill in this kit's `skills/` folder | freely |
-| Lock-tracked | listed in `~/.agents/.skill-lock.json` | edits are overwritten by the next `skills update` |
-| Installer-owned | listed in `~/.copilot/.sap-ai-dev-toolkit-assets.json` | never; a reinstall replaces the file and stops updating it once modified |
-
-Ownership is decided by **hash comparison against the installer manifest**, not by
-judgement. See `ownership.md`.
+Files are classified by who can safely edit them, not by where they sit. The three classes,
+how to recognise each, and the hash-based ownership check all live in `ownership.md` — that is
+the one home for the rule. Do not copy the table back here; earlier copies drifted on the
+`-by-pongg` suffix and on whether a lock-tracked edit is merely overwritten or forbidden.
 
 ## Why the agent cannot see its own name
 
