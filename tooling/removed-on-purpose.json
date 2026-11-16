@@ -50,10 +50,5 @@
             "upstream": "mattpocock/skills"
         }
     ],
-    "immutable_tag_damage": [
-        {
-            "tag": "v0.9.1",
-            "reason": "The tag annotation carries one cp874-damaged em dash (U+0E42 U+20AC U+201D) on its line 54. Found 2026-11-16 by verify-all section 9d, which is the only check that can see a git object. NOT fixed on purpose: a tag is an immutable pointer, and rewriting it would make v0.9.1 mean two different things at two different times - the rule this repository applies to every release. The release notes file and the published GitHub release body are both correct; only the tag message is affected, and nothing reads it. Listed here so the audit reports the damage as declared rather than failing for ever on an artifact no one can repair in place."
-        }
-    ]
+    "immutable_tag_damage": []
 }
