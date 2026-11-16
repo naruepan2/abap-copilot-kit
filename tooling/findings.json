@@ -1136,6 +1136,96 @@
                          "verified_by":  "deep audit 2026-11-16 round 5",
                          "note":  "The example was deliberate and correct as documentation, but a gate cannot both require zero damage and tolerate a file that contains it. Rewritten to name the codepoints and the three source bytes instead of demonstrating them, so the rule keeps its content and the gate keeps a single standard. Verified: the docs tree now reports 0 mojibake sequences, and the instruction files - 214 of them across every loader root - were already clean.",
                          "evidence":  "3013c37"
+                     },
+                     {
+                         "id":  "F-129",
+                         "title":  "The README claimed no tracked file names a system or a client; the repository that makes the claim carried real SIDs and a client number",
+                         "where":  "README.md:293, AGENTS.md:24, config-templates/, README.md:199-214",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured: `gsd` appears in 7 tracked files and `ds4` in 2; `gsd-120` and `ds4-900` are MCP server labels in AGENTS.md and both config templates, and the connection store records `GSD_110_\u003cuser\u003e` client 110, so `gsd` is the SID in use. The README example also published `gsd-110 -Client 110`. Nothing caught it because section 9 derives its patterns from the connection URL, host and user - never the connection NAME, which is where the SID-shaped token lives. The claim is now the narrower one that is true, the README examples use `dev-110`, and section 9c fails the audit when a server label is joined to a client number or a host.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-130",
+                         "title":  "Three new audit sections could not fire on the files they were written for, and two false-passed on their own fixtures",
+                         "where":  "tooling/verify-all.ps1 section 9, 9b, 9c",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured by planting each case and running the shipped audit: section 9 needed a quote immediately after the colon, so compact JSON and unquoted YAML scored 0 - now anchored on line start or a value separator, and negative-tested on all three layouts. Section 9c listed only tracked files, so an untracked probe was invisible - now includes untracked-not-ignored, and both the positive and the negative case are tested. Section 9b detected one code page only and one of its four sequences was two ordinary Thai letters, so a real Thai phrase failed while cp1252 damage passed - the signatures are now derived by re-encoding a non-ASCII run to five candidate pages and requiring the result to be strict UTF-8, with a self-test in every run that asserts both directions.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-131",
+                         "title":  "A widening of the credential-shape rule made the audit report its own self-test fixture as a leaked secret",
+                         "where":  "tooling/verify-all.ps1:1113",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured: after anchoring the shape rule on `{` and `,`, the literal object-form fixture in the secret-detector self-test was reported as a credential-shaped line on every run. That is the rule working correctly on a synthetic string, but a self-test that trips its own gate makes every future run red for a non-defect. The fixture is now assembled from parts at run time, and the comment that explains it names the parts rather than the whole assignment - the comment itself was the second hit.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-132",
+                         "title":  "The skill frontmatter check tested description: against the whole file, so a skill whose frontmatter lost its description passed",
+                         "where":  "tooling/verify-all.ps1:337",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "The same mistake had been fixed for `name:` one round earlier and left in place for the other half of the pair. Both keys are now tested inside the frontmatter block and must carry a value; negative-tested with a skill whose body contains the word description.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-133",
+                         "title":  "A released tag carried mojibake that no file scan can reach, and the audit had no way to report an artifact that cannot be repaired",
+                         "where":  "tag v0.9.1 line 54",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured: the v0.9.1 annotation contains U+0E42 U+20AC U+201D on line 54 - the same cp874 damage as F-126, in a git object rather than a file. A tag is an immutable pointer, so rewriting it would make v0.9.1 mean two things at two times. New section 9d scans tag annotations for the same damage and compares each tag with its notes file; a tag listed in `immutable_tag_damage` in removed-on-purpose.json is reported as a NOTE with the reason instead of failing for ever, which is the mechanism section 2b already uses for a skill deleted on purpose.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-134",
+                         "title":  "Four documents stated a fact that a measurement contradicted, including a README figure corrected in code and left wrong in prose",
+                         "where":  "README.md:38,309,345; INDEX.md:20; docs/reference/skills.md:29; docs/architecture.md:25; docs/tool-routing.md:91; docs/reference/environment.md:92; backup/README.md:81,112; AGENTS.md:24",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured one by one: a deleted `surface snapshot` was still listed; \"a tenth of a second\" survived in prose after being corrected to a quarter of a second in the code comment; the mirror table listed 6 of the 8 files the script actually mirrors; INDEX named three template files without their real names; two docs said every skill description loads every request while three skills declare disable-model-invocation; tool-routing pointed at a verify-all section that prints no size; environment.md listed a `prompt` field the hook never reads; backup/README named section 8 for a count section 9 prints and \"two sections\" for six; AGENTS.md credited mcp.json with a Fiori server declared in the CLI config. All corrected against the measurement.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-135",
+                         "title":  "The tag message is not the release body, and the README described a procedure the last six releases did not follow",
+                         "where":  "README.md:377-387",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Measured: six of ten tags carry a 55-183 char subject instead of their notes file (v0.9.4 and later), while the notes files are 2,357-9,718 chars and the GitHub release bodies match the notes. The README now states which artifact is the copy of record and that section 9d compares tag and notes.",
+                         "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-136",
+                         "title":  "Section 5 is titled \"counts that could rot\" and counts nothing, so a doc quoting 28 sections and 141 findings passed a run that reported 23 and 128",
+                         "where":  "tooling/verify-all.ps1 section 5",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Proven by planting a doc that claimed 28 sections, 624 items and 141 findings against a real 23/575/128: the audit printed clean and exit 0. The fix is not a check but a derivation - every number a doc may quote would have to come from one place. That is a redesign of the prose, not a gate, and doing it badly would create the second-source-of-truth problem this repository already rejected once for the routing table. Recorded with the proof rather than glossed: prose numbers remain unverified by design, and the ledger entry is the honest statement of that limit."
+                     },
+                     {
+                         "id":  "F-137",
+                         "title":  "A line-count rule now has three copies, and a measurement in a code comment is still unchecked",
+                         "where":  "tooling/verify-all.ps1:116, measure-context.ps1:34, workspace-sync.ps1:133",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Both were proven: three `Get-LineCount`-style helpers exist, and a planted script whose comment said \"prints 12 rows\" while printing 3 passed the whole audit. Neither is cheap to fix well. One helper means a shared module that every script must dot-source, which adds a load-order failure mode to nine scripts for eleven saved lines. Checking comments against behaviour means either executing them or parsing them, and a parser that is wrong is worse than no parser. The duplication is now named here so the next round does not rediscover it as new."
+                     },
+                     {
+                         "id":  "F-138",
+                         "title":  "An unguarded read was added to the audit by this round and caught by the audit itself",
+                         "where":  "tooling/verify-all.ps1 section 9d",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 6",
+                         "note":  "Section 1c flagged the new `ReadAllText` on the first run of section 9d: `ISSUE unguarded read can report a stale value`. Fixed with a try/catch that skips the tag and reports the failure, and the section then ran clean. Recorded because it is the one instance in this round of a gate catching code written by the same round.",
+                         "evidence":  "ec32a90"
                      }
                  ]
 }
