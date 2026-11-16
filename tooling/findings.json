@@ -1469,6 +1469,15 @@
                          "verified_by":  "deep audit v5 2026-11-16 loop 2",
                          "note":  "With F-164 fixed, the gate stopped reporting v0.9.1 as damaged. Checking the raw tag object settled which reading was right: 3,921 bytes, one clean UTF-8 em dash E2 80 94, zero U+0E42 sequences, zero U+0E42 in the UTF-8 decoding. The declaration claiming a cp874-damaged em dash on line 54 was itself the same cp874 decoding false positive, not a real immutable defect. It would have recorded a false fact and suppressed a future genuine report for that tag. Removed the entry; the declaration list is empty and the gate handles that shape (F-082 established the same for published_skills). No tag was rewritten.",
                          "evidence":  "c420604"
+                     },
+                     {
+                         "id":  "F-166",
+                         "title":  "The ledger still asserted the false v0.9.1 mojibake measurement after F-165 disproved it",
+                         "where":  "tooling/findings.json:1177 (F-133) vs :1465 (F-165)",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit v5 2026-11-16 loop 3 fresh-context verifier",
+                         "note":  "Fresh-context verifier at the three-loop CAP found the F-133 entry still stating \"Measured: the v0.9.1 annotation contains U+0E42 U+20AC U+201D on line 54\" while F-165 proved, from the raw 3,921-byte tag object (one clean E2 80 94, zero U+0E42), that the reading was a cp874 decoding artifact. No superseded marker existed anywhere in the ledger. Fixed by rewriting the F-133 title and note to record the correction while preserving the still-valid reason section 9d was added for; evidence commits ec32a90 (original gate) and c420604 (F-165). Per the Phase 4 CAP this finding was reported to the user as a residual and fixed only after the user chose option 1. No tag was rewritten and no release artifact was changed.",
+                         "evidence":  "8992e91"
                      }
                  ]
 }
