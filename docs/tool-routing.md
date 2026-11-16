@@ -90,3 +90,16 @@ Rules that keep this list honest:
 - Re-measure the sizes when a skill is upgraded. `tooling/measure-context.ps1 -Detail full` prints
   every skill's injected size, and section 2 of `verify-all.ps1` prints each skill's body size on
   disk — the two are different numbers on purpose.
+
+### A `.md` name inside a skill usually means a sibling skill, not a file
+
+The `arc-mcp/arc-1` skills were written as flat `.md` files in one directory and the installer turns
+each into a folder with a `SKILL.md`. So `convert-ui5-to-fiori-elements` says "pick
+`modernize-ui5-app.md` instead", and no such file exists — the skill is the folder
+`~/.agents/skills/modernize-ui5-app/`. Measured 2026-11-16: 10 such mentions across 3 skills
+(`convert-ui5-to-fiori-elements` 8, `modernize-ui5-app` 1, `migrate-segw-to-rap` 1), naming 4
+distinct sibling skills, and zero files matching any of them.
+
+Read `<name>.md` as "the skill called `<name>`" and open its `SKILL.md`. Do not treat the missing
+file as a broken install: editing the skill to fix it would be overwritten on the next update, so it
+is recorded here instead.

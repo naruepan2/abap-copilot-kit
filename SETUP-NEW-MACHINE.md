@@ -37,7 +37,7 @@ $env:ABAP_KIT_ROOT = 'D:\abap-copilot-kit'
 ```
 
 The kit has no package version and no lockfile. Releases are **annotated git tags**
-(`git tag` lists them), so `git pull` is the update and `git checkout v0.9.4.2` is the way back
+(`git tag` lists them), so `git pull` is the update and `git checkout v0.9.4.3` is the way back
 to a known-good state when a pull regresses something.
 
 ## 3. Install kit files (agents, tooling, skills, hooks)

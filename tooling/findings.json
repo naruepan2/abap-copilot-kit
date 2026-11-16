@@ -983,6 +983,42 @@
                          "verified_by":  "deep audit 2026-11-16 round 3",
                          "reason":  "Measured: 15 and 28 copies in the toolkit-owned loader roots. Both paragraphs sit in agent and skill bodies, which load only when that agent or skill runs; the always-on budget is name+description and is unaffected. Removing them would mean editing files the next npx skills or toolkit upgrade overwrites, for a saving that materialises only during those runs. Left to the packages that own them.",
                          "note":  "Accepted on purpose. See reason."
+                     },
+                     {
+                         "id":  "F-112",
+                         "title":  "A lock-tracked skill refers to two skills that exist in no loader root",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\caveman\\SKILL.md:14",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 3",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: ultracave and megacave are absent from all 69 skill folders across the three loader roots. The line is \"/caveman ultra and /caveman wenyan are aliases: follow the ultracave or megacave skill instead of this one\", so the aliases point at nothing and a reader asking for ultra is told to load a skill that cannot load. Not fixed here because .skill-lock.json records the skill as coming from JuliusBrussee/caveman: an edit is overwritten by the next npx skills update, so it belongs upstream. Reported rather than silently patched. The routing doc now states the flat-name convention that causes the neighbouring case."
+                     },
+                     {
+                         "id":  "F-113",
+                         "title":  "Ten sibling-skill references name a .md file that does not exist because the installer flattens files into folders",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\convert-ui5-to-fiori-elements\\SKILL.md:16,24,35,989",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 3",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: 10 backticked \u003cname\u003e.md mentions across 3 skills resolve to a sibling skill folder and to no file - convert-ui5-to-fiori-elements 8, modernize-ui5-app 1, migrate-segw-to-rap 1, naming 4 distinct skills. Upstream these are flat files in one directory, so the text is correct in its own repository and stale only as installed. All three are lock-tracked from arc-mcp/arc-1, so an edit is lost on update. Recorded in docs/tool-routing.md instead, which is where an agent looks after loading one of them."
+                     },
+                     {
+                         "id":  "F-114",
+                         "title":  "create-arc1-extension points at ../../../docs_page/extensions.md, which resolves outside every loader root and does not exist",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\create-arc1-extension\\SKILL.md:14,191,240",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 3",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: the relative path resolves to C:\\Users\\narue\\.agents\\docs_page\\extensions.md and C:\\Users\\narue\\docs_page does not exist either. Three lines point at it, including one labelled \"point the developer here\", so the named documentation is unreachable from the machine that installed the skill. Lock-tracked from arc-mcp/arc-1: an edit is overwritten by the next update, so this is reported for upstream rather than patched locally."
+                     },
+                     {
+                         "id":  "F-115",
+                         "title":  "sap-abap-cds is GPL-3.0 while every other installed skill is unlicensed or permissive - a licence the owner has not reviewed",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\sap-abap-cds\\SKILL.md:4",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 3",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: the only GPL-3.0 skill across 69, with maintainer metadata pointing at sap-ai-skills.com. It is also the one skill with a references folder that is not lock-tracked, so it is the editable copy. Whether a copyleft licence is acceptable for text that is loaded into a closed internal assistant is a decision for the owner, not a defect this audit can fix - and deleting or relicensing a third-party file would be worse than surfacing it. Flagged once, deliberately without a recommendation."
                      }
                  ]
 }
