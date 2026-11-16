@@ -2201,6 +2201,112 @@ if (-not $repoOk) {
     }
 }
 
+Line '10b. Pre-release change logs name a baseline that exists'
+# Before a TR is released SAP has no version to roll back to. changes.md is the AI's control plane
+# and .baseline/ is the data plane. A row that names a missing file is worse than no row: the AI
+# reads the description, concludes it knows the state, and writes from a guess. A baseline left
+# after release is the opposite failure - stale source nobody dares delete. Both fail here.
+$logRows = 0
+$logBad = 0
+$logSeen = 0
+$preReleaseLogs = @()
+$projectsRoot = if ($REPO) { Join-Path $REPO 'Projects' } else { $null }
+if ($projectsRoot -and (Test-Path -LiteralPath $projectsRoot)) {
+    $preReleaseLogs = @(Get-ChildItem -LiteralPath $projectsRoot -Recurse -File -Filter 'changes.md' -ErrorAction SilentlyContinue)
+}
+foreach ($log in $preReleaseLogs) {
+    $logSeen++
+    $logLines = @()
+    try { $logLines = @([System.IO.File]::ReadAllLines($log.FullName, [System.Text.Encoding]::UTF8)) }
+    catch {
+        Write-Output ('  ISSUE   cannot read ' + $log.FullName + ': ' + $_.Exception.GetType().Name)
+        $logBad++
+        continue
+    }
+    $headerLine = @($logLines | Where-Object { $_ -match '^\|' -and $_ -match 'Baseline' } | Select-Object -First 1)
+    if ($headerLine.Count -eq 0) {
+        Write-Output ('  ISSUE   ' + $log.FullName + ' has no Baseline column')
+        $logBad++
+        continue
+    }
+    $columns = @($headerLine[0].Split('|') | ForEach-Object { $_.Trim() })
+    $ci = @{}
+    for ($i = 0; $i -lt $columns.Count; $i++) { if ($columns[$i]) { $ci[$columns[$i]] = $i } }
+    # An empty log written from an older template has no rows to interpret and no baseline to
+    # protect. Forcing a schema migration on a file nobody has activated yet would make this gate
+    # fail for cosmetic reasons; the columns are required once a real row exists.
+    $dataLines = @($logLines | Where-Object { $_ -match '^\s*\|\s*\d+\s*\|' })
+    if ($dataLines.Count -eq 0) {
+        $baselineDir = Join-Path $log.DirectoryName '.baseline'
+        if (Test-Path -LiteralPath $baselineDir) {
+            foreach ($bf in (Get-ChildItem -LiteralPath $baselineDir -File -Filter '*.abap' -ErrorAction SilentlyContinue)) {
+                Write-Output ('  ISSUE   baseline in an empty change log: ' + $bf.FullName)
+                $logBad++
+            }
+        }
+        continue
+    }
+    $missingColumns = @('TR state', 'Baseline', 'Version', 'What', 'Why') | Where-Object { -not $ci.ContainsKey($_) }
+    if ($missingColumns.Count -gt 0) {
+        Write-Output ('  ISSUE   ' + $log.FullName + ' lacks column(s): ' + ($missingColumns -join ', '))
+        $logBad++
+        continue
+    }
+    $referenced = @{}
+    foreach ($line in $logLines) {
+        # A placeholder row starts with an em dash, not a number. It is not a change record.
+        if ($line -notmatch '^\s*\|\s*\d+\s*\|') { continue }
+        $cells = @($line.Split('|'))
+        $state = $cells[$ci['TR state']].Trim()
+        if ($state -ne 'open') { continue }
+        $logRows++
+        $what = $cells[$ci['What']].Trim()
+        $why = $cells[$ci['Why']].Trim()
+        $version = $cells[$ci['Version']].Trim()
+        $baseCell = $cells[$ci['Baseline']].Trim() -replace '^`', '' -replace '`$', ''
+        $label = $log.FullName.Replace($REPO + '\', '')
+        if ($what -match '^(bug fix|extension|change request)$' -or $what -eq '' -or $why -eq '') {
+            Write-Output ('  ISSUE   ' + $label + ' row has no real What/Why description')
+            $logBad++
+        }
+        if ($version -notmatch '^v\d+$') {
+            Write-Output ('  ISSUE   ' + $label + ' row has an invalid Version: ' + $version)
+            $logBad++
+        }
+        if ($baseCell -eq '' -or $baseCell -match '^[—-]+$') {
+            Write-Output ('  ISSUE   ' + $label + ' open row has no baseline path')
+            $logBad++
+            continue
+        }
+        if ($baseCell -notmatch '\.abap$') {
+            Write-Output ('  ISSUE   ' + $label + ' baseline is not an .abap path: ' + $baseCell)
+            $logBad++
+            continue
+        }
+        $baseFull = if ([System.IO.Path]::IsPathRooted($baseCell)) { $baseCell } else { Join-Path $log.DirectoryName $baseCell }
+        if (-not (Test-Path -LiteralPath $baseFull)) {
+            Write-Output ('  ISSUE   ' + $label + ' baseline missing: ' + $baseCell)
+            $logBad++
+            continue
+        }
+        $referenced[$baseFull.ToLower()] = $true
+    }
+    $baselineDir = Join-Path $log.DirectoryName '.baseline'
+    if (Test-Path -LiteralPath $baselineDir) {
+        foreach ($bf in (Get-ChildItem -LiteralPath $baselineDir -File -Filter '*.abap' -ErrorAction SilentlyContinue)) {
+            if (-not $referenced.ContainsKey($bf.FullName.ToLower())) {
+                Write-Output ('  ISSUE   stale baseline after release or row removal: ' + $bf.FullName)
+                $logBad++
+            }
+        }
+    }
+}
+if ($logBad -eq 0) {
+    Write-Output ("  {0} change log(s), {1} open row(s), every baseline present and no stale file" -f $logSeen, $logRows)
+}
+Ran 'pre-release-log' $logRows
+Note 'ISSUE' $logBad
+
 Line '11. Every file on disk is inventoried, or says why it is not'
 # The structural defect behind seven rounds of point-by-point fixing: a defect can only be found in an
 # artifact somebody remembered to look at. Measured 2026-11-16, 161 files existed in this machine's
