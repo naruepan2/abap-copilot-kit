@@ -406,9 +406,9 @@ git tag -a v0.10.0 -F notes.txt     # notes.txt becomes the tag message
 git push origin v0.10.0
 ```
 
-The tag message is **not** the release body, and the gap has been measured: six of the ten tags in
-this repository carry a one-line subject instead of their notes file, and the notes are pasted into
-the GitHub release form by hand. `C:\Users\<you>\.copilot\backups\release-notes-<tag>.md` is the
+The tag message is **not** the release body, and the gap has been measured: five of the twelve tags
+in this repository carry a one-line subject instead of their notes file, and the notes are pasted
+into the GitHub release form by hand. `C:\Users\<you>\.copilot\backups\release-notes-<tag>.md` is the
 copy of record; the tag is the immutable pointer. Section 9d of the audit compares the two and
 fails when a tag subject disagrees with its notes heading.
 

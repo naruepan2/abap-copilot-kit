@@ -8,7 +8,7 @@
 ## 0. What "done" looks like
 
 - `~/.agents/skills` = `ponytail`, `ponytail-review`, `caveman` + the ABAP hand-installed set (§6),
-  and none of the eight in §7's delete list.
+  and none of the nine in §7's delete list (5 caveman + 1 toolkit + 3 mattpocock).
 - `~/.copilot/skills` = 18 folders: the 13 toolkit skills still live + the 5 kit skills from §3.
   The other 11 toolkit skills sit in `~/.copilot/skills-disabled/` (§7) - a fresh install puts all
   24 live, so 18 is only true after that step.
