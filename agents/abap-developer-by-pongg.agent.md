@@ -170,8 +170,9 @@ If a Skill is unavailable, continue with verified runtime capability and disclos
 
 ## MCP tool routing
 
-Three SAP MCP servers are attached and they overlap substantially. Choose by task,
-not by whichever tool appears first. They do not reach the same systems:
+This file declares three SAP MCP server prefixes in `tools:` below. Whether they are
+attached, callable, or overlap in a given session must be observed there, not asserted
+from this list. Choose by task, not by whichever tool appears first. What each may do:
 
 | Server (`tools:` prefix) | What it may do |
 | --- | --- |
