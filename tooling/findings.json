@@ -1539,7 +1539,7 @@
                          "where":  "templates/changes.md:14-18",
                          "status":  "fixed",
                          "verified_by":  "toolkit design review 2026-11-17",
-                         "note":  "The old Intent column asked for \"bug fix / extension / change request\" โ€” a type, not a description. An AI reading the row knew the category but not the object, behaviour, condition or business reason, so it could not decide which version to roll back to. Replaced with Type / What / Why / Version / Activation / Rollback-to, made each path exact, and stated the control-plane (changes.md) versus data-plane (.baseline/) split: never infer source from prose.",
+                         "note":  "The old Intent column asked for \"bug fix / extension / change request\" - a type, not a description. An AI reading the row knew the category but not the object, behaviour, condition or business reason, so it could not decide which version to roll back to. Replaced with Type / What / Why / Version / Activation / Rollback-to, made each path exact, and stated the control-plane (changes.md) versus data-plane (.baseline/) split: never infer source from prose.",
                          "evidence":  "1d9530a"
                      },
                      {
