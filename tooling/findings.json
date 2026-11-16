@@ -1175,11 +1175,11 @@
                      },
                      {
                          "id":  "F-133",
-                         "title":  "A released tag carried mojibake that no file scan can reach, and the audit had no way to report an artifact that cannot be repaired",
+                         "title":  "A released tag was reported as carrying mojibake by a gate that mis-decoded its UTF-8 annotation",
                          "where":  "tag v0.9.1 line 54",
                          "status":  "fixed",
                          "verified_by":  "deep audit 2026-11-16 round 6",
-                         "note":  "Measured: the v0.9.1 annotation contains U+0E42 U+20AC U+201D on line 54 - the same cp874 damage as F-126, in a git object rather than a file. A tag is an immutable pointer, so rewriting it would make v0.9.1 mean two things at two times. New section 9d scans tag annotations for the same damage and compares each tag with its notes file; a tag listed in `immutable_tag_damage` in removed-on-purpose.json is reported as a NOTE with the reason instead of failing for ever, which is the mechanism section 2b already uses for a skill deleted on purpose.",
+                         "note":  "Historical, partly superseded by F-165. The 2026-11-16 round-6 measurement claimed U+0E42 U+20AC U+201D on v0.9.1 line 54; deep audit v5 proved that reading was an artifact of [Console]::OutputEncoding = windows-874 decoding git native output as cp874. Raw tag object: 3,921 bytes, one clean UTF-8 em dash E2 80 94, zero U+0E42. Section 9d itself remains valid and useful - it scans tag annotations and compares each with its notes file; with the scoped UTF-8 read in ad044cd (F-164) it now distinguishes real damage from a decoding artifact. The false immutable_tag_damage declaration was removed in c420604 (F-165). No tag was rewritten. Evidence for the original gate work: ec32a90; evidence for the correction: c420604.",
                          "evidence":  "ec32a90"
                      },
                      {
