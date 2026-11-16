@@ -74,18 +74,41 @@ read-only until a human adds it to the roster.
 Route → gate → capture → promote:
 
 ```mermaid
-flowchart TD
-    U[request] --> A[agent: route · evidence · safety gates]
-    A -->|read-only, allowlisted| D[subagent: own context]
-    A --> L[finding still in context]
-    D --> L
-    L -->|capture-lesson| G{HUMAN APPROVAL<br/>exact diff}
-    G --> M[user memory: loaded every request]
-    G --> P[repo memory: read on demand]
-    G --> F[agent / skill rule]
-    G --> X[nothing: ephemeral]
-    classDef gate fill:#fff3cd,stroke:#b8860b,color:#000
-    class G gate
+flowchart LR
+    U(["Your request"]) --> A["ABAP Developer<br/>route · evidence · safety"]
+
+    subgraph SESSION["In this session"]
+        direction TB
+        A --> W["Work: read, change, verify"]
+        W --> L["Finding worth keeping<br/>still in context"]
+    end
+
+    subgraph DELEGATE["Optional: read-only subagents"]
+        direction TB
+        D1["reverse engineering"]
+        D2["SE38 replay"]
+        D3["ST22 dump"]
+    end
+    A -.->|"allowlisted only"| DELEGATE
+    DELEGATE --> L
+
+    L --> C["capture-lesson<br/>choose by half-life"] --> H{"HUMAN GATE<br/>exact diff + approval"}
+
+    subgraph STORE["Durable homes"]
+        direction TB
+        M["User memory<br/>every request"]
+        P["Repo memory<br/>on demand"]
+        R["Agent / skill rule<br/>routing or safety"]
+    end
+    H -->|"approve"| STORE
+    H -->|"decline"| X["Nothing — ephemeral"]
+
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#000,stroke-width:2px
+    classDef mem fill:#e8f4ff,stroke:#2f6fa8,color:#000
+    classDef task fill:#eef7ee,stroke:#3a7d3a,color:#000
+    class H gate
+    class M,P,R mem
+    class A,W task
 ```
 
 Both memory layers stay **outside** this repository: user memory in the VS Code user data folder,
