@@ -1,15 +1,20 @@
 # abap-copilot-kit
 
-A reproducible VS Code Copilot setup for SAP/ABAP work. Three rules:
+A reproducible VS Code Copilot setup for SAP/ABAP work, built around three habits:
 
-1. **One task, one MCP server.** Routing is per task, not a global priority list.
-2. **Never guess.** Environmental claims need a tool result from this session.
-3. **You decide.** The agent proposes; you approve every file edit.
+1. **One task, one MCP server.** Route by task instead of keeping a global priority list — a
+   ranking gets ignored the moment its top pick can't do the job.
+2. **Never guess.** If it's about the environment, show the tool result from this session. A
+   clearly labelled hypothesis is fine; a guess stated as fact isn't.
+3. **You decide.** The agent spots drift and suggests changes. You approve each edit.
 
-Servers update and installers rewrite agents. This kit is built to stay correct when that happens.
+SAP tooling moves fast: servers update, extensions add tools, installers rewrite their agents.
+This kit is built to stay honest through all of that, rather than piling up instructions that were
+true once.
 
-**Windows only:** Windows Credential Manager, `%USERPROFILE%` paths, PowerShell 5.1. Agent,
-skill and hook files are portable; the tooling is not.
+**Windows only:** credentials live in Windows Credential Manager, paths use `%USERPROFILE%`, and
+the scripts run on PowerShell 5.1. The agent, skill and hook files themselves are portable; the
+tooling is not.
 
 **Contents:** [What is here](#what-is-here) · [Read first](#one-fact-worth-reading-before-anything-else) ·
 [Hooks](#hooks) · [Design](#design-in-one-diagram) · [Install](#install) ·
@@ -38,35 +43,37 @@ Projects/          local notebook, gitignored, mirrored to a private repository
 
 ## One fact worth reading before anything else
 
-**SAP connections are user-scoped, not workspace-scoped.** MCP servers live in
-`%APPDATA%\Code\User\mcp.json`; ABAP FS and ADT endpoints live in user `settings.json`.
-Opening a folder selects nothing — several systems may be reachable at once.
+**SAP connections belong to the user, not the workspace.** MCP servers live in
+`%APPDATA%\Code\User\mcp.json`; ABAP FS and ADT endpoints live in your user `settings.json`.
+Opening a folder changes nothing — several systems can be reachable at the same time.
 
-A folder named after a project is documentation, not isolation. Confirm the system and client
-explicitly before every read or write. A workspace `.mcp.json` would pin them, but only by
-duplicating the server config; this kit deliberately does not. `AGENTS.md` repeats the warning
-for the agent.
+So a folder named after a project is a label, not a fence. Say the system and client out loud
+before reading or writing anything. A workspace `.mcp.json` *would* pin them down, but it means
+copying the whole server config, so this kit deliberately leaves that alone. `AGENTS.md` says the
+same thing to the agent.
 
 ## Hooks
 
-Detection only: no hook edits an agent, skill or config. All three live in one file,
-`~/.copilot/hooks/hooks.json` (Copilot CLI format: `version: 1`, camelCase events, one
-`{"type":"command","command":"…"}` entry each). Separate per-event files do not load.
+All three hooks only watch. None of them touches an agent, skill or config file. They share one
+file, `~/.copilot/hooks/hooks.json` (Copilot CLI format: `version: 1`, camelCase event names, one
+`{"type":"command","command":"…"}` entry per event). One file per event doesn't work — the loader
+wants a single top-level `hooks` object.
 
-| Event | Script | Effect |
+| Event | Script | What happens |
 | --- | --- | --- |
-| `sessionStart` | `session-drift.cjs` | reports changes in agents, skills, MCP servers and tool counts |
-| `subagentStart` | `subagent-rules.cjs` | adds namespace/evidence rules; restricts agents not in `roster.json` |
-| `postToolUseFailure` | `lesson-capture.cjs` | appends one evidence row per failed call |
+| `sessionStart` | `session-drift.cjs` | tells you what changed in agents, skills, MCP servers and tool counts |
+| `subagentStart` | `subagent-rules.cjs` | prepends namespace/evidence rules; locks out agents missing from `roster.json` |
+| `postToolUseFailure` | `lesson-capture.cjs` | writes one evidence row per failed call |
 
-A context-injecting hook must answer `{"hookSpecificOutput":{"hookEventName":"<event>",
-"additionalContext":"…"}}`; top-level `additionalContext` is ignored.
+A hook that injects context has to reply as
+`{"hookSpecificOutput":{"hookEventName":"<event>","additionalContext":"…"}}` — a top-level
+`additionalContext` gets dropped.
 
-> Hooks are a preview feature. Confirm one fires before relying on it — for `sessionStart`,
-> a new `takenAt` in `~/.copilot/state/surface.json` is the proof.
+> Hooks are still a preview feature, so don't take one on faith. For `sessionStart`, a fresh
+> `takenAt` in `~/.copilot/state/surface.json` is your proof that it fired.
 
-The subagent hook matters because delegated agents run in their own context. A new agent is
-read-only until a human adds it to the roster.
+The subagent hook exists because a delegated agent runs in its own context: it can't see the main
+agent's rules. Until a human adds a new agent to the roster, it stays read-only.
 
 
 ## Design in one diagram
@@ -111,82 +118,90 @@ flowchart LR
     class A,W task
 ```
 
-Both memory layers stay **outside** this repository: user memory in the VS Code user data folder,
-repo memory per workspace. A copy here would be a second copy nothing loads.
+Both memory layers live **outside** this repository: user memory in the VS Code user data folder,
+repo memory in each workspace. Copying them in here would just give you a second version that
+nothing reads.
 
-Capture is a **skill**, not a hook: `postToolUseFailure` has never produced a ledger in this
-harness, so the loop runs while the finding is still in context.
+Capture is a **skill** rather than a hook on purpose: `postToolUseFailure` has never once produced
+a ledger in this harness, so the loop runs while the finding is still fresh in context.
 
 ## Install
 
-Two scripts do the mechanical work; the remaining steps need a real value or a decision.
+Let the scripts handle the mechanical part. What's left needs your judgement or a real value.
 
 ### Install and check
 
 ```powershell
-powershell -File tooling\install-kit.ps1 -Check     # preview
+powershell -File tooling\install-kit.ps1 -Check     # preview only
 powershell -File tooling\install-kit.ps1           # copy what is missing
 powershell -File tooling\verify-all.ps1            # is anything wrong?
-powershell -File tooling\census.ps1                # what exists, and what no gate reads?
+powershell -File tooling\census.ps1                # what's here, and what no gate reads?
 ```
 
-`install-kit.ps1` copies agents, tooling and this kit's five skills. It is idempotent and refuses
-to overwrite a differing live file — `-Force` only after you decide the clone is newer. The kit
-root comes from `$env:ABAP_KIT_ROOT`, then a `kit-root.txt` pin, then the parent of `tooling\`.
+`install-kit.ps1` copies agents, tooling and this kit's five skills. It's safe to re-run, and it
+won't overwrite a live file that differs — use `-Force` once you're sure the clone is the newer
+one. It finds the kit root via `$env:ABAP_KIT_ROOT`, then a `kit-root.txt` pin from an earlier run,
+then simply the parent of `tooling\`.
 
-Both checks are read-only and exit non-zero on a problem. `verify-all` prints `SKIP` with a reason
-when it cannot evaluate a check; `census` inventories every artifact and flags files no row
-accounts for. The census matters: earlier rounds reported clean while six backup files outside
-the repository held internal hostnames, because no `git ls-files` check could reach them. Add
-`-Detail full` to either script for per-file output.
+Both checks only read things, and both exit non-zero when something's off. `verify-all` prints
+`SKIP` with a reason rather than pretending to pass. `census` lists every artifact the kit owns
+or leans on, and names files nothing accounts for — worth running because earlier rounds looked
+clean while six backup files outside the repository quietly held internal hostnames, out of reach
+of any `git ls-files` check. Add `-Detail full` to either script for the full list.
 
 ### Steps
 
-**1–3. Agents, skills, roster.** Copy `agents/*.agent.md` → `~/.copilot/agents/`,
-`skills/*/` → `~/.copilot/skills/`, `roster.json` → `~/.copilot/roster.json`. Start a new chat
-so skills load. An agent absent from the roster is not delegatable. `install-kit.ps1` can do
-all three (it enumerates folders, so a new skill needs no edit here).
+**1–3. Agents, skills, roster.** Move `agents/*.agent.md` into `~/.copilot/agents/`,
+`skills/*/` into `~/.copilot/skills/`, and `roster.json` into `~/.copilot/roster.json`. Skills
+only load in a fresh chat, so open one after copying. If an agent isn't on the roster, it's not
+delegatable — that's the point. `install-kit.ps1` does all three for you, and it walks the folder,
+so a skill added later needs no change here.
 
-**4. MCP servers.** Copy `config-templates/mcp.json.template` → `%APPDATA%\Code\User\mcp.json`
-and replace each `{{PLACEHOLDER}}`. The template is JSONC; strip comments if your editor objects.
+**4. MCP servers.** Copy `config-templates/mcp.json.template` to `%APPDATA%\Code\User\mcp.json`
+and fill in every `{{PLACEHOLDER}}`. It's JSONC, so drop the comments if your editor complains.
 
-**5. Credentials — one password, both clients.** Do not put a password in the config: the Copilot
-CLI has no Quick Input and its folder is readable by another group. Name a connection instead:
+**5. Credentials — one password, both clients.** Keep the password out of the config file: the
+Copilot CLI has no Quick Input, and on Windows its config folder is readable by another group.
+So you name a connection rather than type credentials into JSON:
 
 ```powershell
 tooling\sap-connection.ps1 -Add -Name dev-110 -Url https://host:44381 -Client 110 -User <sap user>
 powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key dev-110_SAP_PASSWORD
 ```
 
-`-Set` stores the value in Windows Credential Manager. Point both harnesses at the launcher in
-`config-templates/mcp-config.template.json` (key `mcpServers` for the CLI, `servers` for VS Code);
-the password never appears in either config. Keep policy variables (`SAP_ALLOW_WRITES`,
-`SAP_ALLOWED_PACKAGES`, …) in `env` and do not duplicate `SAP_URL`/`SAP_USER` — audit checks both
-files for that drift.
+`-Set` asks once, then stores it in Windows Credential Manager. Point both harnesses at the
+launcher from `config-templates/mcp-config.template.json` (`mcpServers` for the CLI, `servers`
+for VS Code) and neither config ever sees the password. Leave the policy switches
+(`SAP_ALLOW_WRITES`, `SAP_ALLOWED_PACKAGES`, …) in `env`, and don't set `SAP_URL` or `SAP_USER`
+twice — the audit watches both files for exactly that.
 
-Always name the interpreter by **absolute path** in spawned processes: a bare `powershell` fails
-with `ENOENT` under a trimmed `PATH`, and the only symptom is that the server's tools never appear.
-Scripts use `$PSHOME` for the same reason. Typing `powershell` in your own terminal is fine.
+When a script spawns a process, give the interpreter its **full path**. A bare `powershell`
+fails with `ENOENT` under a trimmed `PATH`, and all you'll notice is that the server's tools
+never show up. The scripts themselves use `$PSHOME` for this reason. (Typing `powershell` in
+your own shell is fine.)
 
-At start, `sap-auth-probe.js` (run through `node`) checks the stored password: `OK` starts;
-`STALE` opens the native Windows credential dialog and probes again; `UNKNOWN` (network/TLS fault)
-reports once and starts anyway — a network fault is not a bad password. The dialog is bounded by
-`-PromptTimeoutSec` (default 180).
+On startup `sap-auth-probe.js` (run through `node`) asks SAP whether the stored password still
+works. `OK` starts normally. `STALE` opens the native Windows prompt, saves the new value and
+tries once more. `UNKNOWN` — network, TLS, server down — says so once and starts anyway,
+because a broken network isn't a bad password. The prompt gives up after `-PromptTimeoutSec`
+(default 180 seconds).
 
-**6–7. Settings and profile (optional).** Merge `config-templates/settings.json.template` into
-your `settings.json` (never paste over it). Optionally copy `memory-templates/user-profile.md` to
-your Copilot memory folder — keep it short; user memory loads every request.
+**6–7. Settings and profile (optional).** Fold `config-templates/settings.json.template` into
+your own `settings.json` — merge, don't overwrite. You can also copy
+`memory-templates/user-profile.md` into your Copilot memory folder; keep it short, because user
+memory loads on every single request.
 
-**8. Workspace contract (optional).** Opening this repo as a workspace loads `AGENTS.md` into
-every request. Drop it if you use the repo only as a source of files to copy.
+**8. Workspace contract (optional).** If you open this repository as a workspace folder,
+`AGENTS.md` rides along into every request. Just delete it if all you want is the files.
 
-**9. Hooks (optional).** Copy `hooks/*.cjs` to `~/.copilot/hooks/`, then
-`hooks/hooks.json.template` to `hooks.json`, replacing `{{COPILOT_HOME}}`. Check syntax with
-`node --check <file>` and test one event at a time before enabling the next.
+**9. Hooks (optional).** Copy `hooks/*.cjs` into `~/.copilot/hooks/`, then rename
+`hooks/hooks.json.template` to `hooks.json` and replace `{{COPILOT_HOME}}`. Run
+`node --check <file>` on each script, and turn events on one at a time so you know which one
+actually fires.
 
 ### Skills without cloning
 
-With collaborator access, the CLI installs just the skills:
+If you have access to the private repo, the CLI can install just the skills:
 
 ```powershell
 npx skills add naruepan2/abap-copilot-kit -s capture-lesson -g
@@ -207,35 +222,37 @@ Agents, tooling and templates still come from the clone.
 | `Projects/_routing.local.md` | which server reaches which system, and which client is authorized |
 | Live `hooks/*.json` | machine-specific absolute paths |
 
-**No tracked file names a customer, host or user.** The routing table in the agent says what each
-server *may do* and points to gitignored `Projects/_routing.local.md` for the machine-specific
-mapping; the agent reads it before its first SAP call. Audit section 9 derives sensitive patterns
-from the gitignored connection store at run time and scans history as well as the working tree —
-because a working-tree-only scan missed such a leak for sixteen commits. One-off values go in
-`tooling/verify-patterns.local.txt` (gitignored, one per line).
+**No tracked file names a customer, host or user.** The agent's routing table only says what
+each server is *allowed* to do; the machine-specific mapping lives in gitignored
+`Projects/_routing.local.md`, which the agent reads before its first SAP call. The audit pulls
+sensitive patterns from your gitignored connection store at run time and checks history as well
+as the working tree — a scan that only looks at the working tree once missed this kind of leak
+for sixteen commits. Anything one-off goes in `tooling/verify-patterns.local.txt` (gitignored,
+one value per line).
 
-Rule of thumb: **anything identifying a customer, system, person or session belongs in a gitignored
-file; the tracked file only says where to find it.**
+The rule is simple: **if a value could identify a customer, system, person or session, it goes in
+a gitignored file — and the tracked file just says where to look.**
 
-A fresh clone gives you the files above plus `AGENTS.md`, `INDEX.md`, `templates/` and
-`Projects/README.md` — not a working SAP connection, memory, or project records. Run `git ls-files`
-for the exact list; counts in prose go stale.
+A fresh clone gives you everything above plus `AGENTS.md`, `INDEX.md`, `templates/` and
+`Projects/README.md`. It won't give you a working SAP connection, memory, or project records —
+those are per-machine. If you want the exact file list, ask `git ls-files`; numbers written in
+prose have a habit of going stale.
 
 ## Where a program's contract is backed up
 
-`Projects\<PROJECT>\<PROGRAM>` is gitignored because it carries customer identifiers — and that
-means the contract has no history and no off-machine copy. `tooling/workspace-sync.ps1` mirrors it
-into a second private repository, by **allowlist**:
+`Projects\<PROJECT>\<PROGRAM>` is gitignored because it holds customer identifiers — which also
+means the contract had no history and no copy off the machine. `tooling/workspace-sync.ps1` fixes
+that by mirroring it into a second private repository, using an **allowlist**:
 
 | Mirrored | Never mirrored |
 | --- | --- |
 | `README.md`, `project.yaml`, `program.yaml`, `changes.md` | `spec\source\**` — the functional's document |
 | `spec\INDEX.md`, `spec\notes.md`, `spec\spec.md`, `spec\CHANGELOG.md` | `.baseline\**` — captured customer source |
-| `manifest.json` (sha256, bytes, lines) | any file the script does not name |
+| `manifest.json` (sha256, bytes, lines) | anything else |
 
-An allowlist means a new file type is not mirrored until a human names it — nothing leaks
-by default. The spec is excluded but its integrity is watched: `program.yaml` stores `spec_lines`
-and `spec_bytes`, and `-Check` flags a mismatch when a new document arrives.
+An allowlist means a file type nobody has named yet simply isn't mirrored — so nothing leaks by
+default. The spec itself stays out, but its integrity is still watched: `program.yaml` records
+`spec_lines` and `spec_bytes`, and `-Check` raises a flag when a new version shows up.
 
 ```powershell
 tooling\workspace-sync.ps1 -Workspace <clone>            # preview
@@ -243,15 +260,16 @@ tooling\workspace-sync.ps1 -Workspace <clone> -Check     # drift, exit 1 if any
 tooling\workspace-sync.ps1 -Workspace <clone> -Write     # copy and refresh manifest
 ```
 
-Add `-RepoMemory <path>` to mirror per-workspace memory **recursively** — it is a backup, not a
-move; VS Code keeps reading the live folder. Passwords and tokens are refused; customer names are
-expected. Hashing folds CRLF→LF and drops BOM, and the mirror pins `eol=lf`, so an editor's line
-endings do not show up as false drift.
+Use `-RepoMemory <path>` to include per-workspace memory too, **recursively**. It's a backup,
+not a move — VS Code keeps reading the live folder. Passwords and tokens are refused outright;
+customer names are expected there. Hashes fold CRLF→LF and strip any BOM, and the mirror pins
+`eol=lf`, so your editor's line endings never look like real changes.
 
 ## Releasing
 
-No `CHANGELOG.md` on purpose: `git log` is the one home for what changed. An annotated tag carries
-the release notes, written from the commits since the last tag:
+There's no `CHANGELOG.md`, and that's deliberate: `git log` already is the changelog. Instead,
+an annotated tag carries the release notes, which you write straight out of the commits since the
+last tag:
 
 ```powershell
 git log --oneline v0.9.4.9..HEAD    # changes since the last tag
@@ -259,21 +277,22 @@ git tag -a v0.10.0 -F notes.txt
 git push origin v0.10.0
 ```
 
-The tag message is **not** the GitHub release body — paste the notes into the release form too.
-`~/.copilot/backups/release-notes-<tag>.md` is the copy of record; the tag is the immutable pointer.
-Historically several tags carried only a one-line subject, so audit section 9d compares each tag
-with its notes file and reports the mismatch. Never rewrite a released tag — fix forward instead.
+Keep in mind the tag message is **not** the GitHub release body — paste the same notes into the
+release form as well. `~/.copilot/backups/release-notes-<tag>.md` stays the copy of record, while
+the tag is the immutable pointer. A few older tags only ever got a one-line subject, so audit
+section 9d checks every tag against its notes file and calls out mismatches. Once a tag is out,
+never rewrite it — fix forward instead.
 
 ## Adapting it
 
-The parts worth keeping even if you replace everything else:
+If you keep anything from this kit, keep these ideas:
 
-- **An allowlist, not a denylist.** An agent installed tomorrow is not delegatable by default,
-  without anyone needing to notice it appeared.
-- **Ownership by hash.** Compare against the installer's manifest instead of trusting a file
-  name.
-- **Capture separated from action.** Recording a failure writes one line and never edits a rule.
-- **One home per rule.** A duplicated table is a future defect, not redundancy.
+- **An allowlist, not a denylist.** An agent installed tomorrow can't be delegated to until a
+  human says so — nobody has to notice it arrived.
+- **Ownership by hash.** Check against the installer's manifest; file names can lie.
+- **Capture stays separate from action.** Logging a failure writes one line and never rewrites a
+  rule on its own.
+- **One home per rule.** A duplicated table isn't backup — it's a defect waiting to drift.
 
 ## License
 
