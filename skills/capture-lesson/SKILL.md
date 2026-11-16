@@ -40,8 +40,11 @@ and holds only what is true of all work. Project facts belong in repo memory, wh
 demand. When user memory is close to its budget, prefer repo memory even for a general-feeling
 fact.
 
-Ownership check before writing: a file ending `-by-pongg`, or a skill you created, is editable.
-Anything else under `~/.copilot` belongs to its installer and is read-only — say so and stop.
+Ownership is by provenance, not by folder. Editable: a file ending `-by-pongg`, a skill you
+created, and this kit's five skills (`capture-lesson`, `long-task-control`, `mcp-surface-audit`,
+`new-program`, `rap-lifecycle`) — their source of truth is the kit repo, so edit the clone and
+reinstall. Read-only: other installer-owned skills (SAP AI Dev Toolkit) and any other file under
+`~/.copilot` — say so and stop.
 
 ## 3. Require evidence, then write the exact text
 
