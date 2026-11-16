@@ -94,8 +94,8 @@ function classify(agentName, roster) {
         // Carry the entry through whole. The projection to {file, display, role} silently dropped
         // `files` and `displays`, which keys() supports and which the deny list uses - so a
         // delegatable entry written in the sibling shape was classified as not listed and its agent
-        // was RESTRICTED. Section 5/5c of verify-all reads only .file too, so the audit could not see
-        // it either. Measured 2026-11-15 with a roster using files:[...].
+        // was RESTRICTED. Section 5/5c of verify-all used to read only .file too, so the audit
+        // could not see it either (fixed since F-035). Measured 2026-11-15 with files:[...].
         allowed.push({ file: d.file, display: d.display, files: d.files, displays: d.displays, role: d.role || '' });
     }
 

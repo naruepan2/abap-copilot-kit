@@ -2182,7 +2182,7 @@ Line '11. Every file on disk is inventoried, or says why it is not'
 #
 # It is invoked only when this script's own reach is trusted: the census reads verify-all.ps1 to
 # verify that every gate it names really exists, so pointing it at a stale copy would grade the wrong
-# file. The pin is read from state\kit-root.txt; section 4 already compares that file's absence.
+# file. The preamble resolves the pin from state\kit-root.txt; census.ps1 records it as a state row.
 $censusScript = Join-Path $REPO 'tooling\census.ps1'
 if (-not (Test-Path -LiteralPath $censusScript)) {
     Write-Output '  SKIP    census.ps1 not present in this clone - nothing to cross-check'

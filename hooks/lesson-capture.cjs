@@ -187,7 +187,8 @@ function main() {
         fs.mkdirSync(dir, { recursive: true });
         // Unbounded before: every failure appended for ever and the whole file was rewritten each
         // time. Measured 2026-11-16: +71 bytes per event, about 750 KB at 10,000 failures, so the
-        // rewrite cost grew with the ledger's age. Same cap the subagent log already uses.
+        // rewrite cost grew with the ledger's age. The subagent log uses the same kind of cap,
+        // but a smaller one: 64 KB there (subagent-rules.cjs), 256 KB here.
         let next = existing.endsWith('\n') ? existing + row : `${existing}\n${row}`;
         const MAX_BYTES = 256 * 1024;
         if (Buffer.byteLength(next, 'utf8') > MAX_BYTES) {
