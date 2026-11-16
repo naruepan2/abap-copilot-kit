@@ -1451,6 +1451,15 @@
                          "verified_by":  "deep audit v5 2026-11-16",
                          "note":  "Accepted on purpose. See reason.",
                          "reason":  "Graded OPINION, not CONFIRMED: both paths still require the agent one-message confirmation of active agent and exact file path before any edit, so the wording gap changes no outcome. The other three files were corrected in v0.9.4.8; adding a fourth home for the rule increases the drift surface, and R2 fixes only CONFIRMED findings."
+                     },
+                     {
+                         "id":  "F-164",
+                         "title":  "The mojibake gate decoded a clean UTF-8 tag annotation with the machine ANSI code page and reported a false defect",
+                         "where":  "tooling/verify-all.ps1:1884",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit v5 2026-11-16 post-release verification",
+                         "note":  "After publishing v0.9.4.9 the mandatory audit reported \"v0.9.4.9 tag annotation contains mojibake (U+0E42 U+0086 U+2019)\". Raw tag object bytes were clean: three clean U+2192 arrows (E2 86 92), zero damaged sequences, five em dashes. [Console]::OutputEncoding is windows-874 here, so git tag -l --format=%(contents) native output was decoded as cp874. Controlled A/B: current encoding gave arrow=False damaged=True; UTF-8 scoped around the call gave arrow=True damaged=False, restored afterwards. v0.9.4.8 has no arrow, which is why the latent defect stayed invisible until this release. Fixed by scoping UTF-8 to that one read with try/finally, leaving the rest of the audit untouched. The released tag is immutable; this is a fix-forward commit after v0.9.4.9, not a rewrite of it.",
+                         "evidence":  "ad044cd"
                      }
                  ]
 }
