@@ -1019,6 +1019,96 @@
                          "verified_by":  "deep audit 2026-11-16 round 3",
                          "note":  "Accepted on purpose. See reason.",
                          "reason":  "Measured: the only GPL-3.0 skill across 69, with maintainer metadata pointing at sap-ai-skills.com. It is also the one skill with a references folder that is not lock-tracked, so it is the editable copy. Whether a copyleft licence is acceptable for text that is loaded into a closed internal assistant is a decision for the owner, not a defect this audit can fix - and deleting or relicensing a third-party file would be worse than surfacing it. Flagged once, deliberately without a recommendation."
+                     },
+                     {
+                         "id":  "F-116",
+                         "title":  "docs/tool-routing.md quoted the modernize-ui5-app character count in a column of byte counts",
+                         "where":  "docs/tool-routing.md:81",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured: modernize-ui5-app is 80,252 bytes / 79,726 chars, so the row quoted chars while every other row quoted bytes - 12 of 13 figures in that column were exact, which is what made the odd one hard to see. Corrected to 80,252.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-117",
+                         "title":  "docs/tool-routing.md claimed the two debugging descriptions share a 293-character sentence; the shared run is 314 characters and the shorter description is 78 percent duplicated",
+                         "where":  "docs/tool-routing.md:78",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured on the frontmatter description only: abap-debugging is 404 chars, abap-runtime-analysis 447, longest common run 314, and 314 of 404 chars of the shorter one fall inside shared runs of 20+ chars. The row now states the duplication ratio, which is the figure that justifies the routing decision.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-118",
+                         "title":  "Ran memory.dup had a hard floor of 1, so the coverage registration added in round 3 could never report zero - the state it exists to expose",
+                         "where":  "tooling/verify-all.ps1:963",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured: [Math]::Max(1, count) always registers at least one comparison. Negative-tested by forcing the count to 0: the run now reaches the examined-nothing path instead of counting a comparison that never happened.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-119",
+                         "title":  "The launcher check incremented the verified counter directly instead of registering with Ran, so it inflated the clean count and stayed invisible to the examined-nothing verdict",
+                         "where":  "tooling/verify-all.ps1:1261",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured before the fix: 505 items reported against a ran-sum of 503, the difference being exactly the two Test-LauncherWiring call sites. After: launcher registers 2 and the clean line reports 22 sections instead of 21.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-120",
+                         "title":  "The skill frontmatter check tested for the substring name: anywhere in the file, so a skill whose frontmatter name differs from its folder passed",
+                         "where":  "tooling/verify-all.ps1:337",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Borrowed from the upstream validator (likweitan/abap-skills, scripts/validate_skills.py: if name != skill_file.parent.name), which checks four SKILL.md-local invariants we did not. Negative-tested: a folder wrong-folder holding name: some-other-name now prints BAD with both values and exits 1, while a correctly named sibling is not flagged.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-121",
+                         "title":  "Three stale measured numbers in code comments contradicted the scripts own output",
+                         "where":  "tooling/verify-all.ps1:824,1508,1667; tooling/measure-context.ps1:44",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured: the commit-history scan costs 224-238 ms, not the tenth of a second the comment claimed; section 5c is about a quarter of the run, not the 55% it claimed after the audit grew; the ledger comment said 2 of 64 findings cite non-commit evidence while the line below it printed 4 of 115; and measure-context restated a 23,805/2,672 pair that its own run had already changed. Each now states the rule, or points at the line that prints the current number.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-122",
+                         "title":  "The main agent file was 32,828 bytes, of which about 1,200 were narrative that could not change a decision",
+                         "where":  "agents/abap-developer-by-pongg.agent.md",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Measured: 32,828 -\u003e 31,623 bytes, -1,205. Every cut was a history note, a motivation clause, or a restated obligation; 31 obligation probes over the touched sections all still match and all 24 section headings remain. A density pass over the remaining 31 KB found 90% of it is already pointer-dense tables and one-line rules, so the lossless ceiling was about 10% and this took the available 4%.",
+                         "evidence":  "16ee4a1"
+                     },
+                     {
+                         "id":  "F-123",
+                         "title":  "A 917-character Workspace preflight paragraph is duplicated in 15 files across 8 distinct variants, 14,073 characters in total",
+                         "where":  "~\\.copilot\\agents\\, ~\\.copilot\\skills\\",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: 15 copies, 8 variants, largest group 6 byte-identical files. Every copy sits inside an agent or skill body, which loads only when that agent or skill runs - none of it is in the always-on budget, which is name+description and was re-measured this round at 26,681 chars. The files belong to sap-ai-dev-toolkit, whose installer overwrites edits on upgrade, so a local fix is lost work; the right home is upstream. Recorded rather than patched."
+                     },
+                     {
+                         "id":  "F-124",
+                         "title":  "Three -by-pongg agents declare a skill the toolkit also installs, and each restates the skill gate, so one job costs up to 25,183 bytes",
+                         "where":  "agents\\sap-se38-report-tester-by-pongg.agent.md, sap-st22-dump-analysis-by-pongg.agent.md",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured: se38 agent 6,929 + skill 15,427 = 22,356 B; st22 agent 9,630 + skill 15,553 = 25,183 B. The composition is deliberate - the agent is a router and the skill is the procedure, and the agent declares it with skills: so the loader composes them. Cutting the gate from the agent would leave it silent if the skill is unavailable, which is the same argument F-075 recorded for the senior skill. Both files are user-owned, so the trade is the owner to make; reported with the number rather than changed."
+                     },
+                     {
+                         "id":  "F-125",
+                         "title":  "A user-invocable skill that is also disable-model-invocation was believed to be a contradiction; no installed skill has both keys true",
+                         "where":  "C:\\Users\\narue\\.agents\\skills\\, C:\\Users\\narue\\.copilot\\skills\\",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured across the three loader roots: exactly three skills carry disable-model-invocation: true (caveman, grill-with-docs, improve-codebase-architecture) and none of them declares user-invocable at all; the two SAP skills that DO declare user-invocable: true declare disable-model-invocation: false or omit the key, so they are model-invocable by declaration, not by a loader bug. The pairing the earlier round suspected exists in zero files, so there is nothing to repair. Recorded so the belief is not re-investigated."
                      }
                  ]
 }
