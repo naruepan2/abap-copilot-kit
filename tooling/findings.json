@@ -1424,6 +1424,33 @@
                          "verified_by":  "deep audit 2026-11-16 round v4 final red-team",
                          "note":  "Counterexample against the C1 fix: after tagging v0.9.4.8 there will be 13 tags, so \"five of twelve\" becomes false in the release it ships in. Reworded to a dated claim (\"at v0.9.4.7, five of the twelve tags then present\"), which stays true when later tags are added. Also corrected \"suppress\" to \"suppresses\" in the architecture diagram; all box lines remain 64 characters. The ledger append guard fired first because ConvertTo-Json emits CRLF while the file is LF: normalising both sides proved the difference was line endings only, then the file was written as LF.",
                          "evidence":  "git tag --list v* = 12 at v0.9.4.7; v0.9.4.8 makes 13, so the wording is dated; stale phrase scan False in c2.verify.out"
+                     },
+                     {
+                         "id":  "F-161",
+                         "title":  "The agent asserted three MCP servers were attached and overlapping while its own evidence rule forbids environment claims without session evidence",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:61-63,:173",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit v5 2026-11-16",
+                         "note":  "Line 63 forbids asserting that a tool, skill, MCP server or agent exists, is absent or is enabled without evidence from this session. Line 173 asserted \"Three SAP MCP servers are attached and they overlap substantially\"; F-099 note records that no measurement exists on this machine. Reworded to declare that this file lists three prefixes and that attachment, callability and overlap must be observed per session. Routing table and tools: prefixes untouched. Repo copy and deployed ~/.copilot/agents copy both edited; SHA-256 match A57D70FB1BF5DC7E54839C80C91008E7CE7736C0E47215BB5385AA5C39DBC61F.",
+                         "evidence":  "8d31f0c"
+                     },
+                     {
+                         "id":  "F-162",
+                         "title":  "The setup guide never created the routing file the agent reads before its first SAP call",
+                         "where":  "SETUP-NEW-MACHINE.md:218-239; templates/routing.local.md.template:3; agents/abap-developer-by-pongg.agent.md:183",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit v5 2026-11-16",
+                         "note":  "git grep found no occurrence of _routing.local.md in the setup guide while section 9 listed five other per-machine skeletons. The template explicitly says to copy it to Projects/_routing.local.md and fill it in; the agent must ask when it is absent. Added as numbered step 2 in section 9 and renumbered the four following steps. No command is executed by the guide change; verify-all rose from 936 to 937 verified items.",
+                         "evidence":  "e7ddc54"
+                     },
+                     {
+                         "id":  "F-163",
+                         "title":  "The agent\u0027s editable-ownership list omits self-authored skills that the two loaded rule files include",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:511 vs AGENTS.md:63, skills/capture-lesson/SKILL.md:43; docs/ownership.md:9 vs :50",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit v5 2026-11-16",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Graded OPINION, not CONFIRMED: both paths still require the agent one-message confirmation of active agent and exact file path before any edit, so the wording gap changes no outcome. The other three files were corrected in v0.9.4.8; adding a fourth home for the rule increases the drift surface, and R2 fixes only CONFIRMED findings."
                      }
                  ]
 }
