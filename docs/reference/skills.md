@@ -26,12 +26,12 @@ without checking first.
 
 ## `~/.copilot/skills-disabled/` — parked on purpose
 
-Every skill's `name` + `description` loads into **every** request — except a skill that declares
-`disable-model-invocation: true`, which is offered only when named and therefore costs nothing
-until it runs. Measured 2026-11-16: three installed skills declare it
-(`caveman`, `grill-with-docs`, `improve-codebase-architecture`), and the always-on total excludes
-their 556 chars. A skill that is irrelevant
-to the current work still costs tokens forever. On 2026-11-14 these eleven were moved to
+Every skill's `name` + `description` loads into **every** request. `disable-model-invocation: true`
+suppresses automatic selection — the skill is offered only when named — but this harness still
+showed all three such descriptions in the loaded list (measured 2026-11-16 from this session's
+transcript), so do not claim a token saving from that flag alone. Three installed skills declare it
+(`caveman`, `grill-with-docs`, `improve-codebase-architecture`), 556 chars combined. A skill that
+is irrelevant to the current work still costs tokens forever. On 2026-11-14 these eleven were moved to
 `~/.copilot/skills-disabled/`, saving roughly 750 tokens per request:
 
 `btp-platform-administration`, `bw-datasphere-migration`, `cloud-alm-operations`,

@@ -22,7 +22,10 @@ from **deciding** what to do about it.
 ├──────────────────────────────────────────────────────────────┤
 │ 4  SKILL             how to perform a recurring procedure    │
 │    ~/.copilot/skills/, ~/.agents/skills/                     │
-│    frontmatter loads every request; body on demand.          │|    (a `disable-model-invocation: true` skill is the exception: it loads only when named) |└──────────────────────────────────────────────────────────────┘
+│    frontmatter loads every request; body on demand.          │
+│    `disable-model-invocation: true` suppress auto-invocation;│
+│    its description may still appear in the loaded list.      │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 Everything above the line is *loaded*; everything is *scoped* by who owns the file.

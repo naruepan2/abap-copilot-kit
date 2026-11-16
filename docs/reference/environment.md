@@ -24,7 +24,7 @@ fbc6ae2e6722b1312ffc2700081aeccb
 
 | What | Where |
 |---|---|
-| Framework repo (agents, skills, hooks, templates, reference) | wherever you cloned it — `$env:ABAP_KIT_ROOT`, else the parent of `tooling\` |
+| Framework repo (agents, skills, hooks, templates, reference) | `$env:ABAP_KIT_ROOT`, else the pin in `~/.copilot/state/kit-root.txt`, else the parent of `tooling\` (the order `install-kit.ps1` uses) |
 | GitHub | `naruepan2/abap-copilot-kit` — **private**, on purpose |
 | MCP servers (VS Code) | `%APPDATA%\Code\User\mcp.json` — user scope, key `servers` |
 | MCP servers (Copilot CLI) | `%USERPROFILE%\.copilot\mcp-config.json` — user scope, key `mcpServers`. VS Code imports this file as a discovery source named `copilot`, and that source is on by default |
@@ -50,7 +50,7 @@ One file, `~/.copilot/hooks/hooks.json`:
   "version": 1,
   "hooks": {
     "sessionStart": [
-      { "type": "command", "command": "node \"<path>/session-drift.cjs\"", "timeoutSec": 10 }
+      { "type": "command", "command": "node \"<path>/session-drift.cjs\"", "timeoutSec": 20 }
     ]
   }
 }

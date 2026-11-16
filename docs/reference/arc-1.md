@@ -78,5 +78,6 @@ they can point at different landscapes.
   bytes are harmless, which is why a stray accent can sit in a script for months. Verify with
   `([regex]::Matches($raw,'[^\x00-\x7F]')).Count` and expect `0`.
   This file spells the damage as codepoints rather than showing it, so that
-  `tooling/verify-all.ps1` can require every tracked text file to contain none of it — a documented
-  exception would be a hole in the gate.
+  `tooling/verify-all.ps1` can detect it without quoting it: section 9b derives a mojibake run by
+  encoding non-ASCII text back to a candidate code page and decoding strictly as UTF-8. Genuine
+  non-ASCII (this em dash, or Thai) is allowed, so the gate is not an ASCII-only rule.
