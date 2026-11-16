@@ -23,7 +23,7 @@ from **deciding** what to do about it.
 │ 4  SKILL             how to perform a recurring procedure    │
 │    ~/.copilot/skills/, ~/.agents/skills/                     │
 │    frontmatter loads every request; body on demand.          │
-│    `disable-model-invocation: true` suppress auto-invocation;│
+│    `disable-model-invocation: true` suppresses auto-invoke;  │
 │    its description may still appear in the loaded list.      │
 └──────────────────────────────────────────────────────────────┘
 ```

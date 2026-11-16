@@ -1415,6 +1415,15 @@
                          "verified_by":  "deep audit 2026-11-16 round v4",
                          "note":  "Accepted on purpose. See reason.",
                          "reason":  "Measured resource links were 0, 0, 0, 1, 0 against 10, 10, 38, 26, 2 backtick paths. These skills are lock-tracked or hand-installed third-party content, not kit assets; an edit is overwritten by npx skills update. Adding links would also load more files on every invocation, with no always-on token saving."
+                     },
+                     {
+                         "id":  "F-160",
+                         "title":  "The corrected tag count would have gone stale on the next release",
+                         "where":  "README.md:409; tooling/verify-all.ps1:1854",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4 final red-team",
+                         "note":  "Counterexample against the C1 fix: after tagging v0.9.4.8 there will be 13 tags, so \"five of twelve\" becomes false in the release it ships in. Reworded to a dated claim (\"at v0.9.4.7, five of the twelve tags then present\"), which stays true when later tags are added. Also corrected \"suppress\" to \"suppresses\" in the architecture diagram; all box lines remain 64 characters. The ledger append guard fired first because ConvertTo-Json emits CRLF while the file is LF: normalising both sides proved the difference was line endings only, then the file was written as LF.",
+                         "evidence":  "git tag --list v* = 12 at v0.9.4.7; v0.9.4.8 makes 13, so the wording is dated; stale phrase scan False in c2.verify.out"
                      }
                  ]
 }

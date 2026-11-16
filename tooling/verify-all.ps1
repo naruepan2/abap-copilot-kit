@@ -1851,8 +1851,8 @@ else {
 }
 
 Line '9d. A tag and its notes file describe the same release'
-# Five of the twelve tags in this repository carry a one-line subject rather than their release
-# notes, and nothing compared them. Measured 2026-11-16: `v0.9.1`'s tag annotation contained a cp874-
+# At v0.9.4.7, five of the twelve tags then present carried a one-line subject rather than their
+# release notes, and nothing compared them. Measured 2026-11-16: `v0.9.1`'s annotation contained cp874-
 # damaged em dash that section 9b cannot see, because a tag is a git object and not a file.
 #
 # Two checks, and only one of them can be a hard failure. The version in the heading MUST match the
