@@ -1109,6 +1109,33 @@
                          "verified_by":  "deep audit 2026-11-16 round 4",
                          "note":  "Accepted on purpose. See reason.",
                          "reason":  "Measured across the three loader roots: exactly three skills carry disable-model-invocation: true (caveman, grill-with-docs, improve-codebase-architecture) and none of them declares user-invocable at all; the two SAP skills that DO declare user-invocable: true declare disable-model-invocation: false or omit the key, so they are model-invocable by declaration, not by a loader bug. The pairing the earlier round suspected exists in zero files, so there is nothing to repair. Recorded so the belief is not re-investigated."
+                     },
+                     {
+                         "id":  "F-126",
+                         "title":  "The v0.9.4 release notes were published with thirteen em dashes corrupted into Thai-codepage mojibake, and no check could see it",
+                         "where":  "C:\\Users\\narue\\.copilot\\backups\\release-notes-v0.9.4.md; GitHub release v0.9.4",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 5",
+                         "note":  "Measured: the file was UTF-8 with a BOM; read back as codepage 874 (this machine ANSI page) each em dash became U+0E42 U+20AC U+201D. 13 sequences, plus one U+2192 arrow, one U+2212 minus and one U+00B7 middle dot, all recovered by mapping each damaged run back to the bytes it came from (E2 86 92, E2 88 92, C2 B7). The BOM was also removed: it was what stopped a regex anchored on ^# from finding the heading, which is why the release title fell back to the bare tag. Republished and verified through the API: 13 real em dashes, 0 U+FFFD, 0 mojibake, title correct.",
+                         "evidence":  "3013c37"
+                     },
+                     {
+                         "id":  "F-127",
+                         "title":  "No check anywhere could detect mojibake: section 1 counts U+FFFD, which is the other failure mode",
+                         "where":  "tooling/verify-all.ps1 section 9b",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 5",
+                         "note":  "U+FFFD means the bytes were rejected. Mojibake means they were accepted as the wrong characters, so the file is valid, the encoding is valid, and every existing check passes. New section 9b scans tracked and untracked text files for the four signatures a UTF-8 sequence produces when read as cp874. Negative-tested by planting the exact production damage: ISSUE reported and exit 1; removed, clean. The first version of the gate listed only `git ls-files` and was blind to the probe - the one file most likely to hold fresh damage - so it now includes untracked files.",
+                         "evidence":  "3013c37"
+                     },
+                     {
+                         "id":  "F-128",
+                         "title":  "docs/reference/arc-1.md reproduced the mojibake as a live example, which would have made a zero-tolerance gate impossible",
+                         "where":  "docs/reference/arc-1.md:73",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 5",
+                         "note":  "The example was deliberate and correct as documentation, but a gate cannot both require zero damage and tolerate a file that contains it. Rewritten to name the codepoints and the three source bytes instead of demonstrating them, so the rule keeps its content and the gate keeps a single standard. Verified: the docs tree now reports 0 mojibake sequences, and the instruction files - 214 of them across every loader root - were already clean.",
+                         "evidence":  "3013c37"
                      }
                  ]
 }
