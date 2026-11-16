@@ -1594,6 +1594,68 @@ Note 'HISTORY' $histHits
 Pop-Location
 }
 
+Line '9b. Text still says what it was written to say (no mojibake)'
+# A file decoded with the wrong code page does not fail - it produces text that looks almost right,
+# and nothing in this audit could see it. Measured 2026-11-16: release notes for v0.9.4 were written
+# as UTF-8, read back as codepage 874 (this machine's ANSI page), and published with thirteen em
+# dashes turned into U+0E42 U+20AC U+201D. The file was valid, the emoji-free, the checks passed; a
+# Thai reader saw the damage instantly and no tool reported it.
+#
+# Two different failures, and the audit only knew one of them:
+#   U+FFFD          the bytes were rejected outright. Section 1 already counts this.
+#   mojibake        the bytes were accepted as the wrong characters. That is this section.
+# The signature is narrow and mechanical: every UTF-8 sequence that starts E2 or C2, read as cp874,
+# begins with a Thai character followed by a C1 control or a typographic quote. Text that genuinely
+# means to be Thai puts a Thai letter after a Thai letter, never U+0086 or U+2019.
+$mojiFiles = 0
+$mojiHits = 0
+$mojiScanned = 0
+if ($repoOk) {
+    Push-Location $REPO
+    # Tracked AND untracked-but-not-ignored. The first version listed only `git ls-files`, and a probe
+    # planted to prove the gate works was invisible to it: a brand-new file is exactly where freshly
+    # written damage lands, and it is also the one state a tracked-only scan can never see.
+    $mojiTargets = @(& git ls-files) + @(& git ls-files --others --exclude-standard)
+    Pop-Location
+    foreach ($rel in ($mojiTargets | Sort-Object -Unique)) {
+        if ($rel -notmatch '\.(md|ps1|cjs|js|json|yaml|yml|txt)$') { continue }
+        $fp = Join-Path $REPO $rel
+        if (-not (Test-Path $fp)) { continue }
+        $mt = $null
+        try { $mt = [System.IO.File]::ReadAllText($fp, [System.Text.Encoding]::UTF8) } catch { continue }
+        $mojiScanned++
+        # Built as strings, not as an array of [char] casts: an earlier version of this rule lived in
+        # a throwaway script that mixed the two and silently matched nothing, reporting a clean file
+        # that contained the damage. A gate that cannot fire is worse than no gate.
+        $s1 = [string][char]0x0E42 + [string][char]0x20AC                  # em dash / quote family
+        $s2 = [string][char]0x0E42 + [string][char]0x0086                  # rightwards arrow
+        $s3 = [string][char]0x0E42 + [string][char]0x0088                  # minus sign
+        $s4 = [string][char]0x0E22 + [string][char]0x0E17                  # middle dot
+        $n = 0
+        foreach ($sig in @($s1, $s2, $s3, $s4)) {
+            $i = 0
+            while (($i = $mt.IndexOf($sig, $i)) -ge 0) { $n++; $i += $sig.Length }
+        }
+        if ($n -gt 0) {
+            $mojiFiles++
+            $mojiHits += $n
+            Write-Output ("  ISSUE   " + $rel + " contains " + $n + " mojibake sequence(s) - a UTF-8 file read as a single-byte code page")
+        }
+    }
+    if ($mojiScanned -eq 0) {
+        Write-Output '  ISSUE   no text file was scanned for mojibake'
+        Note 'ISSUE' 1
+    }
+    elseif ($mojiFiles -eq 0) {
+        Write-Output ("  {0} text file(s) contain no mojibake sequence" -f $mojiScanned)
+    }
+    Ran 'encoding' $mojiScanned
+    Note 'ISSUE' $mojiHits
+}
+else {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+}
+
 Line '10. Findings ledger: is anything still open?'
 # Why this section exists, in one sentence: a finding reported into a chat log is forgotten, and a
 # finding reported into a file that gates the build is not.
