@@ -1478,6 +1478,60 @@
                          "verified_by":  "deep audit v5 2026-11-16 loop 3 fresh-context verifier",
                          "note":  "Fresh-context verifier at the three-loop CAP found the F-133 entry still stating \"Measured: the v0.9.1 annotation contains U+0E42 U+20AC U+201D on line 54\" while F-165 proved, from the raw 3,921-byte tag object (one clean E2 80 94, zero U+0E42), that the reading was a cp874 decoding artifact. No superseded marker existed anywhere in the ledger. Fixed by rewriting the F-133 title and note to record the correction while preserving the still-valid reason section 9d was added for; evidence commits ec32a90 (original gate) and c420604 (F-165). Per the Phase 4 CAP this finding was reported to the user as a residual and fixed only after the user chose option 1. No tag was rewritten and no release artifact was changed.",
                          "evidence":  "8992e91"
+                     },
+                     {
+                         "id":  "F-167",
+                         "title":  "The mirror gate accepted unquoted credential values and the pwd spelling",
+                         "where":  "tooling/workspace-sync.ps1:255-260",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "Red Team confirmed HIGH. The old pattern required a quote on both sides of the value, so `password: hunter2secret` and `\"SAP_PASSWORD\": \"hunter2secret\"` scored zero hits and were mirrored; it also omitted `pwd`. verify-all.ps1:1521 already carried the stricter pattern, so the two homes for one rule had drifted in opposite directions. Copied the strict pattern and the union of both placeholder lists. Tested: unquoted value, quoted JSON value and `pwd` all block; prose and the launcher key pass; template placeholder stays exempt.",
+                         "evidence":  "1ef90a6"
+                     },
+                     {
+                         "id":  "F-168",
+                         "title":  "The subagent gate probed one of five accepted agent-name fields",
+                         "where":  "tooling/verify-all.ps1:838-866 vs hooks/subagent-rules.cjs:271-275",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "The hook accepts agent_type, agentType, agentName, agent_name and agent_id; the probe always sent agent_type. A regression in any other alias passed the gate silently. Added one trusted and one denied case per remaining alias, using the first roster file stem; kept the full roster matrix on agent_type so probe count stayed at 22 rather than 70.",
+                         "evidence":  "0338020"
+                     },
+                     {
+                         "id":  "F-169",
+                         "title":  "census.ps1 declared the sweep roots twice and only the second was used",
+                         "where":  "tooling/census.ps1:139-149, :191-201",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "Two identical $sweep/$sweepRoots blocks with Get-SweepReason between them; the first was overwritten before the only consumer. Editing the visually first list had no effect. Removed the dead block.",
+                         "evidence":  "6e1a987"
+                     },
+                     {
+                         "id":  "F-170",
+                         "title":  "architecture.md restated a drifted copy of the ownership table",
+                         "where":  "docs/architecture.md:79-87 vs docs/ownership.md:9-11",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "The duplicate said `-by-pongg`, \"edits are overwritten\" and \"never\"; the authoritative table says `-by-pongg.agent.md`, \"allowed but overwritten\" and \"do not\". architecture.md already deferred to ownership.md, so replaced the table with a pointer and the reason not to copy it back.",
+                         "evidence":  "11fa2dd"
+                     },
+                     {
+                         "id":  "F-171",
+                         "title":  "verify-all invoked census.ps1 with a bare powershell against its own absolute-path rule",
+                         "where":  "tooling/verify-all.ps1:2207",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "Section 11 called `\u0026 powershell ...` while the launcher-wiring check requires absolute interpreter paths. Under a trimmed PATH the inventory gate would not run and the failure would be reported as a census problem. Now resolves $PSHOME\\\\powershell.exe with a Get-Process fallback.",
+                         "evidence":  "0338020"
+                     },
+                     {
+                         "id":  "F-172",
+                         "title":  "Tags without release notes were skipped without output or a counter",
+                         "where":  "tooling/verify-all.ps1:1881-1883, :1954-1963",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit review squad 2026-11-17",
+                         "note":  "A missing notes file hit `continue` and vanished; the summary reported only tags that had notes, so a partial pass looked complete. Now prints an ISSUE per skipped tag, counts it in Ran, and includes the count in the summary. Live state: 14 tags, 14 notes files, zero skipped.",
+                         "evidence":  "0338020"
                      }
                  ]
 }
