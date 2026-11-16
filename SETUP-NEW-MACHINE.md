@@ -220,16 +220,20 @@ sapse.sap-ux-fiori-tools-extension-pack  # Fiori/RAP tooling (optional)
 1. Copy skeletons from `config-templates/` (`mcp.json.template`, `settings.json.template`,
    `mcp-config.template.json`, `arc1.env.template`, `arc1-connections.template.json`) — fill secrets
    only via the scripts below, never paste into a file.
-2. `powershell -ExecutionPolicy Bypass -File .\tooling\sap-connection.ps1` — add/list logons (like
+2. Copy `templates/routing.local.md.template` to `Projects/_routing.local.md` and fill in which
+   server reaches which system and which client is authorized. The agent reads this file before
+   its first SAP call; without it the agent must ask. The file stays local because it names a
+   system, a client and possibly a customer.
+3. `powershell -ExecutionPolicy Bypass -File .\tooling\sap-connection.ps1` — add/list logons (like
    Connection Manager).
-3. `powershell -ExecutionPolicy Bypass -File .\tooling\sap-secret.ps1` — stores each password in
+4. `powershell -ExecutionPolicy Bypass -File .\tooling\sap-secret.ps1` — stores each password in
    Windows Credential Manager (DPAPI, per user).
-4. `node .\tooling\sap-auth-probe.js` — verdict OK / STALE / UNKNOWN. It must be run through `node`:
+5. `node .\tooling\sap-auth-probe.js` — verdict OK / STALE / UNKNOWN. It must be run through `node`:
    `.js` is in `PATHEXT` on Windows, so a bare `.\sap-auth-probe.js` hands the file to `WScript.exe`,
    which has no `require` and shows a script-error dialog instead of a verdict. It reads
    `ARC1_PROBE_URL`, `ARC1_PROBE_USER` and `ARC1_PROBE_PASS` and exits 2 with `UNKNOWN` when one is
    missing.
-5. Self-signed SAP cert breaks **every** call: use a CA bundle, never
+6. Self-signed SAP cert breaks **every** call: use a CA bundle, never
    `SAP_INSECURE=true` (it accepts any certificate and masks a MITM):
 
 ```jsonc
