@@ -1532,6 +1532,33 @@
                          "verified_by":  "toolkit review squad 2026-11-17",
                          "note":  "A missing notes file hit `continue` and vanished; the summary reported only tags that had notes, so a partial pass looked complete. Now prints an ISSUE per skipped tag, counts it in Ran, and includes the count in the summary. Live state: 14 tags, 14 notes files, zero skipped.",
                          "evidence":  "0338020"
+                     },
+                     {
+                         "id":  "F-173",
+                         "title":  "The change log recorded a category but not what changed or why an AI could roll back from",
+                         "where":  "templates/changes.md:14-18",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit design review 2026-11-17",
+                         "note":  "The old Intent column asked for \"bug fix / extension / change request\" โ€” a type, not a description. An AI reading the row knew the category but not the object, behaviour, condition or business reason, so it could not decide which version to roll back to. Replaced with Type / What / Why / Version / Activation / Rollback-to, made each path exact, and stated the control-plane (changes.md) versus data-plane (.baseline/) split: never infer source from prose.",
+                         "evidence":  "1d9530a"
+                     },
+                     {
+                         "id":  "F-174",
+                         "title":  "The program README did not point at the pre-release change log or its baseline role",
+                         "where":  "templates/program-README.md:15-22",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit design review 2026-11-17",
+                         "note":  "A reader of a program record had no pointer to changes.md, so the pre-release log was invisible until someone already knew it existed. Added a row in the Pointers table and one sentence on the split: changes.md indexes the version, .baseline holds byte-exact source, SAP takes over after release.",
+                         "evidence":  "47a7c3d"
+                     },
+                     {
+                         "id":  "F-175",
+                         "title":  "No gate checked that an open change-log row named a baseline that actually existed",
+                         "where":  "tooling/verify-all.ps1:2204-2312",
+                         "status":  "fixed",
+                         "verified_by":  "toolkit design review 2026-11-17",
+                         "note":  "Added section 10b. It finds every changes.md under Projects/, ignores placeholder rows, requires the new columns only once a real row exists, and for each open row checks a real .abap baseline path plus a non-category What/Why and v\u003cn\u003e version. Stale baselines with no referencing row are reported. An empty log from the older template is not force-migrated. Negative test with a fake repo: missing baseline and stale file both reported; positive test after creating the file and removing the stale one passed. No existing record broke.",
+                         "evidence":  "954c7ea"
                      }
                  ]
 }
