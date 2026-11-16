@@ -136,18 +136,6 @@ $phantom = @($namedGates | Where-Object { $liveGates -notcontains $_ })
 $unused  = @($liveGates | Where-Object { $namedGates -notcontains $_ })
 
 # -- unclassified: files on disk that no row claims ----------------------------
-$sweep = @()
-$sweepRoots = @(
-    @{ Root = $REPO;                        Label = 'repo' },
-    @{ Root = (Join-Path $COPILOT 'agents');        Label = 'live\agents' },
-    @{ Root = (Join-Path $COPILOT 'skills');        Label = 'live\skills' },
-    @{ Root = $PARKED;                      Label = 'live\parked' },
-    @{ Root = $AGSK;                        Label = 'live\agent-skills' },
-    @{ Root = (Join-Path $COPILOT 'hooks');         Label = 'live\hooks' },
-    @{ Root = (Join-Path $COPILOT 'state');         Label = 'state' },
-    @{ Root = $MEM;                         Label = 'memory' },
-    @{ Root = $BACKUP;                      Label = 'backup' }
-)
 # A file in no row is not automatically a gap. Three groups are out of scope by design, and each has
 # to say why in one phrase - "not covered" without a reason is how a real gap hides among benign ones.
 # Measured 2026-11-16: of 161 unclassified files, 160 fall in these groups and one did not, and the
