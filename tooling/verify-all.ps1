@@ -1806,6 +1806,11 @@ if ($repoOk) {
     Pop-Location
     foreach ($rel in $labelTargets) {
         if ($rel -notmatch '\.(md|json|ps1|cjs|js|template)$') { continue }
+        # One exemption, with a reason: the findings ledger quotes the offending line as evidence of
+        # the defect it recorded. Scanning it would make an accurate ledger entry report itself, and
+        # deleting the quote would weaken the entry. The ledger is a record of what was wrong, not a
+        # place a live identifier is introduced - every value in it is already in a fixed commit.
+        if ($rel -eq 'tooling/findings.json') { continue }
         $lp = Join-Path $REPO $rel
         if (-not (Test-Path $lp)) { continue }
         $lt = $null
