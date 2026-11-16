@@ -1226,6 +1226,60 @@
                          "verified_by":  "deep audit 2026-11-16 round 6",
                          "note":  "Section 1c flagged the new `ReadAllText` on the first run of section 9d: `ISSUE unguarded read can report a stale value`. Fixed with a try/catch that skips the tag and reports the failure, and the section then ran clean. Recorded because it is the one instance in this round of a gate catching code written by the same round.",
                          "evidence":  "ec32a90"
+                     },
+                     {
+                         "id":  "F-139",
+                         "title":  "Six backup files outside the repository held 27 internal hostnames, and no gate could see them",
+                         "where":  "~/.copilot/backups; tooling/verify-all.ps1 section 9e",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "Measured: ~/.copilot/backups held 6 .bak files totalling 35,818 B, carrying 27 server entries, 11 internal hostnames, 1 client number and 3 credential-shaped keys. Section 9 scans the working tree and every commit, but it begins with `git ls-files`, so a file outside the repository is invisible to it no matter how often it runs - and six audit rounds reported clean over these. `backup/README.md` states that mcp.json and settings.json are deliberately NOT snapshotted because they hold internal hostnames and a real SAP user id; the .bak copies violated that rule in the one folder no check read.",
+                         "evidence":  "pending-commit"
+                     },
+                     {
+                         "id":  "F-140",
+                         "title":  "The file that decides which findings are excused was never compared between the clone and the running copy",
+                         "where":  "tooling/verify-all.ps1:1037 mirror pair list",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "Sections 2b and 9d both read removed-on-purpose.json to decide whether a deleted skill or a damaged released tag is reported or excused. The mirror list compared 30 other paths and never this one. Measured: the clone copy was 4,034 B with 6 top-level keys; the live copy was 3,286 B with 5, missing `immutable_tag_damage` entirely - so on a machine running the installed audit, v0.9.1 would have failed with no way to clear it. Proved the live copy held no unique line, then synced clone to live. The mirror section now reports \"repo mirrors live files: identical\".",
+                         "evidence":  "pending-commit"
+                     },
+                     {
+                         "id":  "F-141",
+                         "title":  "Nothing inventoried what exists, so seven rounds could only fix what they happened to read",
+                         "where":  "tooling/census.ps1; tooling/verify-all.ps1 section 11",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "Measured: 203 inventory rows over 2,510,111 B; 161 files in no row over 1,267,764 B; 35 files in a row that no gate reads over 184,084 B; 42 of 138 findings (30%) were documentation, the one area with no gate. Every audit section starts from an assumption about what to look at, so a file nobody listed was audited by nobody - which is why each round found roughly ten more. The first inventory ever taken found F-139 immediately, plus F-140, plus the 35 shipped files no check reads.",
+                         "evidence":  "pending-commit"
+                     },
+                     {
+                         "id":  "F-142",
+                         "title":  "The census reported a real gate as a phantom because its own pattern was anchored to the line start",
+                         "where":  "tooling/census.ps1 gate extraction",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "The first version matched only lines beginning with Ran. `verify-all.ps1:1427` registers mcp-sources inside a conditional - `if ($cfgRead -gt 0) { Ran \u0027mcp-sources\u0027 $cfgRead } else { Skip ... }` - which is the correct shape when a section may legitimately find nothing, so a real gate was reported as undefined. A coverage tool that cries wolf is worse than none, because the natural response is to distrust every line it prints. Changed to `(?m)^[^#\\r\\n]*\\bRan\\s+\u0027([^\u0027 ]+)\u0027`; re-ran to \"OK all 19 named gate(s) exist\". The same lesson as F-129: when a verification tool reports a phantom, suspect the tool before the data.",
+                         "evidence":  "pending-commit"
+                     },
+                     {
+                         "id":  "F-143",
+                         "title":  "The new backup section flagged its own pattern file and printed two different files under one name",
+                         "where":  "tooling/verify-all.ps1 section 9e",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "First run printed `HIT verify-patterns.local.txt:14` for the identifier list it was searching with - the self-reference section 9 avoids - and printed two lines reading `project-notes.md` for two files in two different project folders, so a reader told to delete a file could not tell which. The pattern file is now recognised by name and reported as a NOTE with a reason, never counted as a leak; every line prints its path relative to the backups root. Prose (.md) hits are NOTEs, because an analysis document that names the object it analyses is the deliverable and section 9c already governs repository documents. A credential-shaped value stays an ISSUE in any file.",
+                         "evidence":  "pending-commit"
+                     },
+                     {
+                         "id":  "F-144",
+                         "title":  "A derived-fact gate for documents was designed, measured and dropped because the facts are not there",
+                         "where":  "docs; README.md; INDEX.md; AGENTS.md; SETUP-NEW-MACHINE.md",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round 8",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured over 41 markdown files: 146 backticked file paths, of which 24 name files that exist outside the repository by design (surface.json, kit-root.txt, mcp.json, .skill-lock.json); the 2 left over were a doc stating \"There is no CHANGELOG.md, and that is a decision\" and a path under a customer folder. Count-restating lines totalled 5, of which 2 were a box-drawing table and 3 were prose. No numeric constant appears in any markdown file at all - the debounce, the 64 KB rotation cap and the 200-character signature each live in exactly one place, the code, because the prose was already rewritten to name the constant instead of its value. A gate built on the planned rules would have scanned 41 files and produced zero true positives while risking one misfire on every legitimate external path. Not built; the measurement is recorded so the next round does not rebuild it. Documentation defects were found by reading, and the structural fix for that class is the inventory of F-141, not a gate."
                      }
                  ]
 }

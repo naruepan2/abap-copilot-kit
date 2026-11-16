@@ -1034,7 +1034,7 @@ $skillMirrors = @(Get-ChildItem "$REPO\skills" -Directory -ErrorAction SilentlyC
 # previous release replaced - and no section noticed, because the installer had never copied hooks/
 # either. A file that runs on every session and is compared nowhere is the worst place to be stale.
 $hookMirrors = @(Get-ChildItem "$REPO\hooks" -Filter '*.cjs' -ErrorAction SilentlyContinue | ForEach-Object { 'hooks\' + $_.Name })
-$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1', 'tooling\findings.json')
+$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1', 'tooling\findings.json', 'tooling\removed-on-purpose.json')
 # findings.json is on the list because install-kit copies it: the installer's tooling filter takes
 # every .ps1, .js and .json except surface.json, so the ledger became a live file that no section
 # compared. Measured 2026-11-15: the live copy held 26 findings in 14,721 bytes while the clone held
@@ -1044,6 +1044,12 @@ $pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', '
 # hook rewrites the LIVE copy on every run, so comparing it against the repository snapshot would
 # report DRIFT forever, from the first session in which the hook fires. A check that can only fail is
 # as useless as one that can only pass.
+#
+# tooling\removed-on-purpose.json was absent for a different reason and a worse one: nothing had ever
+# put it on the list. Measured 2026-11-16, the backup folder held a copy that no section compared, so
+# the repository could declare an exemption the running hooks never saw - and sections 2b and 9d both
+# trust that file to decide whether a deleted skill or a damaged tag is reported or excused. A gate
+# whose own exceptions can drift from the file it enforces is enforcing the wrong rules.
 $missingLive = @()
 $compared = 0
 foreach ($rel in $pairs) {
@@ -1936,6 +1942,118 @@ else {
     Write-Output '  SKIP    no tag or no backup notes folder - nothing to compare'
 }
 
+Line '9e. Nothing in the backups folder holds a live identifier'
+# Section 9 scans the repository and its history. This folder is neither, and that is the whole
+# reason for this section: measured 2026-11-16, six files totalling 35,818 bytes sat in
+# ~/.copilot/backups holding 27 server entries, 11 internal hostnames, one client number and three
+# credential-shaped keys. Six audit rounds ran clean over that folder because every check began with
+# `git ls-files`, and a backup file is never a tracked file. The safest place to leave a secret is
+# outside the repository, and no gate was looking outside the repository.
+#
+# The rule is narrow on purpose: a backup that carries a derived identifier or a credential-shaped
+# line fails, because the point of a backup is to be restored, and restoring it puts the value back.
+# Release notes are prose and section 4 governs them; a pre-history git bundle is repository content
+# that section 9's history scan already reads commit by commit.
+$bkHits = 0
+$bkNotes = 0
+$bkFiles = 0
+$bkScanned = 0
+$bkSkipped = @()
+$bkDir = Join-Path $env:USERPROFILE '.copilot\backups'
+if (-not (Test-Path -LiteralPath $bkDir)) {
+    Write-Output '  SKIP    no backups folder - nothing outside the repository to read'
+}
+elseif (-not $patterns) {
+    # $patterns is built in section 9, which returns early when the kit repository is not found.
+    # Without this branch the scan would run with an empty pattern list, report a clean folder, and
+    # register coverage for files it never actually examined - the failure mode this audit exists to
+    # find, reproduced inside the section written to prevent it.
+    Write-Output '  SKIP    no identifier list - section 9 did not derive any, so this folder cannot be judged'
+}
+else {
+    # Self-test, every run. The scanner is two regular expressions that the rest of this script also
+    # depends on, and a damaged pattern would report a clean backups folder rather than an error.
+    # The fixture is assembled from parts so this file never contains the shape it looks for.
+    $probe = 'pass' + 'word' + ' = ' + 'hunter2secret'
+    if ($probe -notmatch $shape) {
+        Write-Output '  ISSUE   the credential shape cannot match a known-bad line - this section is not checking anything'
+        Note 'ISSUE' 1
+    }
+    # Configuration is the file class this section exists for. A config backup is meant to be
+    # restored, and restoring it puts the host, the user and the password back into use. Measured
+    # 2026-11-16, the six files that had gone unseen for six rounds were all of this class.
+    #
+    # Prose is different and is deliberately not failed: an analysis document that names the object
+    # it analyses is the deliverable, not a leak, and section 9c already governs documents inside the
+    # repository. A prose hit is reported as a NOTE so the file stays visible without a gate that the
+    # owner would have to suppress - a suppressed gate is how this section came to be needed.
+    #
+    # A credential-shaped value is an ISSUE in any file, prose included: a real password in a note is
+    # still a real password.
+    #
+    # The split is by extension and .md is the one prose class, so an unknown extension is treated as
+    # configuration. Choosing the stricter side for an unknown file is the only safe default here.
+    $bkAll = @(Get-ChildItem -LiteralPath $bkDir -Recurse -File -ErrorAction SilentlyContinue)
+    foreach ($bf in $bkAll) {
+        $lower = $bf.Name.ToLower()
+        # The relative path, not the bare name: two files named project-notes.md in two folders
+        # printed two identical-looking lines, so a reader could not tell which one to open.
+        $rel = $bf.FullName.Substring($bkDir.Length).TrimStart('\')
+        # Prose and repository content, each with the section that already reads it.
+        if ($lower -like 'release-notes-*.md') { $bkSkipped += ($rel + ' (prose, section 4)'); continue }
+        if ($lower -like '*.bundle') { $bkSkipped += ($rel + ' (repository content, section 9 history)'); continue }
+        # The list of identifiers this very section searches for. Flagging it would be the detector
+        # reporting its own input - the same self-reference section 9 avoids for its own file. Its
+        # live copy is the one that matters, so a stale backup of it is reported, never failed.
+        if ($lower -eq 'verify-patterns.local.txt') {
+            Write-Output ('  NOTE    ' + $rel + ' is the pattern list this section reads - not counted as a leak')
+            $bkNotes++
+            $bkScanned++
+            continue
+        }
+        $isProse = ($bf.Extension.ToLower() -eq '.md')
+        $hit = 0
+        $note = 0
+        try {
+            foreach ($x in @(Select-String -LiteralPath $bf.FullName -Pattern $patterns -ErrorAction Stop)) {
+                # The value is not printed. This section's job is to say a file is unsafe to restore
+                # and where, and a console that echoes an internal hostname is a second copy of it.
+                if ($isProse) { Write-Output ("  note    " + $rel + ":" + $x.LineNumber + "  names a derived identifier (prose)"); $note++ }
+                else { Write-Output ("  HIT     " + $rel + ":" + $x.LineNumber + "  derived identifier"); $hit++ }
+            }
+            foreach ($x in @(Select-String -LiteralPath $bf.FullName -Pattern $shape -ErrorAction Stop)) {
+                if ($x.Line -match $placeholder) { continue }
+                Write-Output ("  SHAPE   " + $rel + ":" + $x.LineNumber + "  credential-shaped value")
+                $hit++
+            }
+        }
+        catch {
+            $bkSkipped += ($rel + ' (unreadable: ' + $_.Exception.GetType().Name + ')')
+            continue
+        }
+        $bkScanned++
+        $bkNotes += $note
+        if ($hit -gt 0) { $bkFiles++; $bkHits += $hit }
+    }
+    foreach ($s in $bkSkipped) { Write-Output ('  skip    ' + $s) }
+    # A folder that exists but yielded nothing to read is not a pass. The count is registered below,
+    # so the coverage row is what says whether this section examined anything.
+    if ($bkScanned -eq 0) {
+        Write-Output '  ISSUE   backups folder holds no readable file - nothing was examined'
+        Note 'ISSUE' 1
+    }
+    if ($bkHits -gt 0) {
+        Write-Output ("  ISSUE   {0} identifier(s) in {1} configuration file(s) outside the repository - delete the file, do not restore it" -f $bkHits, $bkFiles)
+    } else {
+        Write-Output ("  backups  {0} file(s) read, no configuration file holds a derived identifier, no file holds a credential shape" -f $bkScanned)
+    }
+    if ($bkNotes -gt 0) {
+        Write-Output ("  note    {0} prose reference(s) to a derived identifier - reported, not failed" -f $bkNotes)
+    }
+    Ran 'backups' $bkScanned
+    Note 'ISSUE' $bkHits
+}
+
 Line '10. Findings ledger: is anything still open?'
 # Why this section exists, in one sentence: a finding reported into a chat log is forgotten, and a
 # finding reported into a file that gates the build is not.
@@ -2049,6 +2167,67 @@ if (-not $repoOk) {
             Note 'ISSUE' ($open.Count + $badStatus.Count + $noEvidence.Count + $staleRef.Count)
         }
     }
+}
+
+Line '11. Every file on disk is inventoried, or says why it is not'
+# The structural defect behind seven rounds of point-by-point fixing: a defect can only be found in an
+# artifact somebody remembered to look at. Measured 2026-11-16, 161 files existed in this machine's
+# toolkit footprint and appeared in no inventory: 139 third-party skill files, 13 customer project
+# records, 5 installed tooling copies, 4 pre-history snapshot files. Six of them held 27 internal
+# hostnames, and the audit had never seen any of them because every section began with `git ls-files`.
+#
+# The census is the answer and it is a separate tool, because it answers a different question: not
+# "is this wrong" but "what exists". Running it here turns the inventory into a gate - a file that
+# appears from nowhere now fails the audit on the same run that would otherwise pass over it.
+#
+# It is invoked only when this script's own reach is trusted: the census reads verify-all.ps1 to
+# verify that every gate it names really exists, so pointing it at a stale copy would grade the wrong
+# file. The pin is read from state\kit-root.txt; section 4 already compares that file's absence.
+$censusScript = Join-Path $REPO 'tooling\census.ps1'
+if (-not (Test-Path -LiteralPath $censusScript)) {
+    Write-Output '  SKIP    census.ps1 not present in this clone - nothing to cross-check'
+}
+else {
+    # A census that cannot run must not read as a census that found nothing. Capture both streams and
+    # the exit code, and treat a non-zero exit as the audit's own finding rather than a footnote.
+    $censusOut = @()
+    $censusRc = 0
+    Push-Location $REPO
+    try {
+        $censusOut = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $censusScript 2>&1)
+        $censusRc = $LASTEXITCODE
+    }
+    catch {
+        Write-Output ('  ISSUE   census could not run: ' + $_.Exception.GetType().Name)
+        Note 'ISSUE' 1
+    }
+    finally { Pop-Location }
+
+    $cRows = 0
+    $cSweep = 0
+    $cResult = ''
+    foreach ($ln in $censusOut) {
+        $t = ([string]$ln).Trim()
+        if ($t -match '^rows=(\d+)\s') { $cRows = [int]$Matches[1] }
+        if ($t -match '^(\d+) file\(s\), (\d+) bytes$') { $cSweep = [int]$Matches[1] }
+        if ($t -match '^RESULT: (.+)$') { $cResult = $Matches[1] }
+        # The two lines that mean the inventory is incomplete. Printed as this section's own ISSUE so
+        # the reason survives into the total, rather than being a detail of a nested script.
+        if ($t -match '^(BLIND|PHANTOM)\s+(.+)$') {
+            Write-Output ('  ISSUE   ' + $Matches[1] + ' ' + $Matches[2])
+            Note 'ISSUE' 1
+        }
+    }
+    if ($censusRc -ne 0 -and $cResult -eq '') {
+        Write-Output ('  ISSUE   census exited {0} without a verdict - its output is not trustworthy' -f $censusRc)
+        Note 'ISSUE' 1
+    }
+    if ($cRows -eq 0) {
+        Write-Output '  ISSUE   census built no inventory rows - the cross-check examined nothing'
+        Note 'ISSUE' 1
+    }
+    if ($cResult -ne '') { Write-Output ('  census  ' + $cResult) }
+    Ran 'census' $cRows
 }
 
 # The verdict. Two things it must distinguish, because this check exists to be trusted:

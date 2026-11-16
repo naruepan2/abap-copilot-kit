@@ -170,6 +170,23 @@ powershell -File tooling\verify-all.ps1 -Detail full     # every file and every 
 It is read-only. A check it cannot evaluate prints `SKIP` with the reason rather than a pass — a
 probe that reports success without evidence is worse than no probe.
 
+**And ask what exists.** `tooling/verify-all.ps1` answers "is this wrong". `tooling/census.ps1`
+answers a different question: "what is here". It inventories every artifact the kit owns or depends
+on, names the gate that reads each class, and lists every file on disk that no row and no stated
+reason accounts for — exiting non-zero when it finds one.
+
+```powershell
+powershell -File tooling\census.ps1                      # coverage by class, gaps by reason
+powershell -File tooling\census.ps1 -Detail full          # every unclassified file by name
+```
+
+The distinction is not academic. Seven audit rounds fixed what they happened to read, and each found
+roughly ten more defects, because a file nobody listed was audited by nobody. The first inventory ever
+taken found six backup files outside the repository holding internal hostnames — a folder no
+`git ls-files`-based check could reach, in six consecutive rounds that reported clean. The audit now
+runs the census as its last section, so a file that appears from nowhere fails the same run that would
+otherwise have passed over it.
+
 ### Steps
 
 **1. Agents.** Copy `agents/*.agent.md` into `~/.copilot/agents/` (`%USERPROFILE%\.copilot\agents`
