@@ -841,6 +841,17 @@ else {
     }
     $cases += , @('no-such-agent-by-pongg', $false)
     $cases += , @('', $false)
+    # subagent-rules.cjs accepts five spellings of the agent-name field but the main probe above
+    # only sends agent_type. A regression in any other alias would pass this gate until a real
+    # delegation failed. Add one trusted and one denied case for each remaining spelling, rather
+    # than multiplying every roster case by five: the roster semantics are already covered above,
+    # and four node spawns per alias would add seconds to every audit for no extra verdict.
+    $aliasFields = @('agentType', 'agentName', 'agent_name', 'agent_id')
+    $aliasKnown = [string]$roster.delegatable[0].file
+    foreach ($field in $aliasFields) {
+        $cases += , @($aliasKnown, $true, $field)
+        $cases += , @(($aliasKnown + '-evil'), $false, $field)
+    }
     $savedHome = $env:USERPROFILE
     $wrong = 0
     try {
@@ -857,10 +868,13 @@ else {
         # So the sequential form stays, and the honest reason is that the alternative was tried.
         foreach ($c in $cases) {
             $name = [string]$c[0]
-            $payload = '{"hookEventName":"SubagentStart","agent_type":"' + $name.Replace('\', '\\').Replace('"', '\"') + '"}'
+            $field = if ($c.Count -gt 2) { [string]$c[2] } else { 'agent_type' }
+            $escaped = $name.Replace('\', '\\').Replace('"', '\"')
+            $payload = '{"hookEventName":"SubagentStart","' + $field + '":"' + $escaped + '"}'
             $out = ''
             try { $out = (($payload | & $node.Source $hookFile) -join '') } catch { $out = '' }
-            $label = if ($name -eq '') { '(empty)' } else { $name }
+            $plainLabel = if ($name -eq '') { '(empty)' } else { $name }
+            $label = if ($field -eq 'agent_type') { $plainLabel } else { $field + ':' + $plainLabel }
             # An empty or unparseable answer is not a verdict. Treating "no Restricted text" as trusted
             # made the gate report success precisely when the hook had crashed - the same shape of
             # mistake as a read that leaves the previous value behind.
@@ -1861,6 +1875,7 @@ Line '9d. A tag and its notes file describe the same release'
 # so a difference is reported as a NOTE with the count, not as an ISSUE.
 $tagMismatch = 0
 $tagCompared = 0
+$tagSkipped = 0
 $tagSubjectOnly = 0
 $tagDamaged = 0
 # Declared exceptions, read once. The file is the single place a human records a state that cannot be
@@ -1880,7 +1895,14 @@ if ($repoOk -and (Test-Path $notesDir)) {
     $tagList = @(& git tag --list 'v*')
     foreach ($tg in $tagList) {
         $noteFile = Join-Path $notesDir ('release-notes-' + $tg + '.md')
-        if (-not (Test-Path $noteFile)) { continue }
+        # A tag with no notes file used to vanish without a line or a counter, so a partial pass
+        # looked like a full one. Report it and fail: the copy of record is required for every tag.
+        if (-not (Test-Path $noteFile)) {
+            $tagSkipped++
+            Write-Output ("  ISSUE   " + $tg + " has no release notes file at " + $noteFile)
+            Note 'ISSUE' 1
+            continue
+        }
         $tagCompared++
         # Native output is decoded with [Console]::OutputEncoding, which is windows-874 on this
         # machine (F-164). A clean UTF-8 arrow E2 86 92 in the v0.9.4.9 annotation was decoded as
@@ -1943,9 +1965,9 @@ if ($repoOk -and (Test-Path $notesDir)) {
         Write-Output '  NOTE    no release notes file matches a local tag - nothing compared'
     }
     else {
-        Write-Output ("  {0} tag(s) compared against their notes; {1} carry a subject rather than the notes body (accepted since v0.9.4)" -f $tagCompared, $tagSubjectOnly)
+        Write-Output ("  {0} tag(s) compared against their notes; {1} lack notes; {2} carry a subject rather than the notes body (accepted since v0.9.4)" -f $tagCompared, $tagSkipped, $tagSubjectOnly)
     }
-    Ran 'tag-notes' $tagCompared
+    Ran 'tag-notes' ($tagCompared + $tagSkipped)
     Note 'ISSUE' ($tagMismatch + $tagDamaged)
 }
 else {
@@ -2204,7 +2226,12 @@ else {
     $censusRc = 0
     Push-Location $REPO
     try {
-        $censusOut = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $censusScript 2>&1)
+        # Same rule as the launcher wiring check: a bare `powershell` is resolved from PATH, and a
+        # trimmed PATH makes this whole inventory gate unavailable while the failure is reported as
+        # a census problem. $PSHOME is where this interpreter actually came from.
+        $pwshExe = Join-Path $PSHOME 'powershell.exe'
+        if (-not (Test-Path -LiteralPath $pwshExe)) { $pwshExe = (Get-Process -Id $PID).Path }
+        $censusOut = @(& $pwshExe -NoProfile -ExecutionPolicy Bypass -File $censusScript 2>&1)
         $censusRc = $LASTEXITCODE
     }
     catch {
