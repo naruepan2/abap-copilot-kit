@@ -89,7 +89,7 @@ code reads defensively with a fallback.
 | Event | Fields the hook reads | Fallback when absent |
 | --- | --- | --- |
 | `sessionStart` | **none** — it reads no stdin at all | builds its own surface from disk |
-| `subagentStart` | `agentName` or `agent_type` (whichever is present), `prompt` | `'unknown'` agent, treated as not approved |
+| `subagentStart` | `agentName` or `agent_type` (whichever is present) | `'unknown'` agent, treated as not approved |
 | `postToolUseFailure` | `toolName` or `tool_name`; `error` or `errorText`, which may be a **string or an object** | no row is written when the tool name is missing; an object is reduced to its `.message` |
 
 Measured 2026-11-16: `{\"error\":{\"message\":\"disk full\",\"code\":28}}` used to be recorded as

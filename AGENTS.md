@@ -21,7 +21,7 @@ nothing and restricts nothing. Measured 2026-11-13:
 
 | Where | What is configured there |
 |---|---|
-| `%APPDATA%\Code\User\mcp.json` | every MCP server: `arc-1`, `adam`, `gsd-120`, `ds4-900`, plus the UI5 and Fiori servers |
+| `%APPDATA%\Code\User\mcp.json` | every MCP server: `arc-1`, `adam`, `gsd-120`, `ds4-900`, plus the UI5 server (`@ui5/mcp-server`). The Fiori server is declared in the CLI config instead |
 | `%APPDATA%\Code\User\settings.json` → `abapfs.remote` | every ABAP FS destination (more than one customer at a time) |
 | `%APPDATA%\Code\User\settings.json` → `adt.mcpServer.*` | the ADT MCP server and its settings |
 

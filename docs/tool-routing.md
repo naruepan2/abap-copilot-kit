@@ -88,8 +88,8 @@ Rules that keep this list honest:
 - Do not edit the installed skill to disambiguate its trigger: a reinstall overwrites it. If a pair
   stays ambiguous in practice, the row belongs in this table.
 - Re-measure the sizes when a skill is upgraded. `tooling/measure-context.ps1 -Detail full` prints
-  every skill's injected size, and section 2 of `verify-all.ps1` prints each skill's body size on
-  disk — the two are different numbers on purpose.
+  every skill's injected size, and its section 6 prints each skill's body size — section 2 of
+  `verify-all.ps1` checks frontmatter, not size.
 
 ### A `.md` name inside a skill usually means a sibling skill, not a file
 

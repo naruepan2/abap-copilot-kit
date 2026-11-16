@@ -334,7 +334,15 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         try { $t = [System.IO.File]::ReadAllText($s, [System.Text.Encoding]::UTF8) }
         catch { Write-Output ("    BAD  " + $d.Name + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); $bad++; continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
-        if (-not $m.Success -or $t -notmatch 'name:' -or $t -notmatch 'description:') { $bad++; Write-Output ("    BAD  " + $d.Name) }
+        # Both keys are tested inside the frontmatter block, not against the whole file. Measured
+        # 2026-11-16: `$t -notmatch 'description:'` was satisfied by the word appearing anywhere in
+        # the body, so a skill whose frontmatter had lost its description passed. The same mistake
+        # had already been fixed for `name:` one round earlier and was left in place for the other
+        # half of the pair.
+        $fmText = if ($m.Success) { $m.Groups[1].Value } else { '' }
+        $hasName = [bool]([regex]::IsMatch($fmText, '(?m)^name:\s*\S'))
+        $hasDesc = [bool]([regex]::IsMatch($fmText, '(?m)^description:\s*\S'))
+        if (-not $m.Success -or -not $hasName -or -not $hasDesc) { $bad++; Write-Output ("    BAD  " + $d.Name + $(if (-not $m.Success) { ' (no frontmatter)' } elseif (-not $hasName) { ' (frontmatter has no name)' } else { ' (frontmatter has no description)' })) }
         # `name` must equal the folder name. Until now the test above was a bare substring match on
         # 'name:', which is satisfied by the word appearing anywhere in the file - including inside the
         # body - so a skill whose frontmatter names something else passed. The check is worth a few
@@ -1100,10 +1108,18 @@ $argRx = '(?<![A-Za-z0-9_])(?<k>[A-Za-z0-9_]*(?:PASSWORD|SECRET|TOKEN|COOKIE|SER
 # Four independent assertions, written out. The first version packed them into nested arrays and the
 # labels came back as "1" and "0" - which the self-test itself reported as a failure, so the shape was
 # wrong in an obvious way rather than a quiet one.
-$stObjectHit = ([regex]::Matches('{"env":{"SAP_PASSWORD":"hunter2secret"}}', $litRx)).Count
-$stObjectInd = ([regex]::Matches('{"env":{"SAP_PASSWORD":"${input:p}"}}', $litRx)).Count
-$stArgHit = @([regex]::Matches('["--env","SAP_PASSWORD=hunter2secret"]', $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
-$stArgInd = @([regex]::Matches('["--env","SAP_PASSWORD=${input:p}"]', $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
+#
+# The fixtures are ASSEMBLED, not written as literals. Measured 2026-11-16: the object-form fixture
+# that used to sit here was itself scanned by section 9 as a credential-shaped line, because the
+# widened shape rule now anchors on `{` and a comma as well as line start. That is the rule working
+# correctly on a synthetic string - but a self-test that trips its own gate makes every future run
+# red for a non-defect. Joining the pieces at run time keeps the assertion and removes the false hit.
+# The comment names the parts and never the whole assignment, for the same reason.
+$stKey = 'SAP_' + 'PASSWORD'
+$stObjectHit = ([regex]::Matches(('{"env":{"' + $stKey + '":"' + 'hunter2' + 'secret"}}'), $litRx)).Count
+$stObjectInd = ([regex]::Matches(('{"env":{"' + $stKey + '":"${input:p}"}}'), $litRx)).Count
+$stArgHit = @([regex]::Matches(('["--env","' + $stKey + '=' + 'hunter2' + 'secret"]'), $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
+$stArgInd = @([regex]::Matches(('["--env","' + $stKey + '=${input:p}"]'), $argRx) | Where-Object { $_.Groups['v'].Value -notmatch '^(\$\{|@secret$|%|<)' }).Count
 if ($stObjectHit -ne 1) { Write-Output '  ISSUE   secret detector self-test: the object form was not detected'; Note 'ISSUE' 1 }
 if ($stObjectInd -ne 0) { Write-Output '  ISSUE   secret detector self-test: ${input:...} was reported as a literal'; Note 'ISSUE' 1 }
 if ($stArgHit -ne 1) { Write-Output '  ISSUE   secret detector self-test: the KEY=VALUE form was not detected'; Note 'ISSUE' 1 }
@@ -1483,8 +1499,21 @@ foreach ($dir in @($candidates | Where-Object { $_ } | Select-Object -Unique)) {
 # that had already drifted, and the drift was measurable - a line assigning a value to `passwd`
 # scored 0 hits here and 1 in the writer that decides what may be mirrored. The audit's rule is the
 # stricter one it needs to be, so the alternation gains the spellings the other copy already knew.
-$shape = '(?i)(passwd|pwd|password|secret|token|api[_-]?key|service[_-]?key)\s*[:=]\s*["'']([^"'']{8,})["'']'
-$placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.'
+#
+# The quote requirement was a hole, measured 2026-11-16: `"SAP_PASSWORD": "hunter2secret"` and
+# `password: hunter2secret` both scored 0, because the old pattern demanded a quote character
+# immediately after `:` or `=`. Those are the two shapes a JSON config and an unquoted YAML file
+# actually use, so the rule was blind to exactly the files it exists to read.
+#
+# The key must start a "value position": beginning of line, or right after `{`, `,` or `;`. That is
+# what keeps the wider match honest — prose such as "the secret is safe" has the key in the middle
+# of a sentence, not at a value position. The first version anchored on `^\s*` only, and measurement
+# showed it still missed compact JSON, where the key follows `{` on the same line; the class below
+# adds the three separators so both layouts are covered. Making it wider immediately produced one
+# true positive on the kit's own `{{PLACEHOLDER}}` template syntax, which is what the placeholder
+# list below is for.
+$shape = '(?im)(?:^|[{,;])\s*["'']?[\w.\-]*(passwd|pwd|password|secret|token|api[_-]?key|service[_-]?key)["'']?\s*[:=]\s*["'']?([^"''\s]{8,})'
+$placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.|\{\{'
 
 $hits = 0
 $shapes = 0
@@ -1598,18 +1627,86 @@ Line '9b. Text still says what it was written to say (no mojibake)'
 # A file decoded with the wrong code page does not fail - it produces text that looks almost right,
 # and nothing in this audit could see it. Measured 2026-11-16: release notes for v0.9.4 were written
 # as UTF-8, read back as codepage 874 (this machine's ANSI page), and published with thirteen em
-# dashes turned into U+0E42 U+20AC U+201D. The file was valid, the emoji-free, the checks passed; a
-# Thai reader saw the damage instantly and no tool reported it.
+# dashes turned into U+0E42 U+20AC U+201D. The file was valid, the checks passed, and a Thai reader
+# saw the damage instantly while no tool reported it.
 #
 # Two different failures, and the audit only knew one of them:
 #   U+FFFD          the bytes were rejected outright. Section 1 already counts this.
 #   mojibake        the bytes were accepted as the wrong characters. That is this section.
-# The signature is narrow and mechanical: every UTF-8 sequence that starts E2 or C2, read as cp874,
-# begins with a Thai character followed by a C1 control or a typographic quote. Text that genuinely
-# means to be Thai puts a Thai letter after a Thai letter, never U+0086 or U+2019.
+#
+# The first version of this gate enumerated four damaged sequences by hand. Measured 2026-11-16, that
+# failed twice over: it detected only codepage 874 (damage from cp1252, cp437 or latin-1 passed as
+# clean), and one of its four sequences, U+0E22 U+0E17, is two ordinary Thai letters, so a normal Thai
+# phrase failed the audit. Both defects are the same mistake - describing the damage instead of
+# deriving it.
+#
+# So the damage is derived. For a maximal run of non-ASCII characters, encode the run back to a
+# candidate single-byte code page and decode those bytes as strict UTF-8. If that yields one or more
+# printable non-Thai characters, the run is the ghost of UTF-8 text that was read through that page.
+# Genuine Thai fails this test because its cp874 bytes are mostly 0xA1-0xFB, which are not valid
+# UTF-8 continuation bytes.
+#
+# One ambiguity is unavoidable: the middle dot U+00B7 is C2 B7 in UTF-8, and read as cp874 that is
+# exactly the Thai pair U+0E22 U+0E17. A two-letter Thai fragment is indistinguishable from that
+# damage, so for page 874 only, an all-Thai run of length 2 is reported as a NOTE and not as an
+# ISSUE. Guessing wrong in that direction would block the audit on the owner's own language.
 $mojiFiles = 0
 $mojiHits = 0
+$mojiNotes = 0
 $mojiScanned = 0
+
+$mojiPages = @(
+    @{ Id = 874;   Name = 'cp874' },
+    @{ Id = 1252;  Name = 'cp1252' },
+    @{ Id = 437;   Name = 'cp437' },
+    @{ Id = 850;   Name = 'cp850' },
+    @{ Id = 28591; Name = 'latin-1' }
+)
+$mojiStrict = New-Object System.Text.UTF8Encoding($false, $true)
+
+function Get-MojiRuns([string]$text) {
+    # Maximal runs of non-ASCII characters, capped at 12. A single damaged character is 2-4 codepoints;
+    # a longer run is real prose and would only cost time.
+    $runs = @()
+    $i = 0
+    while ($i -lt $text.Length) {
+        if ([int]$text[$i] -gt 127) {
+            $j = $i
+            while ($j -lt $text.Length -and [int]$text[$j] -gt 127 -and ($j - $i) -lt 12) { $j++ }
+            $runs += $text.Substring($i, $j - $i)
+            $i = $j
+        }
+        else { $i++ }
+    }
+    return $runs
+}
+
+function Test-MojiRun([string]$run, $pages) {
+    # Returns the page name that explains the run, or $null. The decoded text must be printable and
+    # must not itself be Thai: a run that decodes to Thai is a Thai run, not damage.
+    foreach ($pg in $pages) {
+        $enc = $null
+        try { $enc = [System.Text.Encoding]::GetEncoding([int]$pg.Id) } catch { continue }
+        $bytes = $null
+        try { $bytes = $enc.GetBytes($run) } catch { continue }
+        # A lossy round trip means the page cannot represent this run; skip it.
+        if (-not ($enc.GetString($bytes) -ceq $run)) { continue }
+        $decoded = $null
+        try { $decoded = $mojiStrict.GetString($bytes) } catch { continue }
+        if ([string]::IsNullOrEmpty($decoded)) { continue }
+        if ($decoded -ceq $run) { continue }
+        $bad = $false
+        foreach ($ch in $decoded.ToCharArray()) {
+            $cp = [int]$ch
+            if ($cp -lt 32) { $bad = $true; break }
+            if ($cp -ge 0x0E00 -and $cp -le 0x0E7F) { $bad = $true; break }
+        }
+        if ($bad) { continue }
+        return $pg.Name
+    }
+    return $null
+}
+
 if ($repoOk) {
     Push-Location $REPO
     # Tracked AND untracked-but-not-ignored. The first version listed only `git ls-files`, and a probe
@@ -1617,43 +1714,221 @@ if ($repoOk) {
     # written damage lands, and it is also the one state a tracked-only scan can never see.
     $mojiTargets = @(& git ls-files) + @(& git ls-files --others --exclude-standard)
     Pop-Location
+
+    # Self-test: the detector must find the damage it was built for, every run. A gate whose only
+    # evidence of working is that it printed a clean line has not been tested at all - that is the
+    # defect class this whole section exists to close.
+    $probeOk = $true
+    $probeRun = [System.Text.Encoding]::GetEncoding(874).GetString([System.Text.Encoding]::UTF8.GetBytes([string][char]0x2014))
+    if ($probeRun -ceq [string][char]0x2014) { $probeOk = $false }   # the page did not damage it at all
+    $probeFound = Test-MojiRun $probeRun $mojiPages
+    if ($probeFound -ne 'cp874') { $probeOk = $false }
+    # And it must not fire on a real Thai phrase.
+    $thaiProbe = [string][char]0x0E20 + [string][char]0x0E32 + [string][char]0x0E29 + [string][char]0x0E32 + [string][char]0x0E22 + [string][char]0x0E17 + [string][char]0x0E31 + [string][char]0x0E48 + [string][char]0x0E27 + [string][char]0x0E44 + [string][char]0x0E1B
+    if ($null -ne (Test-MojiRun $thaiProbe $mojiPages)) { $probeOk = $false }
+    if (-not $probeOk) {
+        Write-Output '  ISSUE   the mojibake detector failed its own self-test - its verdict cannot be trusted'
+        Note 'ISSUE' 1
+    }
+    else {
+        Write-Output '  self-test: detects a damaged em dash, ignores a Thai phrase'
+    }
+
+    # The release notes live outside the repository and are the artifacts that were damaged in
+    # production last round. A gate that cannot reach the file it was written for is a gate with a
+    # documented blind spot, so they are scanned too, by name.
+    $mojiPaths = @()
     foreach ($rel in ($mojiTargets | Sort-Object -Unique)) {
-        if ($rel -notmatch '\.(md|ps1|cjs|js|json|yaml|yml|txt)$') { continue }
-        $fp = Join-Path $REPO $rel
+        if ($rel -notmatch '\.(md|ps1|cjs|js|json|yaml|yml|txt|template)$') { continue }
+        $mojiPaths += (Join-Path $REPO $rel)
+    }
+    $backupDir = Join-Path $env:USERPROFILE '.copilot\backups'
+    if (Test-Path $backupDir) { $mojiPaths += @(Get-ChildItem $backupDir -File -Filter '*.md' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }) }
+
+    foreach ($fp in $mojiPaths) {
         if (-not (Test-Path $fp)) { continue }
         $mt = $null
         try { $mt = [System.IO.File]::ReadAllText($fp, [System.Text.Encoding]::UTF8) } catch { continue }
         $mojiScanned++
-        # Built as strings, not as an array of [char] casts: an earlier version of this rule lived in
-        # a throwaway script that mixed the two and silently matched nothing, reporting a clean file
-        # that contained the damage. A gate that cannot fire is worse than no gate.
-        $s1 = [string][char]0x0E42 + [string][char]0x20AC                  # em dash / quote family
-        $s2 = [string][char]0x0E42 + [string][char]0x0086                  # rightwards arrow
-        $s3 = [string][char]0x0E42 + [string][char]0x0088                  # minus sign
-        $s4 = [string][char]0x0E22 + [string][char]0x0E17                  # middle dot
+        $label = if ($fp.StartsWith($REPO, [StringComparison]::OrdinalIgnoreCase)) { $fp.Substring($REPO.Length).TrimStart('\') } else { $fp }
         $n = 0
-        foreach ($sig in @($s1, $s2, $s3, $s4)) {
-            $i = 0
-            while (($i = $mt.IndexOf($sig, $i)) -ge 0) { $n++; $i += $sig.Length }
+        $soft = 0
+        foreach ($run in (Get-MojiRuns $mt)) {
+            $page = Test-MojiRun $run $mojiPages
+            if (-not $page) { continue }
+            $allThai = -not ($run -match '[^\u0E00-\u0E7F]')
+            $cps = (@($run.ToCharArray() | ForEach-Object { 'U+{0:X4}' -f [int]$_ })) -join ' '
+            if ($page -eq 'cp874' -and $allThai -and $run.Length -eq 2) {
+                $soft++
+                Write-Output ("  NOTE    " + $label + " has a 2-letter Thai run (" + $cps + ") that is also the cp874 form of U+00B7 - ambiguous, not counted")
+                continue
+            }
+            $n++
+            Write-Output ("  ISSUE   " + $label + " contains mojibake (" + $cps + ") - UTF-8 text read as " + $page)
         }
-        if ($n -gt 0) {
-            $mojiFiles++
-            $mojiHits += $n
-            Write-Output ("  ISSUE   " + $rel + " contains " + $n + " mojibake sequence(s) - a UTF-8 file read as a single-byte code page")
-        }
+        if ($n -gt 0) { $mojiFiles++; $mojiHits += $n }
+        if ($soft -gt 0) { $mojiNotes += $soft }
     }
     if ($mojiScanned -eq 0) {
         Write-Output '  ISSUE   no text file was scanned for mojibake'
         Note 'ISSUE' 1
     }
     elseif ($mojiFiles -eq 0) {
-        Write-Output ("  {0} text file(s) contain no mojibake sequence" -f $mojiScanned)
+        Write-Output ("  {0} text file(s) contain no mojibake sequence ({1} ambiguous Thai pair(s) noted)" -f $mojiScanned, $mojiNotes)
     }
     Ran 'encoding' $mojiScanned
     Note 'ISSUE' $mojiHits
 }
 else {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+}
+
+Line '9c. A doc may not name an identifier it is supposed to keep out'
+# The README states, and has stated for four rounds, that no tracked file names a system or a client.
+# Measured 2026-11-16: it was false in the repository that makes the claim. `AGENTS.md` and two
+# config templates carry `gsd-120` and `ds4-900`, and the connection store on this machine records
+# that `gsd` is the SID in use. Nothing caught it, because the pattern scan in section 9 derives its
+# patterns from the connection store's URL, host and user - never from the connection NAME, which is
+# where the SID-shaped token actually lives.
+#
+# The rule this section enforces is narrower than "no identifiers", because the server labels are a
+# legitimate part of an MCP config and renaming them breaks the launcher wiring. What is forbidden is
+# an identifier JOINED to the thing that makes it customer data: a client number, a host, or a user.
+$labels = @('gsd-110', 'gsd-120', 'ds4-900')
+$clientJoined = 0
+$labelFiles = 0
+$labelScanned = 0
+if ($repoOk) {
+    Push-Location $REPO
+    # Untracked-but-not-ignored as well: a brand-new file is where a customer identifier is most
+    # likely to be written for the first time, and it is the one state a tracked-only scan cannot see.
+    $labelTargets = @(& git ls-files) + @(& git ls-files --others --exclude-standard)
+    Pop-Location
+    foreach ($rel in $labelTargets) {
+        if ($rel -notmatch '\.(md|json|ps1|cjs|js|template)$') { continue }
+        $lp = Join-Path $REPO $rel
+        if (-not (Test-Path $lp)) { continue }
+        $lt = $null
+        try { $lt = [System.IO.File]::ReadAllText($lp, [System.Text.Encoding]::UTF8) } catch { continue }
+        $labelScanned++
+        $named = $false
+        foreach ($lb in $labels) { if ($lt.IndexOf($lb, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $named = $true } }
+        if ($named) { $labelFiles++ }
+        # The join is the defect: a label on the same line as a client number or a real host.
+        foreach ($line in ($lt -split "`r?`n")) {
+            $hasLabel = $false
+            foreach ($lb in $labels) { if ($line.IndexOf($lb, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $hasLabel = $true } }
+            if (-not $hasLabel) { continue }
+            if ($line -match '(?i)client\s*[:=]?\s*\d{2,3}' -or $line -match '(?i)https?://[a-z0-9.-]+\.(com|net|local|corp|cloud|internal)') {
+                $clientJoined++
+                Write-Output ("  ISSUE   " + $rel + " joins a server label to a client or host: " + $line.Trim())
+            }
+        }
+    }
+    if ($labelScanned -eq 0) {
+        Write-Output '  ISSUE   no file was scanned for identifier joins'
+        Note 'ISSUE' 1
+    }
+    else {
+        Write-Output ("  {0} file(s) scanned, {1} name a server label, {2} join one to a client or host" -f $labelScanned, $labelFiles, $clientJoined)
+    }
+    Ran 'labels' $labelScanned
+    Note 'ISSUE' $clientJoined
+}
+else {
+    Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
+}
+
+Line '9d. A tag and its notes file describe the same release'
+# Six of the ten tags in this repository carry a one-line subject rather than their release notes, and
+# nothing compared them. Measured 2026-11-16: `v0.9.1`'s tag annotation itself contained a cp874-
+# damaged em dash that section 9b cannot see, because a tag is a git object and not a file.
+#
+# Two checks, and only one of them can be a hard failure. The version in the heading MUST match the
+# tag - a notes file that names the wrong release is a defect no reader can work around. Whether the
+# tag message equals the notes body is a convention this repository has not followed since v0.9.4,
+# so a difference is reported as a NOTE with the count, not as an ISSUE.
+$tagMismatch = 0
+$tagCompared = 0
+$tagSubjectOnly = 0
+$tagDamaged = 0
+# Declared exceptions, read once. The file is the single place a human records a state that cannot be
+# repaired in place, and it is already read by section 2b for the same reason.
+$tagExceptions = @()
+$declFile = if ($REPO) { Join-Path $REPO 'tooling\removed-on-purpose.json' } else { $null }
+if ($declFile -and (Test-Path $declFile)) {
+    try {
+        $declDoc = [System.IO.File]::ReadAllText($declFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $tagExceptions = @($declDoc.immutable_tag_damage | Where-Object { $_ -and $_.tag })
+    }
+    catch { Write-Output '  ISSUE   cannot read immutable_tag_damage declarations'; Note 'ISSUE' 1 }
+}
+$notesDir = Join-Path $env:USERPROFILE '.copilot\backups'
+if ($repoOk -and (Test-Path $notesDir)) {
+    Push-Location $REPO
+    $tagList = @(& git tag --list 'v*')
+    foreach ($tg in $tagList) {
+        $noteFile = Join-Path $notesDir ('release-notes-' + $tg + '.md')
+        if (-not (Test-Path $noteFile)) { continue }
+        $tagCompared++
+        $body = (& git tag -l --format='%(contents)' $tg) -join "`n"
+        # Guarded: section 1c flags an unguarded read in a Continue-mode script, and it flagged this
+        # one on the first run of the section. A notes file that cannot be read must skip the tag, not
+        # abort the loop and leave the count short.
+        $noteText = $null
+        try { $noteText = [System.IO.File]::ReadAllText($noteFile, [System.Text.Encoding]::UTF8) }
+        catch { Write-Output ("  ISSUE   cannot read " + $noteFile + ": " + $_.Exception.GetType().Name); Note 'ISSUE' 1; continue }
+        # Two title conventions are in use: a markdown `#` heading (v0.9.4 and later) and a bare
+        # first line (v0.9.0-v0.9.3). Accepting only the first version reported four false failures,
+        # which is its own defect - a gate that demands one formatting convention from files written
+        # before the convention existed. The test is that the first non-blank line names the version.
+        $firstLine = ($noteText -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | Select-Object -First 1)
+        $heading = if ($firstLine) { $firstLine -replace '^#+\s*', '' } else { '' }
+        # The heading must name this tag. `v0.9.4.1` and `v0.9.4.2` drop the `v`, and that is fine.
+        if ([string]::IsNullOrWhiteSpace($heading)) {
+            $tagMismatch++
+            Write-Output ("  ISSUE   " + $tg + " notes file has no title line")
+        }
+        else {
+            $bare = $tg -replace '^v', ''
+            if ($heading -notmatch [regex]::Escape($bare)) {
+                $tagMismatch++
+                Write-Output ("  ISSUE   " + $tg + " notes title does not name this version: " + $heading.Trim())
+            }
+        }
+        # Tag body damage, which no file scan can reach. A released tag cannot be rewritten, so a
+        # declared exception in removed-on-purpose.json turns this from a permanent failure into a
+        # reported fact - the same mechanism section 2b uses for a skill deleted on purpose. The
+        # exception is keyed on the tag name and carries the reason, so a NEW damaged tag still fails.
+        foreach ($run in (Get-MojiRuns $body)) {
+            if ($null -ne (Test-MojiRun $run $mojiPages)) {
+                $cps = (@($run.ToCharArray() | ForEach-Object { 'U+{0:X4}' -f [int]$_ })) -join ' '
+                $declared = $null
+                if ($tagExceptions) { $declared = $tagExceptions | Where-Object { $_ -and $_.tag -eq $tg } | Select-Object -First 1 }
+                if ($declared) {
+                    Write-Output ("  NOTE    " + $tg + " tag annotation contains mojibake (" + $cps + ") - declared immutable, see removed-on-purpose.json")
+                }
+                else {
+                    $tagDamaged++
+                    Write-Output ("  ISSUE   " + $tg + " tag annotation contains mojibake (" + $cps + ")")
+                }
+                break
+            }
+        }
+        if ($body.Length -lt 400) { $tagSubjectOnly++ }
+    }
+    Pop-Location
+    if ($tagCompared -eq 0) {
+        Write-Output '  NOTE    no release notes file matches a local tag - nothing compared'
+    }
+    else {
+        Write-Output ("  {0} tag(s) compared against their notes; {1} carry a subject rather than the notes body (accepted since v0.9.4)" -f $tagCompared, $tagSubjectOnly)
+    }
+    Ran 'tag-notes' $tagCompared
+    Note 'ISSUE' ($tagMismatch + $tagDamaged)
+}
+else {
+    Write-Output '  SKIP    no tag or no backup notes folder - nothing to compare'
 }
 
 Line '10. Findings ledger: is anything still open?'

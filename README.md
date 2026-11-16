@@ -35,7 +35,7 @@ config-templates/  mcp.json, mcp-config.json (Copilot CLI), settings.json, arc1.
                    arc1-connections skeletons
 memory-templates/  user profile template
 templates/         yaml + README + spec + changes templates for a project, program or spec
-tooling/           audit scripts: verify-all, measure-context, who-locks, surface snapshot,
+tooling/           audit scripts: verify-all, measure-context, who-locks,
                    sap-connection (logon list) + sap-secret (DPAPI) + sap-arc1-launcher,
                    sap-auth-probe (does the stored password still work),
                    workspace-sync (mirror a program contract into the private workspace repo),
@@ -196,13 +196,13 @@ readable by another group on Windows, so a password in that file is not private.
 The way out is to name a connection instead of listing credentials:
 
 ```powershell
-tooling\sap-connection.ps1 -Add -Name gsd-110 -Url https://host:44381 -Client 110 -User <sap user>
-powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key gsd-110_SAP_PASSWORD
+tooling\sap-connection.ps1 -Add -Name dev-110 -Url https://host:44381 -Client 110 -User <sap user>
+powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key dev-110_SAP_PASSWORD
 ```
 
 `-Set` prompts once and stores the value in Windows Credential Manager. To keep a console window
 from sitting next to the prompt, start it hidden — and name the interpreter by full path, because
-this is a spawned process: `Start-Process "$PSHOME\powershell.exe" -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','gsd-110_SAP_PASSWORD'`.
+this is a spawned process: `Start-Process "$PSHOME\powershell.exe" -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Set','-Key','dev-110_SAP_PASSWORD'`.
 Then point the client at the launcher — the password never appears in the config. Use the same
 entry for both harnesses; only the key above it differs (`mcpServers` for the Copilot CLI,
 `servers` for VS Code). The whole entry is in `config-templates/mcp-config.template.json`:
@@ -211,7 +211,7 @@ entry for both harnesses; only the key above it differs (`mcpServers` for the Co
 "arc-1": {
   "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
   "args": ["-NoProfile","-ExecutionPolicy","Bypass","-File",
-           "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1","-Connection","gsd-110"]
+           "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1","-Connection","dev-110"]
 }
 ```
 
@@ -290,12 +290,19 @@ clone. The repository is private, so this needs collaborator access first.
 | `Projects/_routing.local.md` | which server reaches which system, and which client is authorized |
 | Live `hooks/*.json` | machine-specific absolute paths |
 
-**No tracked file names a system, a client, a customer, a host or a user.** That was not always
+**No tracked file names a customer, a host or a user** — and since v0.9.4.6 the audit enforces the
+narrower claim instead of asserting it. That was not always
 true: the routing table in `agents/abap-developer-by-pongg.agent.md` used to list which system each
 MCP server reaches, which made the agent file a record of the customer landscape. It now states
 what each server *may do* and points at `Projects/_routing.local.md` for the machine-specific
 mapping. The agent reads that file before its first SAP call, and asks when the file does not cover
 the target, so the information moved rather than disappeared.
+
+Two things are still named, on purpose, and they are not customer data: the MCP server **labels**
+(`gsd-120`, `ds4-900` in `AGENTS.md` and in `config-templates/`) name the *logon* a server starts
+with, not a system it reaches — the same label appears in the harness config on the machine and
+carries no client, host or user. Section 9c fails the audit if one of them is joined to a client
+number or a host.
 
 The history was rewritten once, for the same reason. A scanner in `tooling/verify-all.ps1` had
 carried a real user id, two customer domains and the first characters of a token as literal
@@ -306,7 +313,7 @@ without the repository holding them.
 
 **A working-tree scan cannot find this class of mistake, because the mistake is usually already
 gone from the working tree.** The leak above survived sixteen commits while every check passed.
-Section 9 now scans every commit as well as every tracked file, which costs about a tenth of a
+Section 9 now scans every commit as well as every tracked file, which costs about a quarter of a
 second at this size and reports the commit, the path and the line. If it ever finds something, the
 only fix is a rewritten history — so the check exists to make that rare enough to stay cheap.
 
@@ -336,7 +343,7 @@ The fix is a second, private repository that holds the contract and nothing else
 | Mirrored | Never mirrored |
 | --- | --- |
 | `README.md`, `project.yaml`, `program.yaml`, `changes.md` | `spec\source\**` — the functional's document |
-| `spec\INDEX.md`, `spec\notes.md` | `.baseline\**` — customer source captured before a transfer |
+| `spec\INDEX.md`, `spec\notes.md`, `spec\spec.md`, `spec\CHANGELOG.md` | `.baseline\**` — customer source captured before a transfer |
 | `manifest.json` with sha256, bytes, lines per file | any file the script does not name |
 
 An allowlist, not a denylist, for the same reason as the agent roster: a file type added tomorrow is
@@ -381,6 +388,12 @@ git log --oneline v0.9.0..HEAD      # what changed since the last tag, for the r
 git tag -a v0.10.0 -F notes.txt     # notes.txt becomes the tag message
 git push origin v0.10.0
 ```
+
+The tag message is **not** the release body, and the gap has been measured: six of the ten tags in
+this repository carry a one-line subject instead of their notes file, and the notes are pasted into
+the GitHub release form by hand. `C:\Users\<you>\.copilot\backups\release-notes-<tag>.md` is the
+copy of record; the tag is the immutable pointer. Section 9d of the audit compares the two and
+fails when a tag subject disagrees with its notes heading.
 
 GitHub does not read an annotated tag message as the Release description — it generates one from
 commits instead, so paste the tag body into the release form. What the tag itself gives you is the
