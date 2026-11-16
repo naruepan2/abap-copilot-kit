@@ -1280,6 +1280,141 @@
                          "verified_by":  "deep audit 2026-11-16 round 8",
                          "note":  "Accepted on purpose. See reason.",
                          "reason":  "Measured over 41 markdown files: 146 backticked file paths, of which 24 name files that exist outside the repository by design (surface.json, kit-root.txt, mcp.json, .skill-lock.json); the 2 left over were a doc stating \"There is no CHANGELOG.md, and that is a decision\" and a path under a customer folder. Count-restating lines totalled 5, of which 2 were a box-drawing table and 3 were prose. No numeric constant appears in any markdown file at all - the debounce, the 64 KB rotation cap and the 200-character signature each live in exactly one place, the code, because the prose was already rewritten to name the constant instead of its value. A gate built on the planned rules would have scanned 41 files and produced zero true positives while risking one misfire on every legitimate external path. Not built; the measurement is recorded so the next round does not rebuild it. Documentation defects were found by reading, and the structural fix for that class is the inventory of F-141, not a gate."
+                     },
+                     {
+                         "id":  "F-145",
+                         "title":  "Two setup counts were stale: nine deletes on a fresh install and twelve tags with five one-line subjects",
+                         "where":  "SETUP-NEW-MACHINE.md:11; README.md:409",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Section 7 delete list has 5 caveman + 1 toolkit + 3 mattpocock entries (9), and git tag --list returns 12 tags of which 5 carry a one-line subject. Both documents stated older counts. Counts re-measured after the edit: tags=12, one_line=5, delete_commands=3.",
+                         "evidence":  "2c3d265"
+                     },
+                     {
+                         "id":  "F-146",
+                         "title":  "The section 9d comment repeated the stale tag count",
+                         "where":  "tooling/verify-all.ps1:1854",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "The comment said six of ten; the measured state is five of twelve. Gate logic was not changed. Re-measured stale phrase absent after the edit.",
+                         "evidence":  "2c3d265"
+                     },
+                     {
+                         "id":  "F-147",
+                         "title":  "docs/reference/arc-1.md described the mojibake gate as an ASCII-only rule",
+                         "where":  "docs/reference/arc-1.md:81",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Measured: section 9b derives mojibake by encoding non-ASCII runs back to candidate code pages and decoding strictly as UTF-8; verify-all.ps1 itself contains U+2014 in a comment and passes. Reworded to describe the derivation.",
+                         "evidence":  "9e161b0"
+                     },
+                     {
+                         "id":  "F-148",
+                         "title":  "Environment reference omitted the kit-root pin from the resolution order",
+                         "where":  "docs/reference/environment.md:27",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "install-kit.ps1 resolves env var, then state/kit-root.txt pin, then parent folder; the doc named only env var and parent. The pin fallback matters on a moved clone.",
+                         "evidence":  "9e161b0"
+                     },
+                     {
+                         "id":  "F-149",
+                         "title":  "Hook example used timeoutSec 10 while template and live config use 20",
+                         "where":  "docs/reference/environment.md:53",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Measured template=20 and live hooks.json=20. Copying the example would have halved the session-start timeout and could suppress drift detection.",
+                         "evidence":  "9e161b0"
+                     },
+                     {
+                         "id":  "F-150",
+                         "title":  "Architecture diagram was broken and the skills reference claimed a token saving from disable-model-invocation",
+                         "where":  "docs/architecture.md:25; docs/reference/skills.md:30",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "This session transcript contains all three DMI skill descriptions (lines 25349, 24025, 24280), so the flag suppresses auto-invocation but does not remove the description from this harness. Diagram box now closes on its own line and the claim is corrected.",
+                         "evidence":  "9e161b0"
+                     },
+                     {
+                         "id":  "F-151",
+                         "title":  "capture-lesson ownership rule contradicted AGENTS.md and docs/ownership.md for kit skills",
+                         "where":  "skills/capture-lesson/SKILL.md:44; AGENTS.md:63",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "User confirmed editable. Rule now uses provenance: the kit five skills are editable in the clone and reinstalled; other installer-owned files under ~/.copilot remain read-only. Live copy hash-matched the clone after sync.",
+                         "evidence":  "fd8d14e"
+                     },
+                     {
+                         "id":  "F-152",
+                         "title":  "lesson-capture.cjs comment claimed the subagent log uses the same 256 KB byte cap",
+                         "where":  "hooks/lesson-capture.cjs:190",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Measured 256 KB in lesson-capture.cjs versus 64 KB in subagent-rules.cjs. Comment now states both values; constants unchanged; node --check exit 0 on both hooks.",
+                         "evidence":  "fec95c2"
+                     },
+                     {
+                         "id":  "F-153",
+                         "title":  "subagent-rules.cjs comment described a fixed gate limitation in the present tense",
+                         "where":  "hooks/subagent-rules.cjs:97",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Section 5/5c now reads both .file and .files, as measured in tooling/verify-all.ps1:671-672. Comment marked historical with the finding id; node --check exit 0.",
+                         "evidence":  "fec95c2"
+                     },
+                     {
+                         "id":  "F-154",
+                         "title":  "Census comment pointed at section 4 for the kit-root pin",
+                         "where":  "tooling/verify-all.ps1:2185",
+                         "status":  "fixed",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Section 4 is Memory budget and shape and has no kit-root token. The preamble resolves the pin and census.ps1 records it as a state row; comment now says so.",
+                         "evidence":  "fec95c2"
+                     },
+                     {
+                         "id":  "F-155",
+                         "title":  "README says copy every directory under skills/, but the installer copies SKILL.md only",
+                         "where":  "README.md:195",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "All five current kit skill directories contain only SKILL.md, so no resource is lost today. Skill directories are installer-enumerated and hash-mirrored; changing installer scope is a separate decision. Revisit if a kit skill gains references/ or templates/."
+                     },
+                     {
+                         "id":  "F-156",
+                         "title":  "Eight SAP skills still instruct SAPQuery while the agent routing table marks it disabled",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:214",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Not confirmed, not dismissed. See reason.",
+                         "reason":  "No tools/list call is exposed in this harness, so absence from the visible tool list is not proof. Proof method: call tools/list or SAPManage(action=features) against a confirmed target, then either gate the skill instructions or restore the routing row. Recorded so a later round does not re-derive the same ambiguity."
+                     },
+                     {
+                         "id":  "F-157",
+                         "title":  "docs/tool-routing.md says eight pairs but the table has eight rows and one row names three skills",
+                         "where":  "docs/tool-routing.md:67",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Cosmetic wording, measured against the eight-row table. The routing decisions themselves are correct and were verified; changing the noun buys no accuracy and adds churn."
+                     },
+                     {
+                         "id":  "F-158",
+                         "title":  "Two Copilot runtime-analysis skills share a long verbatim description clause",
+                         "where":  "~/.copilot/skills/abap-debugging/SKILL.md:3; ~/.copilot/skills/abap-runtime-analysis/SKILL.md:3",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Both skills are installer-owned; an edit in the kit repo would be overwritten on reinstall. docs/tool-routing.md already names the pair and its decision, so the overlap is handled at the one place this repo owns."
+                     },
+                     {
+                         "id":  "F-159",
+                         "title":  "Five SAP skills name 111 reference or template files only in backticks, with almost no on-demand links",
+                         "where":  "~/.agents/skills/{sap-abap,sap-abap-cds,sap-abap-reverse-engineering,sapui5,sap-se38-report-tester}/SKILL.md",
+                         "status":  "wontfix",
+                         "verified_by":  "deep audit 2026-11-16 round v4",
+                         "note":  "Accepted on purpose. See reason.",
+                         "reason":  "Measured resource links were 0, 0, 0, 1, 0 against 10, 10, 38, 26, 2 backtick paths. These skills are lock-tracked or hand-installed third-party content, not kit assets; an edit is overwritten by npx skills update. Adding links would also load more files on every invocation, with no always-on token saving."
                      }
                  ]
 }
