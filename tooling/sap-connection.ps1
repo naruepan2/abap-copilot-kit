@@ -141,8 +141,12 @@ if ($Add) {
     Write-Output "added: $Name  ($Url client $Client, user $User)"
     $sp = Secret-State $Name
     if ($sp -eq 'ERROR') {
-        [Console]::Error.WriteLine('  warning: sap-secret.ps1 did not run - cannot tell whether a secret is stored')
-        exit 0
+        # Exit 2, not 0. The connection was written, so this is not a total failure - but the caller
+        # cannot tell from a 0 whether the secret exists, and the whole point of this script is that
+        # the store is knowable. Measured 2026-11-16 with a nonexistent -SecretScript: the warning
+        # printed and the exit code was 0.
+        [Console]::Error.WriteLine('  warning: sap-secret.ps1 did not run - cannot tell whether a secret is stored (exit 2)')
+        exit 2
     }
     if ($sp -eq 'ABSENT') {
         Write-Output ''

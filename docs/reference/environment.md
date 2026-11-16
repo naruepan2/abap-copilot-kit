@@ -79,3 +79,21 @@ One file, `~/.copilot/hooks/hooks.json`:
   The rule that survives: **never report a hook as having run until a log line or a changing file
   says so**, and re-measure per event rather than generalising from one. Treat `chat.useHooks` and
   `chat.hookFilesLocations` as Local-harness settings.
+
+### Payload each hook reads from stdin
+
+The output shapes above are documented by the product; the **input** shapes are not, so each hook
+defends itself and this table records what it actually parses. A field not listed here is one the
+code reads defensively with a fallback.
+
+| Event | Fields the hook reads | Fallback when absent |
+| --- | --- | --- |
+| `sessionStart` | **none** — it reads no stdin at all | builds its own surface from disk |
+| `subagentStart` | `agentName` or `agent_type` (whichever is present), `prompt` | `'unknown'` agent, treated as not approved |
+| `postToolUseFailure` | `toolName` or `tool_name`; `error` or `errorText`, which may be a **string or an object** | no row is written when the tool name is missing; an object is reduced to its `.message` |
+
+Measured 2026-11-16: `{\"error\":{\"message\":\"disk full\",\"code\":28}}` used to be recorded as
+`[object Object]`, which lost the only actionable part of the row. The object case is now serialised.
+An `agentName` that arrives under a different key is the known weak point of `subagentStart`: a hook
+cannot enumerate the harness's payload, so an extra field name has to be added by hand when it
+appears.

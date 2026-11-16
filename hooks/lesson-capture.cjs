@@ -56,6 +56,18 @@ function readStdin() {
 }
 
 function normaliseError(text) {
+    // An object became the literal string "[object Object]". Measured 2026-11-16: posting
+    // {"error":{"message":"disk full","code":28}} wrote a ledger row reading `| error | [object
+    // Object] | 1 |`, so the hook recorded that a failure repeated while destroying the only part a
+    // human could act on. String(value) is right for strings and numbers and wrong for everything
+    // structured, so the structured case is serialised first.
+    if (text && typeof text === 'object') {
+        try {
+            text = typeof text.message === 'string' ? text.message : JSON.stringify(text);
+        } catch {
+            text = String(text);
+        }
+    }
     return String(text || '')
         .replace(/\r?\n+/g, ' ')
         .replace(/\s+/g, ' ')
@@ -83,7 +95,11 @@ function escapeCell(value) {
 }
 
 function signature(tool, error) {
-    const key = `${String(tool)}::${normaliseError(error).slice(0, 90).toLowerCase()}`;
+    // 200, not 90. The row stores the first 200 characters of the error, so a 90-character signature
+    // merged every failure that shared a 90-character prefix - two different SQL errors from the
+    // same statement became one recurring failure, and a genuinely new failure could be reported as
+    // occurrence 4 of an old one. The signature now spans exactly as much of the error as is kept.
+    const key = `${String(tool)}::${normaliseError(error).slice(0, 200).toLowerCase()}`;
     return key;
 }
 
@@ -104,7 +120,15 @@ function countOccurrences(content, sig) {
         const tool = cells[2];
         const err = cells[4];
         if (!tool || !err || tool === 'tool') continue;
-        if (signature(unescapeCell(tool), unescapeCell(err)) === sig) n += 1;
+        if (signature(unescapeCell(tool), unescapeCell(err)) === sig) {
+            // The count column, not the row count. Rotation keeps only the last 250 rows, so
+            // counted-rows restarted at 1 once a failure's older occurrences were trimmed and the
+            // >=3 alert could never fire again for that signature - the hook's only output silently
+            // forgot. The row already records its own occurrence number, so the highest is the truth
+            // regardless of what rotation removed.
+            const recorded = parseInt(cells[5], 10);
+            n = Math.max(n, Number.isFinite(recorded) ? recorded : 0);
+        }
     }
     return n;
 }

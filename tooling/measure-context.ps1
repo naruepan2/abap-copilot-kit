@@ -112,23 +112,38 @@ foreach ($root in $ROOTS) {
         $t = Read-Utf8 $s
         if ($null -eq $t) { $unread += ($d.Name + '/SKILL.md'); continue }
         $m = [regex]::Match($t, "(?s)^---\r?\n(.*?)\r?\n---")
-        $len = 0; $rawFm = 0
-        if ($m.Success) { $rawFm = $m.Groups[1].Value.Length; $len = Get-InjectedFrontmatter $m.Groups[1].Value }
-        $skillRows += [pscustomobject]@{ Root = $root; Name = $d.Name; FM = $len; Full = $t.Length; Raw = $rawFm }
+        $len = 0; $rawFm = 0; $dmi = $false
+        if ($m.Success) {
+            $rawFm = $m.Groups[1].Value.Length
+            $len = Get-InjectedFrontmatter $m.Groups[1].Value
+            # `disable-model-invocation: true` means the description is not offered to the model for
+            # selection, so it is not always-on cost. Measured 2026-11-16 against this session's own
+            # injected skill list: 55 of the 58 live skills appear there, and the two missing ones are
+            # exactly the two flagged skills that were never invoked (grill-with-docs,
+            # improve-codebase-architecture). caveman is also flagged and does appear, because the
+            # user invoked it explicitly - which is why the flagged set is reported, not silently
+            # subtracted.
+            $dmi = [bool]([regex]::IsMatch($m.Groups[1].Value, '(?m)^disable-model-invocation:\s*true'))
+        }
+        $skillRows += [pscustomobject]@{ Root = $root; Name = $d.Name; FM = $len; Full = $t.Length; Raw = $rawFm; DMI = $dmi }
     }
 }
 $skillTotal = 0
-foreach ($r in $skillRows) { $skillTotal += $r.FM }
 $skillRaw = 0
-foreach ($r in $skillRows) { $skillRaw += $r.Raw }
+$skillFlagged = 0
+foreach ($r in $skillRows) { if ($r.DMI) { $skillFlagged += $r.FM } else { $skillTotal += $r.FM; $skillRaw += $r.Raw } }
+$skillFlaggedNames = @($skillRows | Where-Object { $_.DMI } | ForEach-Object { $_.Name })
 $skillCount = $skillRows.Count
 # == terse =====================================================================
 if ($Detail -eq 'terse') {
     $always = $grand + $skillTotal
     Write-Output ("always-on  memory  {0,3} files  {1,7} chars  ~{2,6} tok" -f $memRows.Count, (Num $grand), (Num (Tok $grand)))
-    Write-Output ("           skills  {0,3} files  {1,7} chars  ~{2,6} tok" -f $skillCount, (Num $skillTotal), (Num (Tok $skillTotal)))
+    Write-Output ("           skills  {0,3} files  {1,7} chars  ~{2,6} tok" -f ($skillCount - $skillFlaggedNames.Count), (Num $skillTotal), (Num (Tok $skillTotal)))
+    if ($skillFlagged -gt 0) {
+        Write-Output ("           NOTE    {0} skill(s) declare disable-model-invocation and are NOT counted here ({1} chars more): {2}" -f $skillFlaggedNames.Count, (Num $skillFlagged), ($skillFlaggedNames -join ', '))
+    }
     if ($skillRaw -gt $skillTotal) {
-        $heavyFm = $skillRows | Sort-Object { $_.Raw - $_.FM } -Descending | Select-Object -First 3 |
+        $heavyFm = $skillRows | Where-Object { -not $_.DMI } | Sort-Object { $_.Raw - $_.FM } -Descending | Select-Object -First 3 |
             Where-Object { ($_.Raw - $_.FM) -gt 0 } | ForEach-Object { '{0} +{1}' -f $_.Name, ($_.Raw - $_.FM) }
         Write-Output ("           NOTE    frontmatter is {0} chars more; licence/metadata/keywords are not sent ({1})" -f (Num ($skillRaw - $skillTotal)), ($heavyFm -join ', '))
     }
@@ -142,7 +157,13 @@ if ($Detail -eq 'terse') {
     $mainChars = 0
     if ($null -eq $mainText) { Write-Output ("per-run    WARNING main agent unreadable, its chars are NOT in this total: {0}" -f $main) }
     else { $mainChars = $mainText.Length }
-    Write-Output ("per-run    main agent          {0,7} chars  ~{1,6} tok   only when it runs" -f (Num $mainChars), (Num (Tok $mainChars)))
+    # The count and the denominator together. One agent was printed as "the main agent" while the
+    # folder holds more than one, so the number read as the cost of every run when it is the cost of
+    # one agent among N - and this session may be running a different one entirely. Measured
+    # 2026-11-16: 7 agent files, this one at 32,110 chars, the smallest at 6,462.
+    $agentFiles = @(Get-ChildItem $AGDIR -Filter *.agent.md -File -ErrorAction SilentlyContinue)
+    $agentIdx = [Array]::IndexOf(@($agentFiles | ForEach-Object { $_.FullName }), $main) + 1
+    Write-Output ("per-run    agent {0} of {1}          {2,7} chars  ~{3,6} tok   only when it runs" -f $agentIdx, $agentFiles.Count, (Num $mainChars), (Num (Tok $mainChars)))
     $heavy = $skillRows | Sort-Object FM -Descending | Select-Object -First 1
     if ($heavy) {
         $tag = 'agents'

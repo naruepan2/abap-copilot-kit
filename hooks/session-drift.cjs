@@ -199,7 +199,17 @@ function rosterCoverage(surface, lines) {
 
 function main() {
     const surface = buildSurface();
-    fs.mkdirSync(STATE_DIR, { recursive: true });
+    // Guarded, because an unwritable state folder used to throw here and the caller's catch returned
+    // {} - so the session reported no drift at all, including drift it had already been able to see.
+    // The snapshot write below has its own guard; failing to create the folder must cost the snapshot,
+    // not the report.
+    try {
+        fs.mkdirSync(STATE_DIR, { recursive: true });
+    } catch (e) {
+        try {
+            process.stderr.write(`session-drift: cannot create ${STATE_DIR} (${(e && e.code) || 'error'}); drift will not be compared against a snapshot\n`);
+        } catch { /* stderr is best effort */ }
+    }
 
     const prev = readJson(SNAPSHOT);
     // "No previous snapshot" and "a previous snapshot I could not parse" are different facts, and the

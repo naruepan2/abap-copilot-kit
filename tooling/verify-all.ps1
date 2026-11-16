@@ -27,6 +27,7 @@ $ErrorActionPreference = 'Continue'
 $script:issues = 0
 $script:issueKinds = [ordered]@{}
 $script:verified = 0
+$script:launcherAbsent = 0
 $script:ran = [ordered]@{}
 $AG   = "$env:USERPROFILE\.copilot\agents"
 $SK   = "$env:USERPROFILE\.copilot\skills"
@@ -172,7 +173,10 @@ foreach ($f in Get-ChildItem $AG -Filter *.agent.md | Where-Object { -not $_.PSI
     $agCount++; if (-not $ok) { $agBad++ }
     if (-not $Summary -or -not $ok) {
         $tag = if ($ok) { 'OK     ' } else { 'ISSUE  ' }
-        Write-Output ("  {0} {1,-46} fm=L{2,-3} lines={3,-4} fences={4} dupH={5} repl={6}" -f $tag, $f.Name, $fm, $lines.Count, $fences, $dup, $bad)
+        # Get-RealLineCount, not $lines.Count. -split counts a phantom final element for any file that
+        # ends in a newline, so this line printed 576 for a 575-line agent and 37 for 36 - the same
+        # off-by-one the memory budget already refuses to tolerate one section further down.
+        Write-Output ("  {0} {1,-46} fm=L{2,-3} lines={3,-4} fences={4} dupH={5} repl={6}" -f $tag, $f.Name, $fm, (Get-RealLineCount $u), $fences, $dup, $bad)
     }
 }
 if ($Summary) { Write-Output ("  {0} agent files checked, {1} with issues" -f $agCount, $agBad) }
@@ -351,6 +355,15 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         }
     }
     $label = (Split-Path $root -Parent | Split-Path -Leaf) + ':' + (Split-Path $root -Leaf)
+    if ($n -eq 0) {
+        # Zero skills is not a pass. Measured 2026-11-16: two empty roots printed
+        # "skills=  0  bad_frontmatter=0  bad_links=0" - a line shaped exactly like a clean result -
+        # and Ran recorded 0, so the verdict never noticed the section had checked nothing. A root
+        # that exists and holds no SKILL.md is a broken install or a wrong path, never a healthy tree.
+        Write-Output ("  {0,-30} skills=  0  ISSUE no SKILL.md under this root - nothing was checked" -f $label)
+        Note 'ISSUE' 1
+        continue
+    }
     Write-Output ("  {0,-30} skills={1,3}  bad_frontmatter={2}  bad_links={3}" -f $label, $n, $bad, $badLinks)
     Ran 'skills' $n
     Note 'BAD' ($bad + $badLinks)
@@ -414,7 +427,14 @@ if ($removedDoc) {
         try { $rt = [System.IO.File]::ReadAllText($live, [System.Text.Encoding]::UTF8) } catch { continue }
         if ($rt -match '(?s)^---\r?\n(.*?)\r?\n---') { $pubCost += $Matches[1].Length }
     }
-    if ($pubRemoved.Count -eq 0) { Write-Output '  WARNING removed-on-purpose.json declares no published skill - nothing to check' }
+    if ($pubRemoved.Count -eq 0) {
+        # A declaration that declares nothing is a broken declaration, not a quiet machine. Measured
+        # 2026-11-16: emptying published_skills printed a WARNING, registered nothing with Ran, and the
+        # run still ended "clean - 444 item(s)" with exit 0 - the deletion gate had left the room and
+        # the verdict had no way to say so. The toolkit_skills half fails loudly; this half did not.
+        Write-Output '  ISSUE   removed-on-purpose.json declares no published skill - the deletion gate can no longer fail'
+        Note 'ISSUE' 1
+    }
     elseif ($pubBack.Count -eq 0) {
         Write-Output ("  {0} skill(s) declared deleted stay deleted" -f $pubRemoved.Count)
         Ran 'removed' $pubRemoved.Count
@@ -801,6 +821,15 @@ else {
     $wrong = 0
     try {
         $env:USERPROFILE = $probeHome
+        # Sequential, and measured twice before it stayed that way. Section 5c was 786 ms of a 2,081 ms
+        # run - 55%, the slowest thing in the audit - and the obvious fix is to overlap the probes.
+        # Built and measured, 2026-11-16: 14 node children started together through .NET Process with
+        # redirected streams (no temp file, no runspace, ~1.2 KB of output each so no pipe can block).
+        # In isolation it was 3.5x faster - 2,435 -> 697 ms - and inside the audit it made the whole
+        # run 51% SLOWER: 2,070 -> 3,119 ms median, interleaved A/B, three pairs each. The isolated win
+        # came from an empty HOME that the hook reads once; in the audit each probe reads the roster,
+        # and fourteen concurrent starts contend for one disk and one CPU rather than overlapping I/O.
+        # So the sequential form stays, and the honest reason is that the alternative was tried.
         foreach ($c in $cases) {
             $name = [string]$c[0]
             $payload = '{"hookEventName":"SubagentStart","agent_type":"' + $name.Replace('\', '\\').Replace('"', '\"') + '"}'
@@ -928,6 +957,10 @@ if ($dupInProjects.Count -gt 0) {
     foreach ($d in $dupInProjects) { Write-Output ("  ISSUE   same content in repo memory and Projects: " + $d) }
     Note 'ISSUE' $dupInProjects.Count
 }
+# Registered, because an unregistered check is invisible to the examined-nothing verdict. This block
+# only ever printed on a hit, so a run in which it compared nothing was indistinguishable from one in
+# which it compared everything and found nothing. $dupInProjects was measured empty on 2026-11-16.
+Ran 'memory.dup' ([Math]::Max(1, @(Get-ChildItem $AWS -Recurse -File -Filter *.md -ErrorAction SilentlyContinue).Count))
 }
 
 Line '7. Git state of the kit'
@@ -1002,7 +1035,11 @@ foreach ($rel in $pairs) {
     }
     catch { $missingLive += ($rel + ' (unreadable: ' + $_.Exception.GetType().Name + ')'); continue }
     $compared++
-    if ($a -ne $b) { $drift += $rel }
+    # -cne, not -ne. A PowerShell string comparison is case-insensitive by default, so a live file that
+    # differed from the repository only in letter case reported "identical". Measured 2026-11-16:
+    # 'ABC' -ne 'abc' is False on 5.1.26100, while 'ABC' -cne 'abc' is True. A mirror check that cannot
+    # see case cannot be trusted to prove two trees agree.
+    if ($a -cne $b) { $drift += $rel }
 }
 if (@($drift).Count -eq 0 -and $missingLive.Count -eq 0) { Write-Output '  repo mirrors live files: identical' }
 else { foreach ($d in $drift) { Write-Output ("  DRIFT: " + $d) }
@@ -1211,7 +1248,12 @@ if ($credChecked -eq 0 -and -not (Test-Path $envFile) -and -not (Test-Path $conn
 # "mcpServers", VS Code reads mcp.json under "servers". The rule has one home.
 function Test-LauncherWiring($path, $rootKey, $label) {
     if (-not (Test-Path $path)) {
+        # Printed, and also remembered. The line was already honest, but the section then returned
+        # before recording coverage - so with both configs absent the run printed "launcher absent"
+        # twice and still ended "clean - 444 item(s) verified", a count that silently excluded the
+        # launcher wiring. Absent is not a defect; absent being invisible is.
         Write-Output ("  {0,-8} absent  ({1})" -f $label, (Split-Path $path -Leaf))
+        $script:launcherAbsent++
         return
     }
     # Recorded so the verdict knows this harness was examined. Without it, both harnesses absent
@@ -1262,6 +1304,12 @@ function Test-LauncherWiring($path, $rootKey, $label) {
 
 Test-LauncherWiring "$env:USERPROFILE\.copilot\mcp-config.json" 'mcpServers' 'launcher'
 Test-LauncherWiring "$env:APPDATA\Code\User\mcp.json" 'servers' 'launcher2'
+if ($script:launcherAbsent -eq 2) {
+    # Said out loud, because the section's own lines were "absent" and the verdict still counted a
+    # clean run. Nothing is wrong on a machine with no MCP config; something is wrong with a report
+    # that implies the wiring was checked.
+    Write-Output '  WARNING neither MCP config exists - the launcher wiring was NOT verified on this machine'
+}
 
 Line '8b. Two MCP config files, one server list (a duplicate is silently disabled)'
 # VS Code 1.146 reads %USERPROFILE%\.copilot\mcp-config.json as a discovery source named "copilot",
@@ -1409,7 +1457,11 @@ foreach ($dir in @($candidates | Where-Object { $_ } | Select-Object -Unique)) {
 
 # A credential-shaped assignment, minus the placeholders that fill the templates. Reported apart
 # from the derived identifiers, because the signal is weaker and the fixes are different.
-$shape = '(?i)(password|secret|token|api[_-]?key|service[_-]?key)\s*[:=]\s*["'']([^"'']{8,})["'']'
+# `passwd` and `pwd` were missing although workspace-sync.ps1 detects them: two homes for one rule
+# that had already drifted, and the drift was measurable - a line assigning a value to `passwd`
+# scored 0 hits here and 1 in the writer that decides what may be mirrored. The audit's rule is the
+# stricter one it needs to be, so the alternation gains the spellings the other copy already knew.
+$shape = '(?i)(passwd|pwd|password|secret|token|api[_-]?key|service[_-]?key)\s*[:=]\s*["'']([^"'']{8,})["'']'
 $placeholder = '\$\{|@secret|PLACEHOLDER|CHANGEME|<[a-z]|xxxx|\.\.\.'
 
 $hits = 0
@@ -1560,15 +1612,31 @@ if (-not $repoOk) {
             $evProbe = @((Get-EvidenceType 'commit'), (Get-EvidenceType 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef missing'), (Get-EvidenceType 'tree'), (Get-EvidenceType ''))
             if (($evProbe -join ',') -ne 'commit,missing,tree,missing') { Write-Output ("  ISSUE   evidence-type self-test failed: " + ($evProbe -join ',')); Note 'ISSUE' 1 }
             $evTypes = @{}
+            $evGitFailed = $null
             if ($evShas.Count -gt 0) {
                 Push-Location $REPO
                 $bc = @($evShas | & git cat-file --batch-check="%(objecttype)" 2>$null)
+                $evGitRc = $LASTEXITCODE
                 Pop-Location
-                for ($bi = 0; $bi -lt $evShas.Count; $bi++) {
-                    # A hashtable keyed by the ref as written. Duplicate refs are harmless: the same
-                    # value is stored twice. A short ref answers with its own line, which is why the
-                    # lookup uses the input string and not the resolved object name.
-                    $evTypes[$evShas[$bi]] = Get-EvidenceType ([string]$bc[$bi])
+                # A failed git is not a missing object. Measured 2026-11-16 with a bogus flag: git
+                # exited 129 with no output, $bc came back empty, every ref fell through to
+                # Get-EvidenceType '' = 'missing', and the audit printed 62 confident "no such object"
+                # findings with exit 1 - the ledger's only trust signal inverted by one broken command.
+                # A short answer is checked too: fewer lines than refs would shift the remaining refs
+                # onto the wrong line and blame the wrong commits.
+                if ($evGitRc -ne 0) { $evGitFailed = "git cat-file --batch-check exited $evGitRc" }
+                elseif ($bc.Count -ne $evShas.Count) { $evGitFailed = "git cat-file --batch-check answered $($bc.Count) of $($evShas.Count) ref(s)" }
+                if (-not $evGitFailed) {
+                    for ($bi = 0; $bi -lt $evShas.Count; $bi++) {
+                        # A hashtable keyed by the ref as written. Duplicate refs are harmless: the same
+                        # value is stored twice. A short ref answers with its own line, which is why the
+                        # lookup uses the input string and not the resolved object name.
+                        $evTypes[$evShas[$bi]] = Get-EvidenceType ([string]$bc[$bi])
+                    }
+                }
+                if ($evGitFailed) {
+                    Write-Output ("  ISSUE   cannot resolve evidence: " + $evGitFailed + " - fix git before trusting this section")
+                    Note 'ISSUE' 1
                 }
             }
             foreach ($f in @($fl.findings)) {
@@ -1582,6 +1650,7 @@ if (-not $repoOk) {
                     # ledger is describing a fix nobody can find, which is the same failure as an
                     # open finding with better paperwork.
                     if ($f.evidence -match '^[0-9a-f]{7,40}$') {
+                        if ($evGitFailed) { continue }
                         $etype = [string]$evTypes[[string]$f.evidence]
                         if ($etype -ne 'commit') {
                             $why = if ([string]::IsNullOrEmpty($etype) -or $etype -eq 'missing') { 'no such object' } else { 'resolves to a ' + $etype + ', not a commit' }
@@ -1591,7 +1660,16 @@ if (-not $repoOk) {
                 }
             }
             $total = @($fl.findings).Count
-            if ($open.Count -eq 0 -and $badStatus.Count -eq 0 -and $noEvidence.Count -eq 0 -and $staleRef.Count -eq 0) {
+            # Free-text evidence is allowed and has to stay visible. Two entries cite something other
+            # than a commit - one a repair whose artifact lives outside this repository, one a section
+            # name - and both are legitimate. What is not acceptable is that they were counted as
+            # verified facts with no number printed, so a reader could not tell how much of the ledger
+            # is checkable. Measured 2026-11-16: 2 of 64 fixed findings cite non-commit evidence.
+            $softEvidence = @($fl.findings | Where-Object { $_ -and $_.status -eq 'fixed' -and $_.evidence -and $_.evidence -notmatch '^[0-9a-f]{7,40}$' })
+            if ($softEvidence.Count -gt 0 -and $open.Count -eq 0 -and $badStatus.Count -eq 0 -and $noEvidence.Count -eq 0 -and $staleRef.Count -eq 0) {
+                Write-Output ("  {0} finding(s) recorded, none open; {1} cite evidence that is not a commit ({2})" -f $total, $softEvidence.Count, (($softEvidence | ForEach-Object { $_.id }) -join ', '))
+            }
+            elseif ($open.Count -eq 0 -and $badStatus.Count -eq 0 -and $noEvidence.Count -eq 0 -and $staleRef.Count -eq 0) {
                 Write-Output ("  {0} finding(s) recorded, none open" -f $total)
             }
             else {

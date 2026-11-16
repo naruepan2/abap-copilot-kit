@@ -9,7 +9,7 @@ from here only when the live copy is gone; never edit here and expect a change i
 | Folder | What it holds | Regenerable? |
 |---|---|---|
 | `user-memory/` | the three user memory files that load into every request (refreshed 2026-11-16) | **No** — collected from sessions |
-| `../tooling/` | `verify-all.ps1`, `measure-context.ps1`, `who-locks.ps1`, `surface.json` | No — authored |
+| `../tooling/` | `verify-all.ps1`, `measure-context.ps1`, `who-locks.ps1` | No — authored |
 | `../roster.json` | the delegation allowlist | No — a human decision |
 
 **Repo memory is not here.** It is backed up instead by `tooling/workspace-sync.ps1 -RepoMemory`,

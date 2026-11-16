@@ -182,21 +182,57 @@ function log(line) {
         // event would re-read and re-write the whole file for ever. Keeping the last half-cap means
         // the rewrite happens once per ~32 KB of events instead of once per event.
         const MAX_BYTES = 64 * 1024;
+        let st = null;
         try {
-            const st = fs.statSync(LOG);
-            if (st.size > MAX_BYTES) {
-                const all = fs.readFileSync(LOG, 'utf8');
-                const tail = all.slice(-Math.floor(MAX_BYTES / 2));
-                const cut = tail.indexOf('\n');
-                const keep = cut >= 0 ? tail.slice(cut + 1) : tail;
-                fs.writeFileSync(LOG, keep.endsWith('\n') || keep === '' ? keep : `${keep}\n`);
+            st = fs.statSync(LOG);
+        } catch (e) {
+            // No log yet is the normal first run, not a failure. Only an error that is not ENOENT
+            // is worth a word: reporting ENOENT made every probe home print a false alarm, and a
+            // diagnostic that fires on the healthy path is worse than none.
+            if (!e || e.code !== 'ENOENT') {
+                try {
+                    process.stderr.write(`subagent-rules: cannot read ${LOG} (${(e && e.code) || 'error'})\n`);
+                } catch { /* stderr is best effort */ }
             }
-        } catch {
-            /* no log yet, or unreadable: appending below is still the best effort */
+        }
+        if (st && st.size > MAX_BYTES) {
+            // Bytes in, bytes out. This used st.size (bytes) for the decision and then sliced a
+            // string (UTF-16 code units) for the cut, so any log containing non-ASCII text could
+            // never fall below the cap: measured 2026-11-16, a Thai log rotated 341,090 ->
+            // 88,791 bytes, still over 65,536, and re-read and re-wrote the whole file on every
+            // subsequent event for ever. Buffer slicing is byte-accurate by construction.
+            const all = fs.readFileSync(LOG);
+            let tail = all.subarray(Math.max(0, all.length - Math.floor(MAX_BYTES / 2)));
+            const nl = tail.indexOf(0x0a);
+            if (nl >= 0) tail = tail.subarray(nl + 1);
+            // A cut can land inside a multi-byte character; the replacement mark is dropped rather
+            // than written back as corruption.
+            let keep = tail.toString('utf8').replace(/^\uFFFD+/, '');
+            if (keep !== '' && !keep.endsWith('\n')) keep += '\n';
+            // Serialised, because two rotations interleaved is worse than a lost line: each writes
+            // the whole file, so the second silently discards the first's trim. A stale lock is
+            // ignored after 10 s so a killed process cannot freeze rotation for ever.
+            const lock = `${LOG}.lock`;
+            let locked = false;
+            try {
+                const age = Date.now() - fs.statSync(lock).mtimeMs;
+                if (age > 10000) fs.unlinkSync(lock);
+            } catch { /* no lock present */ }
+            try {
+                fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
+                locked = true;
+            } catch { /* another process is rotating; skip this round */ }
+            if (locked) {
+                try { fs.writeFileSync(LOG, keep); } finally { try { fs.unlinkSync(lock); } catch { /* best effort */ } }
+            }
         }
         fs.appendFileSync(LOG, `${new Date().toISOString()}\t${line}\n`);
-    } catch {
-        /* logging is best effort */
+    } catch (e) {
+        // Was a bare comment. The hook still emits its context, which is correct, but a log that can
+        // never be written should say so once instead of failing invisibly for the machine's life.
+        try {
+            process.stderr.write(`subagent-rules: cannot append to ${LOG} (${(e && e.code) || 'error'})\n`);
+        } catch { /* stderr is best effort */ }
     }
 }
 

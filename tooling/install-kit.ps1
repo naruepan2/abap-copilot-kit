@@ -150,9 +150,11 @@ foreach ($i in $plan) {
         # strings here made this test provably false - $a and $b are already CRLF-stripped, so they
         # differ in bytes only when they differ in content, and a CRLF destination was reported
         # "already identical" and never rewritten. The counter converged because it could never fire.
+        # Base64 is fine for byte equality and cheap at these sizes; -ceq rather than -eq because a
+        # PowerShell string comparison is case-insensitive and the whole point is byte fidelity.
         $rawA = [System.IO.File]::ReadAllBytes($i.Src)
         $rawB = [System.IO.File]::ReadAllBytes($i.Dest)
-        $bytesDiffer = -not ([System.Convert]::ToBase64String($rawA) -eq [System.Convert]::ToBase64String($rawB))
+        $bytesDiffer = -not ([System.Convert]::ToBase64String($rawA) -ceq [System.Convert]::ToBase64String($rawB))
         if ($bytesDiffer -and -not $Check) { Write-Normalised $i.Src $i.Dest; $normalised++ }
         elseif ($bytesDiffer) { $normalised++ }
         else { $same++ }
@@ -180,6 +182,13 @@ if ($conflict.Count -gt 0) {
     Write-Output '    fewer lines there -> the clone is newer, re-run with -Force'
     Write-Output '    more lines there  -> the live copy is newer, commit it to the kit first'
     Write-Output '  verify-all.ps1 section 7 reports the same difference as DRIFT.'
+    # Non-zero, because a conflict is the one outcome this script exists to report and it used to be
+    # the only one that left the exit code at 0. Measured 2026-11-16: with one differing agent, -Check
+    # printed "1 differ" and "DIFFERS agents\..." and still exited 0, so a wrapper script or a CI step
+    # read a real divergence as success. -Force still exits 0 because it resolved the conflict.
+    Write-Output ''
+    Write-Output ('install-kit: {0} file(s) differ and were NOT copied - exit 1' -f $conflict.Count)
+    exit 1
 }
 
 # What a script must not decide for you.

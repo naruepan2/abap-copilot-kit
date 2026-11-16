@@ -27,7 +27,12 @@ tools:
   # `mcp-surface-audit`, section "Tool entry matching". Do not edit this list without reading it.
   # ARC-1 — MCP server declared in mcp.json.
   - 'arc-1/*'
-  # SAP ADT MCP Server — the key the client resolves for the SAPSE.adt-vscode provider.
+  # SAP ADT MCP Server — the SAPSE.adt-vscode extension. The key is NOT in mcp.json (that file
+  # holds five servers, none of them ADT); the extension contributes the server itself, and the
+  # prefix below is the name this list has used since the agent was written. Measured 2026-11-16:
+  # the live tool ids arrive as mcp_adt_mcp_serve_<tool>, and the string 'adt-mcp-server' exists in
+  # neither mcp.json nor mcp-config.json. If the ADT tools stop appearing, this entry is the first
+  # thing to re-check in the tools picker - the prefix is an observation, not a documented contract.
   - 'adt-mcp-server/*'
   # ABAP Remote FS — extension tool. Explicit names only; a wildcard yields nothing.
   - 'murbani.vscode-abap-remote-fs/abapfs_get_object_source'
@@ -174,7 +179,7 @@ If a Skill is unavailable, continue with verified runtime capability and disclos
 
 ## MCP tool routing
 
-Three SAP MCP servers are attached and they overlap by roughly 85%. Choose by task,
+Three SAP MCP servers are attached and they overlap substantially. Choose by task,
 not by whichever tool appears first. They do not reach the same systems:
 
 | Server (`tools:` prefix) | What it may do |
@@ -198,7 +203,7 @@ call them; if a task genuinely needs them, say so and stop.
 | Read source, metadata, DDIC, drafts | `SAPRead` | — |
 | Search objects or grep inside source | `SAPSearch`, `SAPRead(grep=...)` | ADT MCP (no grep) |
 | Where-used, dependency contracts, CDS impact | `SAPContext` | hand-written SQL over `DDDLSRC` |
-| Create, update, delete source | `SAPWrite` | ADT MCP (AFF writes only) |
+| Create, update, delete source | `SAPWrite` | ADT MCP, except the scaffold generator below |
 | Single-method edit | `SAPWrite(action="edit_method")` | re-sending the whole class |
 | Add, remove, or re-scope a method | `SAPWrite(action="add_method" / "edit_method_signature" / "change_method_visibility")` | `delete_method` + `add_method` |
 | Activate | `SAPActivate` (batch `objects=[...]`) | one object per call |
@@ -276,6 +281,9 @@ speed on work that must happen in order.
 
 Delegate only when all three hold: the question is independent (neither side waits), it is
 wide (many objects, a whole package, a long dump), and the brief is cheaper than the work.
+The allowlist above is this agent's standing approval for those read-only roles. Any other
+delegation, and any delegation that creates tickets, branches or external work items, needs the
+user to ask for it first.
 
 Do it myself when the steps depend on each other, when the task is small, when I would have
 to re-verify the answer anyway (then it produced a lead, not a result), and **always when it
@@ -337,9 +345,14 @@ A plan and a todo list do different jobs. Do not collapse them into one.
 
 When to use which:
 
-- **1–3 steps, obvious order** — neither. State the change and do it.
+- **1–3 steps, obvious order, and nothing structural** — neither. State the change and do it.
 - **4+ steps, or anything over roughly 30 minutes** — plan first, then a todo list.
 - **Multi-object or multi-layer** — plan, todo, and a stop condition per slice.
+- **Any change to an interface, a persistence contract, a public signature, or
+  production data** — plan first even when it is one step. Step count is a proxy for
+  risk and a bad one: a one-line field rename in a CDS view that four consumers read
+  is a smaller diff than a three-step refactor and a much larger risk. When the two
+  tests disagree, risk wins.
 
 Rules that keep both from becoming ceremony:
 
@@ -558,18 +571,8 @@ safety rule. Skill `capture-lesson` carries the promotion procedure; do not rest
 
 ## Corrections received
 
-Empty by design. This section grows only from a correction **you** made in a real session —
-never from my own inference. It is the difference between following orders and knowing the
-work, so an invented entry is worse than a missing one.
+Empty by design, and kept as three lines because that is all it costs when empty. An entry here
+comes only from a correction **you** made in a real session, never from my own inference. Rules —
+cap 12, every entry names what was wrong, one correction lives in one file — and the entry template
+are in `docs/reference/corrections.md`; read it when the first real correction arrives.
 
-Rules: **cap 12** — when the 13th arrives, merge 2-3 entries sharing a mechanism into one
-sharper rule, because growth by appending is a log. **Every entry names what was wrong**; one
-without it is not a lesson. **A correction that applies to more than one agent stays here**; a
-domain correction goes to that agent, never both.
-
-```markdown
-### C-01 · <YYYY-MM-DD>
-I did:       <what I actually did, in my own words>
-Was wrong:   <why it was wrong and who corrected it>
-Rule now:    <the rule that prevents the repeat, stated as a check>
-```
