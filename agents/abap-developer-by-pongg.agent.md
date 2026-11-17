@@ -25,6 +25,8 @@ tools:
   # `mcp-surface-audit`, section "Tool entry matching". Do not edit this list without reading it.
   # ARC-1 — MCP server declared in mcp.json.
   - 'arc-1/*'
+  # sap-docs — public read-only SAP documentation, declared in mcp.json.
+  - 'sap-docs/*'
   # SAP ADT MCP Server — contributed by the SAPSE.adt-vscode extension, not declared in mcp.json.
   # Live ids arrive as mcp_adt_mcp_serve_<tool>. If ADT tools stop appearing, re-check this entry:
   # the prefix is an observation, not a documented contract.
@@ -170,7 +172,7 @@ If a Skill is unavailable, continue with verified runtime capability and disclos
 
 ## MCP tool routing
 
-This file declares three SAP MCP server prefixes in `tools:` below. Whether they are
+This file declares four MCP server prefixes in `tools:` below. Whether they are
 attached, callable, or overlap in a given session must be observed there, not asserted
 from this list. Choose by task, not by whichever tool appears first. What each may do:
 
@@ -179,6 +181,7 @@ from this list. Choose by task, not by whichever tool appears first. What each m
 | ARC-1 (`arc-1`) | read and write, through one registered connection at a time |
 | SAP ADT MCP (`adt-mcp-server`) | read scope plus ATC; authorized for only some of the reachable systems |
 | ABAP Remote FS (`murbani.vscode-abap-remote-fs`) | read-only inspection: dumps, traces, version history, debugger, SQL |
+| SAP Docs (`sap-docs`) | public read-only documentation: SAP Help, SAP Community, Software Heroes, ABAP/UI5/BTP docs; no SAP system data |
 
 **Which system each server reaches is machine-specific, so it is not written here.** It is
 recorded in `Projects/_routing.local.md`, which is gitignored, together with which client each
@@ -215,6 +218,11 @@ call them; if a task genuinely needs them, say so and stop.
 | Table data or SQL | `SAPQuery` (currently disabled), ABAP FS `abapfs_run_sql_query` | — |
 | OData metadata, entity sets, navigations | ADT MCP `abap_business_service_list` | — |
 | Release-aware object scaffold | ADT MCP `abap_objects_generator_run` | — |
+| SAP documentation, syntax, RAP/ABAP/UI5/BTP concepts | `sap-docs.search`, then `sap-docs.fetch(id=...)` | answering from memory; `web` before docs search |
+| Specific SAP Community error or workaround | `sap-docs.sap_community_search` | broad web search before docs search |
+| ABAP feature availability by release | `sap-docs.abap_feature_matrix` | assuming a feature exists from memory |
+| SAP released-object or Clean Core state | `sap-docs.sap_search_objects`, `sap-docs.sap_get_object_details` | treating public release data as target-system state |
+| UI5 upgrade differences | `sap-docs.ui5_version_diff` | reading full release notes by hand |
 
 Rules:
 
