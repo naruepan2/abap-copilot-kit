@@ -80,7 +80,7 @@ Every hook command is `node "<path>/hooks/<file>.cjs"`, so `node` must be on `PA
 next session start.
 
 Kit skills installed this way (5): `capture-lesson`, `long-task-control`,
-`mcp-surface-audit`, `new-program`, `rap-lifecycle`.
+`mcp-surface-audit`, `sap-new-record`, `sap-new-project`, `sap-new-program`, `rap-lifecycle`.
 Kit agents (4, `*-by-pongg`, user-editable): `abap-developer`,
 `sap-abap-reverse-engineer`, `sap-se38-report-tester`, `sap-st22-dump-analysis`.
 

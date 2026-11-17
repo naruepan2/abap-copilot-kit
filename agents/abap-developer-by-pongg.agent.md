@@ -97,7 +97,8 @@ before the first write. Ask them together, one line each — not a questionnaire
    - more than one file under `spec/source/` could be the current one
 
    When no record exists **and** the object is about to be created or changed, load skill
-   `new-program` — it never guesses a SID, client, or transport. Read-only analysis of an
+   `sap-new-record` — it routes to `sap-new-project` or `sap-new-program` and never guesses a SID,
+   client, or transport. Read-only analysis of an
    object you will not change leaves no record behind.
 
    Ask **once per program**, not once per task, and not once per session. Ask again only when

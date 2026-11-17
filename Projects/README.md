@@ -90,8 +90,9 @@ whole structure exists to prevent.
 
 ## Scaffolding a new project or program
 
-Load skill `new-program`. It decides whether a record should exist at all, asks once with
-options, scaffolds from the templates, and verifies the result with `git check-ignore`.
+Load skill `sap-new-record`. It decides whether a record is needed, then routes to
+`sap-new-project` or `sap-new-program`. The leaf skill asks only for missing values, scaffolds
+from the templates, and verifies the result with `git check-ignore`.
 
 The three situations it distinguishes, since they are worth knowing before you start:
 
@@ -159,7 +160,7 @@ spec/source / FS is elsewhere and I will copy it in" — so the answer is one cl
 
 ## Adding a project record
 
-Use skill `new-program` — it runs this sequence with the verification included. The manual
+Use skill `sap-new-project` — it runs this sequence with the verification included. The manual
 steps, for reference:
 
 1. Create `Projects\<PROJECT>\`.

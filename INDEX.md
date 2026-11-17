@@ -11,7 +11,9 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `agents/*-by-pongg.agent.md` | The user's agents, editable |
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
-| `skills/new-program/` | Scaffold a new project or program record without guessing a SID |
+| `skills/sap-new-record/` | Route to the right scaffold skill: project or program |
+| `skills/sap-new-project/` | Scaffold one project record, never a program |
+| `skills/sap-new-program/` | Scaffold one program record, never a project |
 | `skills/rap-lifecycle/` | The nine-step RAP create-and-publish chain, with the owning server per step |
 | `skills/long-task-control/` | Stop condition, handoff, and why evidence expires |
 | `hooks/` | Detection-only hooks: three `*.cjs` scripts plus `hooks.json.template` |
