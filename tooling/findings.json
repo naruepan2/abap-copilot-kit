@@ -1559,6 +1559,15 @@
                          "verified_by":  "toolkit design review 2026-11-17",
                          "note":  "Added section 10b. It finds every changes.md under Projects/, ignores placeholder rows, requires the new columns only once a real row exists, and for each open row checks a real .abap baseline path plus a non-category What/Why and v\u003cn\u003e version. Stale baselines with no referencing row are reported. An empty log from the older template is not force-migrated. Negative test with a fake repo: missing baseline and stale file both reported; positive test after creating the file and removing the stale one passed. No existing record broke.",
                          "evidence":  "954c7ea"
+                     },
+                     {
+                         "id":  "F-176",
+                         "title":  "The kit had no route or knowledge entry for the public sap-docs MCP",
+                         "where":  "agents/abap-developer-by-pongg.agent.md:tools; docs/tool-routing.md; config-templates/mcp.json.template",
+                         "status":  "fixed",
+                         "verified_by":  "sap-docs MCP setup 2026-11-18",
+                         "note":  "Added the public read-only sap-docs HTTP server to the user mcp.json (type http, url https://mcp-sap-docs.marianzeis.de/mcp) and removed one stale JSONC comment that made the file invalid JSON. Live tools/list returned 9 names: search, fetch, abap_feature_matrix, sap_community_search, sap_search_objects, sap_get_object_details, sap_discovery_center_search, sap_discovery_center_service, ui5_version_diff. Added the server prefix and five task rows to both agent copies, a short pointer to global user memory (18 lines, budget now 116/200), a usage reference doc, a VS Code template entry, setup-guide wording, and an INDEX row. The CLI config deliberately does not declare sap-docs: a duplicate name is silently disabled by VS Code discovery. Evidence commit 3958834 covers routing; 74245a5 and 75731e9 cover template/setup and docs. Window reload and tools-picker selection are UI actions and remain with the user.",
+                         "evidence":  "3958834"
                      }
                  ]
 }
