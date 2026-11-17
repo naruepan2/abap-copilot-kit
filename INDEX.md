@@ -17,6 +17,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `hooks/` | Detection-only hooks: three `*.cjs` scripts plus `hooks.json.template` |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
+| `docs/reference/sap-docs-mcp.md` | How to use the public read-only `sap-docs` MCP for SAP Help, Community and Software Heroes |
 | `config-templates/` | `mcp.json.template` (VS Code), `mcp-config.template.json` (Copilot CLI), `settings.json.template` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `changes.md` |

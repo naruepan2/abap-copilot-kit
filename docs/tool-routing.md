@@ -11,6 +11,10 @@ Do not copy that table here or into memory. A duplicated routing table becomes a
 silently stale source of truth; an earlier copy of this one rotted within two months and was
 wrong on seven points.
 
+The public `sap-docs` server is documentation-only. It reaches SAP Help, SAP Community, Software
+Heroes and curated docs, not an SAP system. Its usage and tool limits are in
+`docs/reference/sap-docs-mcp.md`; its task rows stay in the agent table.
+
 ## Why routing is needed at all
 
 A capable server is not the same as a reachable one, and a reachable one is not the same as one
