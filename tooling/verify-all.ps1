@@ -324,6 +324,7 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         continue
     }
     $n = 0; $bad = 0; $badLinks = 0
+    $yamlOwners = $null   # loaded once, only if a scalar actually needs the ownership check
     foreach ($d in Get-ChildItem $root -Directory) {
         $s = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path $s)) { continue }
@@ -343,6 +344,50 @@ foreach ($root in @($SK, "$env:USERPROFILE\.agents\skills")) {
         $hasName = [bool]([regex]::IsMatch($fmText, '(?m)^name:\s*\S'))
         $hasDesc = [bool]([regex]::IsMatch($fmText, '(?m)^description:\s*\S'))
         if (-not $m.Success -or -not $hasName -or -not $hasDesc) { $bad++; Write-Output ("    BAD  " + $d.Name + $(if (-not $m.Success) { ' (no frontmatter)' } elseif (-not $hasName) { ' (frontmatter has no name)' } else { ' (frontmatter has no description)' })) }
+        # A plain scalar that contains ": " is not valid YAML: the colon is read as a mapping
+        # separator. GitHub's renderer rejects the file while this regex-only check used to pass.
+        # Measured 2026-11-18: long-task-control and rap-lifecycle each failed at the colon after
+        # "request" / "object", columns 69 and 74. Quoted or folded scalars are exempt, so check
+        # only unquoted single-line values.
+        foreach ($fmLine in ($fmText -split "`r?`n")) {
+            if ($fmLine -notmatch '^(description|name):\s*(\S.*)$') { continue }
+            $key = $Matches[1]
+            $scalar = $Matches[2]
+            if ($scalar.StartsWith('"') -or $scalar.StartsWith("'") -or $scalar -eq '>' -or $scalar -eq '|') { continue }
+            # Search the whole line, then skip the separator after the key itself. Searching only
+            # the scalar made a short description report its own "description:" as a defect.
+            $ci = $fmLine.IndexOf(': ', $key.Length + 3)
+            if ($ci -ge 0) {
+                # Installer-owned skills are not editable here; the next upgrade overwrites the
+                # edit. Report them once as a NOTE so the defect is not hidden, but do not fail the
+                # kit's own audit for a file its owner must fix upstream.
+                $assetKey = 'skills\' + $d.Name + '\SKILL.md'
+                $owned = $false
+                # Section 5b reads the same manifest later under $tkDoc; this check runs earlier,
+                # so load it here under a separate name. A missing or broken manifest means we
+                # cannot prove ownership, so the file is treated as ours and reported.
+                if ($null -eq $yamlOwners) {
+                    $ymPath = "$env:USERPROFILE\.copilot\.sap-ai-dev-toolkit-assets.json"
+                    if (Test-Path $ymPath) {
+                        try { $yamlOwners = Get-Content $ymPath -Raw | ConvertFrom-Json } catch { $yamlOwners = $false }
+                    }
+                    else { $yamlOwners = $false }
+                }
+                if ($yamlOwners -and $yamlOwners.files -and $yamlOwners.files.PSObject.Properties.Name -contains $assetKey) { $owned = $true }
+                # A skill in the kit's own skills/ folder is ours to fix. Anything else under a
+                # loader root belongs to its installer or to the user; report the defect once and
+                # leave the file alone, because an edit there is overwritten on the next update.
+                $kitPath = Join-Path (Join-Path $REPO 'skills') ($d.Name + '\SKILL.md')
+                $isKit = Test-Path -LiteralPath $kitPath
+                if ($owned -or -not $isKit) {
+                    Write-Output ("    NOTE  " + $d.Name + ' (external YAML scalar has ": " at column ' + ($ci + 1) + '; fix at the source)')
+                }
+                else {
+                    $bad++
+                    Write-Output ("    BAD  " + $d.Name + ' (invalid YAML scalar: ": " at column ' + ($ci + 1) + ')')
+                }
+            }
+        }
         # `name` must equal the folder name. Until now the test above was a bare substring match on
         # 'name:', which is satisfied by the word appearing anywhere in the file - including inside the
         # body - so a skill whose frontmatter names something else passed. The check is worth a few
