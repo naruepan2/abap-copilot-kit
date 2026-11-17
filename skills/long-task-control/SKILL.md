@@ -1,6 +1,6 @@
 ---
 name: long-task-control
-description: Run, checkpoint and stop a task that outlives one request: the stop condition, the handoff when stopping early, and why evidence expires. Use when work spans multiple objects or requests, near a request or context limit, when resuming a previous session, or asked "what is left". Not for work that fits in one turn.
+description: Run, checkpoint and stop a task that outlives one request - the stop condition, the handoff when stopping early, and why evidence expires. Use when work spans multiple objects or requests, near a request or context limit, when resuming a previous session, or asked "what is left". Not for work that fits in one turn.
 ---
 
 # Long-task control
