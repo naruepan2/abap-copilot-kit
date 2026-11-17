@@ -1577,6 +1577,15 @@
                          "verified_by":  "skill redesign 2026-11-18",
                          "note":  "Ported the one-artifact-per-call, project-first, case-sensitive and never-credentials rules from the reference prompt, dropping kit-incompatible items (project-level AGENTS.md, mcp.json edits, profile scripts, memory-card lowercase rule). Split into sap-new-record (router only), sap-new-project (project record only) and sap-new-program (program record only), with the sap- prefix requested by the user to mark them SAP-only. Existing pointers were from new-program to the three skills; five-skill counts became seven. Removed the live new-program copy after proving it semantically equal to HEAD. A stale git index made section 9 report a not-scanned file until changes were staged. Gate 3b now resolves 20 named skills across 11 repository files; verify clean 1028/28. No SAP connection, no credential read, no git commit made by the skills themselves.",
                          "evidence":  "bb6e3a8"
+                     },
+                     {
+                         "id":  "F-178",
+                         "title":  "Two skill descriptions were invalid plain YAML scalars and the frontmatter gate could not see it",
+                         "where":  "skills/long-task-control/SKILL.md:3; skills/rap-lifecycle/SKILL.md:3; tooling/verify-all.ps1:346",
+                         "status":  "fixed",
+                         "verified_by":  "YAML render error report 2026-11-18",
+                         "note":  "GitHub reported \"mapping values are not allowed in this context\" at line 2 column 71 and 76. Cause: an unquoted YAML plain scalar containing \": \" - after \"request\" and \"object\" - is read by a real YAML parser as a mapping separator. The regex-only gate checked that description: existed but never parsed the value, so it passed. Replaced both \": \" with \" - \". Added a real scalar check to section 2: unquoted single-line values are rejected, quoted/folded values are exempt. External skills found by the new check (sap-adam-external-debug, sap-webgui-fallback) are reported as NOTE, not BAD, because they are not in the kit and would be overwritten on update. Fixed a false positive where the gate read the key separator as the defect. Live copies synced; gate clean 1034/28.",
+                         "evidence":  "6aa8a30"
                      }
                  ]
 }
