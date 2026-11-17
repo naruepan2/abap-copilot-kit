@@ -64,6 +64,13 @@
         "NODE_EXTRA_CA_CERTS": "{{CA_BUNDLE_PATH}}"
       },
       "BAS_EXT": "true"
+    },
+
+    // Public, read-only SAP documentation. No key or login. Declare in VS Code mcp.json only;
+    // do not copy the same key into ~/.copilot/mcp-config.json (see verify-all section 8b).
+    "sap-docs": {
+      "type": "http",
+      "url": "https://mcp-sap-docs.marianzeis.de/mcp"
     }
   }
 }

@@ -219,7 +219,9 @@ sapse.sap-ux-fiori-tools-extension-pack  # Fiori/RAP tooling (optional)
 
 1. Copy skeletons from `config-templates/` (`mcp.json.template`, `settings.json.template`,
    `mcp-config.template.json`, `arc1.env.template`, `arc1-connections.template.json`) — fill secrets
-   only via the scripts below, never paste into a file.
+   only via the scripts below, never paste into a file. The VS Code template also declares the
+   public read-only `sap-docs` server; do not copy that key into the CLI config, or VS Code will
+   silently disable one copy.
 2. Copy `templates/routing.local.md.template` to `Projects/_routing.local.md` and fill in which
    server reaches which system and which client is authorized. The agent reads this file before
    its first SAP call; without it the agent must ask. The file stays local because it names a
