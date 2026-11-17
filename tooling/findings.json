@@ -1568,6 +1568,15 @@
                          "verified_by":  "sap-docs MCP setup 2026-11-18",
                          "note":  "Added the public read-only sap-docs HTTP server to the user mcp.json (type http, url https://mcp-sap-docs.marianzeis.de/mcp) and removed one stale JSONC comment that made the file invalid JSON. Live tools/list returned 9 names: search, fetch, abap_feature_matrix, sap_community_search, sap_search_objects, sap_get_object_details, sap_discovery_center_search, sap_discovery_center_service, ui5_version_diff. Added the server prefix and five task rows to both agent copies, a short pointer to global user memory (18 lines, budget now 116/200), a usage reference doc, a VS Code template entry, setup-guide wording, and an INDEX row. The CLI config deliberately does not declare sap-docs: a duplicate name is silently disabled by VS Code discovery. Evidence commit 3958834 covers routing; 74245a5 and 75731e9 cover template/setup and docs. Window reload and tools-picker selection are UI actions and remain with the user.",
                          "evidence":  "3958834"
+                     },
+                     {
+                         "id":  "F-177",
+                         "title":  "One new-program skill mixed routing, project scaffolding and program scaffolding",
+                         "where":  "skills/new-program/SKILL.md (retired); skills/sap-new-record/, skills/sap-new-project/, skills/sap-new-program/",
+                         "status":  "fixed",
+                         "verified_by":  "skill redesign 2026-11-18",
+                         "note":  "Ported the one-artifact-per-call, project-first, case-sensitive and never-credentials rules from the reference prompt, dropping kit-incompatible items (project-level AGENTS.md, mcp.json edits, profile scripts, memory-card lowercase rule). Split into sap-new-record (router only), sap-new-project (project record only) and sap-new-program (program record only), with the sap- prefix requested by the user to mark them SAP-only. Existing pointers were from new-program to the three skills; five-skill counts became seven. Removed the live new-program copy after proving it semantically equal to HEAD. A stale git index made section 9 report a not-scanned file until changes were staged. Gate 3b now resolves 20 named skills across 11 repository files; verify clean 1028/28. No SAP connection, no credential read, no git commit made by the skills themselves.",
+                         "evidence":  "bb6e3a8"
                      }
                  ]
 }
