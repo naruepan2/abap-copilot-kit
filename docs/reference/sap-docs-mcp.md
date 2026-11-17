@@ -92,6 +92,66 @@ ui5_version_diff(from_version="1.108.0", to_version="1.130.0", library="SAPUI5")
   a window reload, confirm `sap-docs` appears in the Chat tools picker and observe `tools/list`
   before writing a routing row that depends on it.
 
+## Live verification - abap-docs-cloud, 2026-11-18
+
+Confirmed through the VS Code Copilot harness after the tools picker was enabled:
+
+```
+search(query="ABAP Cloud", k=30, includeOnline=false, sources=["abap-docs-cloud"])
+```
+
+Returned 30 results, all `library_id=/abap-docs-cloud`. Then:
+
+```
+fetch(id="/abap-docs-cloud/ABENABAP_CLOUD_GLOSRY")
+```
+
+Returned the full document (2,259 characters) with title, source URL and metadata. Tool binding
+works; no API key or login was needed. This is evidence that the picker selection works, not a
+permanent capability claim - recheck `tools/list` after a server upgrade.
+
+### 30 references returned
+
+All URLs follow `https://help.sap.com/doc/abapdocu_cp_index_htm/CLOUD/en-US/<topic>.html`, unless
+shown as a full URL below. `#` is result rank and `score` is the fused retrieval score.
+
+| # | Topic (document id suffix) | Score | What the snippet showed |
+|---:|---|---:|---|
+| 1 | `ABENABAP_CLOUD_GLOSRY` | 0.1115 | Definition: cloud-ready ABAP model, RAP, restrictions vs classic |
+| 2 | `ABENS4_HANA_CLOUD_ABAP_ENV_GLOSRY` | 0.1097 | Restricted ABAP environment, embedded Steampunk, S/4HANA Cloud editions |
+| 3 | `ABENABAP_LANGUAGE_VERSIONS` | 0.1015 | Two language versions: ABAP for Cloud and Restricted ABAP |
+| 4 | `ABENABAP_VERSIONS_AND_APIS` | 0.1000 | Classic vs Cloud: language-version and released-API restrictions |
+| 5 | `ABAPMESSAGE` | 0.0985 | `MESSAGE`: only `INTO` variant in ABAP for Cloud |
+| 6 | `ABENDOC_OVERVIEW` | 0.0968 | Where ABAP Cloud Keyword Documentation sits relative to the ABAP Cloud Guide |
+| 7 | `ABAPCOMMIT_ROLLBACK_CONNECTION` | 0.0957 | `COMMIT/ROLLBACK CONNECTION` variant available in ABAP Cloud |
+| 8 | `ABENABAP_TECHNO_GLOSRY` | 0.0926 | ABAP technology supports both Cloud and classic paradigms |
+| 9 | `ABAPFUNCTION` | 0.0917 | Local interface excerpt from a function module example |
+| 10 | `ABENSAP_S4HANA_CPRIV_GLOSRY` | 0.0906 | S/4HANA Cloud Private Edition, ABAP Cloud or classic |
+| 11 | `ABAPIF` | 0.0880 | `IF` statement syntax excerpt |
+| 12 | `index` | 0.0871 | ABAP Cloud language reference index page |
+| 13 | `ABAPDERIVED_TYPES_INFO` | 0.0868 | BDEF derived types related to message handling |
+| 14 | `ABENABAP_DEV_ENVIR_GLOSRY` | 0.0863 | Development environment for repository objects |
+| 15 | `ABENDOCCOMMENT` | 0.0859 | `doccomment` language-reference entry |
+| 16 | `ABENAMDP_CS_ABEXA` | 0.0851 | AMDP SQLScript example, client-safe, ABAP for Cloud |
+| 17 | `ABENABAP` | 0.0805 | Keyword documentation scope for AS ABAP |
+| 18 | `ABENCDS_FUNC_CLIENT_DEP_CS_ABEXA` | 0.0788 | Client-dependent CDS table function example, ABAP for Cloud |
+| 19 | `ABENCONTROLLING_SAP_LUW` | 0.0772 | Controlled SAP LUW and `CL_ABAP_TX` |
+| 20 | `ABENSTANDARD_ABAP_GLOSRY` | 0.0759 | Standard ABAP glossary entry |
+| 21 | `ABAPSAVER_CLASS_CLEANUP_FINALIZE` | 0.0759 | RAP saver method `cleanup_finalize`, save sequence |
+| 22 | `ABENSAP_S4HANA_CPUB_GLOSRY` | 0.0753 | S/4HANA Cloud Public Edition, ABAP Cloud governed |
+| 23 | `ABENDDIC_V5` | 0.0753 | DDIC data elements/structures/tables in BTP and S/4HANA Cloud ABAP |
+| 24 | `ABENEMBEDDED_STEAMPUNK_GLOSRY` | 0.0744 | Embedded Steampunk glossary entry |
+| 25 | `ABENBUILTIN_ABAP_TYPE_GLOSRY` | 0.0741 | Built-in ABAP type glossary entry |
+| 26 | `ABENGENERIC_ABAP_TYPE_GLOSRY` | 0.0733 | Generic ABAP type glossary entry |
+| 27 | `ABAPINTERFACES` | 0.0725 | `INTERFACES` statement syntax |
+| 28 | `ABAPCASE` | 0.0717 | `CASE` statement syntax |
+| 29 | `ABAPINTERFACE` | 0.0710 | `INTERFACE` statement syntax |
+| 30 | `ABENBDL_AUTHORIZATION_ABEXA` | 0.0708 | Authorization check in an unmanaged RAP BO example |
+
+Example full URL for rank 1:
+`https://help.sap.com/doc/abapdocu_cp_index_htm/CLOUD/en-US/ABENABAP_CLOUD_GLOSRY.html`
+Use `fetch(id="/abap-docs-cloud/<topic>")` for the full text of any row.
+
 ## Sources and attribution
 
 The server indexes official SAP and community documentation plus curated tutorials. Search and
