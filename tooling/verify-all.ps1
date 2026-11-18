@@ -611,15 +611,57 @@ if (-not $repoOk) {
         $namedFiles += @(Get-ChildItem (Join-Path $REPO 'agents') -File -Filter '*.agent.md' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
         $namedFiles += @(Get-ChildItem (Join-Path $REPO 'skills') -Directory -ErrorAction SilentlyContinue |
             ForEach-Object { Join-Path $_.FullName 'SKILL.md' } | Where-Object { Test-Path $_ })
+        # A skill table is not prose: `| ABAP style | `abap-code-review` |` has no "use" before the
+        # name, so the regex above walked straight past it. Measured 2026-11-18 on the new
+        # sap-evidence-audit skill: three dead handoffs in one table, and this section reported
+        # "all resolve". Scan table rows too, but only in repository-owned SKILL.md files - agent
+        # tables name MCP servers and tools, which are not skills and must not be reported here.
+        $gateTableRx = '`([a-z0-9]+(?:-[a-z0-9]+)+)`'
+        # Status words that look like skill names but are not skills. Keep this list short and
+        # explicit; a tool like abaplint has no hyphen and cannot match the pattern at all.
+        $gateNonSkill = @{}
+        foreach ($gateToken in @('pending-test', 'not-applicable', 'in-progress')) { $gateNonSkill[$gateToken] = $true }
+        # Self-test the guard, not just the regex: the synthetic prose line must be ignored while
+        # the table line yields one token. Without this, a broken guard prints a healthy zero.
+        $gateSelfLines = @('| Question | Go to |', '| x | `no-such-skill-here` |', 'Use `no-such-skill-here` here')
+        $gateSelfHits = @()
+        foreach ($gateLine in $gateSelfLines) {
+            if ($gateLine -notmatch '^\s*\|') { continue }
+            foreach ($gateMatch in [regex]::Matches($gateLine, $gateTableRx)) { $gateSelfHits += $gateMatch.Groups[1].Value }
+        }
+        if (($gateSelfHits -join ',') -ne 'no-such-skill-here') {
+            Write-Output '  ISSUE   named-skill table self-test failed - the table scan cannot be trusted'
+            Note 'ISSUE' 1
+        }
+        $gateSeen = @{}
         $dangling = @(); $named = 0; $namedRead = 0
         foreach ($f in $namedFiles) {
             $nt = $null
             try { $nt = [System.IO.File]::ReadAllText($f, [System.Text.Encoding]::UTF8) } catch { continue }
             $namedRead++
             foreach ($m in [regex]::Matches($nt, '(?i)(?:load|loads|loading|use|using|skill)\s+`([a-z0-9]+(?:-[a-z0-9]+)+)`')) {
-                $named++
                 $n2 = $m.Groups[1].Value
+                $gateKey = $f + '|' + $n2
+                if ($gateSeen.ContainsKey($gateKey)) { continue }
+                $gateSeen[$gateKey] = $true
+                $named++
                 if (-not $installedSkills.ContainsKey($n2)) { $dangling += ((Split-Path $f -Leaf) + ' -> ' + $n2) }
+            }
+            # Tables only in SKILL.md. The file list already holds only repo-owned files, so a hit
+            # here is always something this repository can fix.
+            if ($f -like (Join-Path $REPO 'skills\*')) {
+                foreach ($gateLine in ($nt -split "`r?`n")) {
+                    if ($gateLine -notmatch '^\s*\|') { continue }
+                    foreach ($gateMatch in [regex]::Matches($gateLine, $gateTableRx)) {
+                        $gateToken = $gateMatch.Groups[1].Value
+                        if ($gateNonSkill.ContainsKey($gateToken)) { continue }
+                        $gateKey = $f + '|' + $gateToken
+                        if ($gateSeen.ContainsKey($gateKey)) { continue }
+                        $gateSeen[$gateKey] = $true
+                        $named++
+                        if (-not $installedSkills.ContainsKey($gateToken)) { $dangling += ((Split-Path $f -Leaf) + ' -> ' + $gateToken) }
+                    }
+                }
             }
         }
         $dangling = @($dangling | Sort-Object -Unique)
