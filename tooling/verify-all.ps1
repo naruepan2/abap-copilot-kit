@@ -1951,6 +1951,71 @@ else {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'
 }
 
+Line '9c-2. Public tree does not name local customer objects'
+# Measured 2026-11-18 after the repository became public. Two tracked docs used a real
+# customer object name as a friendly example; the local record and its functional specification
+# are under Projects\, yet the public tree quoted the name anyway. A generic name such as
+# ZEXAMPLE01 carries the same teaching value. The exact old name is in the findings ledger,
+# which this section exempts because it quotes evidence rather than introducing a live value.
+#
+# Derive the forbidden names from the local Projects folder, not from a hard-coded list. A list in
+# this script would itself leak the identifier, and it would go stale the moment a project is added.
+# Projects\ is gitignored, so a machine without local records scans nothing and reports that fact
+# rather than claiming a clean result.
+$custIds = @()
+$projectsRootForIds = if ($REPO) { Join-Path $REPO 'Projects' } else { $null }
+if ($projectsRootForIds -and (Test-Path -LiteralPath $projectsRootForIds)) {
+    foreach ($custIdProj in (Get-ChildItem -LiteralPath $projectsRootForIds -Directory -ErrorAction SilentlyContinue)) {
+        if ($custIdProj.Name -match '^(_|\.)') { continue }
+        foreach ($custIdFolder in (Get-ChildItem -LiteralPath $custIdProj.FullName -Directory -ErrorAction SilentlyContinue)) {
+            if ($custIdFolder.Name -match '^(_|\.|spec$)') { continue }
+            $custIds += $custIdFolder.Name
+        }
+    }
+}
+$custIds = @($custIds | Where-Object { $_ -and $_.Length -ge 4 } | Sort-Object -Unique)
+$custIdHits = 0
+$custIdScanned = 0
+if (-not $repoOk) {
+    Skip 'kit repository not found - cannot compare against local records'
+}
+elseif ($custIds.Count -eq 0) {
+    Skip 'no local program records - nothing to compare against the public tree'
+}
+else {
+    Push-Location $REPO
+    $custIdTargets = @(& git ls-files) + @(& git ls-files --others --exclude-standard)
+    Pop-Location
+    foreach ($custIdRel in $custIdTargets) {
+        if ($custIdRel -notmatch '\.(md|json|ps1|cjs|js|template|jsonc|txt|yaml)$') { continue }
+        # The ledger quotes the evidence that made the rule necessary; scanning it would report
+        # its own quote as a new leak. Every value in it is already in a fixed commit.
+        if ($custIdRel -eq 'tooling/findings.json') { continue }
+        $custIdPath = Join-Path $REPO $custIdRel
+        if (-not (Test-Path -LiteralPath $custIdPath)) { continue }
+        $custIdText = $null
+        try { $custIdText = [System.IO.File]::ReadAllText($custIdPath, [System.Text.Encoding]::UTF8) } catch { continue }
+        $custIdScanned++
+        foreach ($custIdLine in ($custIdText -split "`r?`n")) {
+            foreach ($custIdName in $custIds) {
+                if ($custIdLine.IndexOf($custIdName, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    $custIdHits++
+                    Write-Output ("  ISSUE   " + $custIdRel + " names a local customer object (" + $custIdName + "): " + $custIdLine.Trim())
+                }
+            }
+        }
+    }
+    if ($custIdScanned -eq 0) {
+        Write-Output '  ISSUE   no file was scanned for local customer object names'
+        Note 'ISSUE' 1
+    }
+    else {
+        Write-Output ("  {0} file(s) scanned against {1} local program name(s), {2} hit(s)" -f $custIdScanned, $custIds.Count, $custIdHits)
+    }
+    Ran 'customer-ids' $custIdScanned
+    Note 'ISSUE' $custIdHits
+}
+
 Line '9d. A tag and its notes file describe the same release'
 # At v0.9.4.7, five of the twelve tags then present carried a one-line subject rather than their
 # release notes, and nothing compared them. Measured 2026-11-16: `v0.9.1`'s annotation contained cp874-

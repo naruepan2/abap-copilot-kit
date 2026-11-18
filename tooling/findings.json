@@ -1586,6 +1586,15 @@
                          "verified_by":  "YAML render error report 2026-11-18",
                          "note":  "GitHub reported \"mapping values are not allowed in this context\" at line 2 column 71 and 76. Cause: an unquoted YAML plain scalar containing \": \" - after \"request\" and \"object\" - is read by a real YAML parser as a mapping separator. The regex-only gate checked that description: existed but never parsed the value, so it passed. Replaced both \": \" with \" - \". Added a real scalar check to section 2: unquoted single-line values are rejected, quoted/folded values are exempt. External skills found by the new check (sap-adam-external-debug, sap-webgui-fallback) are reported as NOTE, not BAD, because they are not in the kit and would be overwritten on update. Fixed a false positive where the gate read the key separator as the defect. Live copies synced; gate clean 1034/28.",
                          "evidence":  "6aa8a30"
+                     },
+                     {
+                         "id":  "F-179",
+                         "title":  "Public repo used a real customer object name as a generic example, and no gate compared tracked text against local program records",
+                         "where":  "Projects/README.md:37; templates/changes.md:26; tooling/verify-all.ps1 section 9c-2",
+                         "status":  "fixed",
+                         "verified_by":  "public visibility recheck 2026-11-18",
+                         "note":  "GitHub API confirmed private=false and visibility=public. The two tracked docs used ZMME011 as a teaching example while the local record and immutable functional specification for that object sit under gitignored Projects/. Replaced both with ZEXAMPLE01. Added section 9c-2: derive forbidden names from program folders under Projects/, scan tracked and untracked text, and fail on a hit. The ledger is exempt because it quotes evidence. History was not rewritten; the old name remains in prior commits.",
+                         "evidence":  "5b5b830"
                      }
                  ]
 }
