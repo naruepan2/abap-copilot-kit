@@ -127,10 +127,102 @@ have diverged.
   explicit in `program.yaml`.
 - The design does not detect edits in real time. It detects them at the start of a task.
 
-## Decisions still open
+## Part 2 — events instead of state, and the human/AI handoff
+
+Status: still a design. Part 1 describes the four-layer anchor. This part replaces the idea of a
+`TR state` field with recorded events, and states plainly what a local log can and cannot do.
+
+### Why drop `TR state`
+
+A state field has to be kept current. `open` left behind after release makes the baseline look
+permanent; gate 10b (`verify-all.ps1:2469-2470`) skips every row whose state is not `open`, so a
+wrong state is invisible. Removing the field removes the thing that goes stale:
+
+```markdown
+## v12 · 2026-11-18 · TR 123456
+
+- [x] activated 2026-11-18
+- [x] released 2026-11-18 · verified via SAPTransport(get) → R
+- [ ] baseline deleted
+- What: ...
+- Why: ...
+```
+
+An event either happened or it did not. It is never "in need of an update". `released` is written
+once with the date and the observation that proved it. `cancelled` is a separate event with the
+same treatment. The baseline-deletion event replaces the old instruction to edit a state field and
+then remember to delete files.
+
+### Events need a verification marker
+
+A human-written event can be wrong or forgotten. Record who asserted it:
+
+```markdown
+- [x] released 2026-11-18 · source: SAPTransport(get) · by AI
+- [x] released 2026-11-18 · source: user said so · by human
+- [ ] released — UNVERIFIED
+```
+
+`UNVERIFIED` is not a failure to hide; it is the signal to ask at handoff. Without it the AI would
+have to treat every entry as fact, which is exactly the failure this design avoids.
+
+### The limit that cannot be designed away
+
+No SAP event, webhook or log tells an external agent that a person edited an object directly. If a
+person edits a draft, activates it into an open TR, and never mentions it, `VERSIONS` shows nothing
+new and the package anchor may not move. Dropping `TR state` does not change that.
+
+The honest design consequence:
+
+- The log is a **human intent record**, not a mirror of SAP.
+- A start-of-task **handshake** is mandatory: "Did anyone change <object/package> in SAP directly
+  since <verified_at>?" Yes / no / unsure.
+- "Unsure" triggers the two-to-four-call anchor; drift creates a `unit: HANDOFF` block and asks one
+  question. It never guesses intent from a code diff.
+- If a human answers "no" while forgetting an edit, the AI still cannot know. That is a
+  communication boundary, not a code defect. Reading the live source before writing remains the
+  final safeguard.
+
+### Seamless human/AI work on one object
+
+The practical handoff protocol, for classic and RAP alike:
+
+1. **Read live source first.** A log entry is a claim; the object in SAP is the current truth. Use
+   `SAPRead` / `GetObjectDraft` for the active and inactive versions before planning.
+2. **State whose change it is.** An AI change ends with a block carrying evidence and a TR number
+   from observation. A human change ends with a short note in the same file: what, why, date, and
+   whether the TR is known.
+3. **One writer at a time.** ADT serialises concurrent writes with a lock; sequential
+   read-modify-write from two parties loses updates. The existing rule "one object, one writer,
+   one session" applies to human and AI alike, not just to two MCP servers.
+4. **No silent repair.** If the AI finds a conflict, it stops and asks. It does not overwrite a
+   human's unactivated draft to make the plan fit.
+5. **Publish as a boundary.** In RAP, publication is a visible event in SAP. A change after publish
+   starts a new block, not an edit to the published one.
+
+### What this buys and what it does not
+
+| Goal | Result |
+|---|---|
+| No stale state field to maintain | Yes — events replace state |
+| AI avoids acting on a stale log | Yes — handshake and live read |
+| AI knows an unmentioned direct SAP edit immediately | No — no such signal exists |
+| Human and AI can alternate on one object | Yes, if both write a short note and respect one writer |
+| Local log equals SAP | Not the goal; intent and code diff are different records |
+
+### Decisions now settled
+
+- `TR state` is removed from the new block format; `released` and `cancelled` are events.
+- TR numbers are stamped from observation plus approval, or labelled human-supplied.
+- `unit:` is AI-suggested by default and user-overridable.
+- `Steps:` uses `[x]` / `[ ]`; publication opens a new block.
+- Old blocks stay until the program or project is unregistered; `## Archive` in the same file.
+- Baseline files are deleted on a verified release or cancellation; the block remains.
+
+### Decisions still open
 
 - Which fingerprint is authoritative for metadata extensions: source hash or generated `$metadata`?
   Source hash is cheaper; `$metadata` is closer to what the UI actually sees.
 - Whether `verified_at` older than seven days forces a re-check, or every task re-checks regardless.
-- Whether gate 10b should validate `released` blocks at all — today it skips every row whose state
-  is not `open`, so a `released` block with a missing TR or a stale baseline passes silently.
+- Whether the new event format needs a schema marker, and how to grandfather logs still using the
+  old `TR state` table without forcing a migration on an untouched program.
