@@ -100,9 +100,10 @@ blind spots is a false ✅ at scale. Nothing checked means `not audited`, never
 
 | Question | Go to |
 |---|---|
-| ABAP style, naming, clean code | `abap-code-review`, abaplint |
-| is this transport safe to release | `sap-transport-gate` |
-| does the ABAP compile or activate | ATC, syntax check, unit tests |
+| ABAP style, naming, clean code | abaplint (VS Code extension), `ponytail-review` |
+| what a transport actually changed | `sap-transport-review` |
+| is this transport ready to release | `sap-transport-release` |
+| does the ABAP compile or pass unit tests | ATC, syntax check, `abap-testing-quality` |
 | clean-core level of an object | `sap-clean-core-atc` |
 | claims about SAP runtime behaviour | read-only MCP call, then tier 2 |
 
