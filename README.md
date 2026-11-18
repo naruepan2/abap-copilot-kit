@@ -165,8 +165,8 @@ Copilot CLI has no Quick Input, and on Windows its config folder is readable by 
 So you name a connection rather than type credentials into JSON:
 
 ```powershell
-tooling\sap-connection.ps1 -Add -Name dev-110 -Url https://host:44381 -Client 110 -User <sap user>
-powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key dev-110_SAP_PASSWORD
+tooling\sap-connection.ps1 -Add -Name example-100 -Url https://example.invalid:44300 -Client 100 -User <sap user>
+powershell -ExecutionPolicy Bypass -File tooling\sap-secret.ps1 -Set -Key example-100_SAP_PASSWORD
 ```
 
 `-Set` asks once, then stores it in Windows Credential Manager. Point both harnesses at the
@@ -201,7 +201,7 @@ actually fires.
 
 ### Skills without cloning
 
-If you have access to the private repo, the CLI can install just the skills:
+The CLI can install just the skills from GitHub:
 
 ```powershell
 npx skills add naruepan2/abap-copilot-kit -s capture-lesson -g
@@ -267,21 +267,23 @@ customer names are expected there. Hashes fold CRLF→LF and strip any BOM, and 
 
 ## Releasing
 
-There's no `CHANGELOG.md`, and that's deliberate: `git log` already is the changelog. Instead,
-an annotated tag carries the release notes, which you write straight out of the commits since the
-last tag:
+`CHANGELOG.md` is a one-row-per-tag index: date, short theme and the peeled commit. The full
+release notes live in the tag annotation and the GitHub release body, not in the index — a second
+copy of the prose would drift. Write the notes from the commits since the last tag:
 
 ```powershell
-git log --oneline v0.9.4.9..HEAD    # changes since the last tag
-git tag -a v0.10.0 -F notes.txt
-git push origin v0.10.0
+$last = git describe --tags --abbrev=0      # no version number to keep current
+git log --oneline "$last..HEAD"            # changes since that tag
+git tag -a vNEXT -F notes.txt
+git push origin vNEXT
 ```
 
-Keep in mind the tag message is **not** the GitHub release body — paste the same notes into the
-release form as well. `~/.copilot/backups/release-notes-<tag>.md` stays the copy of record, while
-the tag is the immutable pointer. A few older tags only ever got a one-line subject, so audit
-section 9d checks every tag against its notes file and calls out mismatches. Once a tag is out,
-never rewrite it — fix forward instead.
+Add the matching row to `CHANGELOG.md` in the same change as the tag. The tag message is **not**
+the GitHub release body — paste the same notes into the release form as well.
+`~/.copilot/backups/release-notes-<tag>.md` stays the copy of record, while the tag is the
+immutable pointer. Audit section 9d compares each tag with its notes file, and section 9f checks
+that every tag has a `CHANGELOG.md` row and every row names a real tag. Once a tag is out, never
+rewrite it — fix forward instead.
 
 ## Adapting it
 
