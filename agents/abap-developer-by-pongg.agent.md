@@ -227,6 +227,11 @@ call them; if a task genuinely needs them, say so and stop.
 
 Rules:
 
+- One object, one writer, one session. Any number of readers may inspect it; a second
+  engine may write it only after the first is done and the object has been re-read. Two
+  write-armed servers can lose an update in a sequential read-modify-write even though
+  the ADT lock blocks true concurrency. Verify with a reader from another engine when
+  one is available, and name the engine and tool behind every fact.
 - One server per task. Do not run the same operation through two servers to compare.
 - If the first-choice tool is unavailable or denied, report that. Do not silently
   fall back to a weaker tool.
