@@ -277,9 +277,36 @@ This is why a state is never copied into a block as a bare claim.
 - A cross-harness write ledger keyed by system, client and object. It would need a shared file
   written in real time; the private mirror is committed later and cannot serve as a lock, and the
   kit repository is public. Recorded as an open problem, not implemented.
-- `expectedSourceHash`, inactive-list tools and an equivalent ai-dev precondition. The second
-  review itself marked these as unverified. They must be confirmed from `tools/list` or server
-  source before becoming rules; a rule that names a missing tool fails at write time.
 - System-mode rules for BTP versus on-premise. The current machine has GSD and DS4 destinations
   from SAP GUI local, none configured for BTP. The design must state the mode before using a
   rule such as "$TMP is allowed", but no mode-specific rule is adopted without a system to test it.
+
+### Verified against installed source, 2026-11-19
+
+Checked `arc-1@1.10.1` at the global npm root and `sap-ai-dev-toolkit` beside it. These are local
+source facts, not claims from the second review.
+
+- `expectedSourceHash` exists (`dist/handlers/tools.js:521`, `dist/handlers/schemas.js:677,789`,
+  `dist/adt/source-precondition.js:9`). It is **optional**, not mandatory: the tool description
+  says "Omitted/blank: no cross-call protection". `sourcePreconditionError` in
+  `dist/handlers/editable-source.js:14` accepts it only for text-source `update` and class or
+  procedural surgery; metadata, creation, deletion and server-driven objects cannot be guarded.
+  `assertSourceHash` runs while the SAP lock is held (`source-precondition.js`), so this is a real
+  compare-and-swap when supplied. Consequence: the rule is "pass `expectedSourceHash` on every
+  supported write", not "the tool enforces it for us".
+- `safeUpdateClassInclude` exists in `dist/adt/crud.js` and `dist/handlers/write/class-surgery.js`.
+  The update path initialises a missing class include under the same lock before the PUT
+  (`dist/handlers/write/update-delete.js:42-46`). The second review's warning about a 404 on a
+  missing include is handled by the installed version.
+- `force_refresh` is a declared `SAPRead` argument (`dist/handlers/tools.js:397`): "bypass cached
+  source and inactive-list state before reading. Use when you know the object changed outside
+  ARC-1." `INACTIVE_OBJECTS` is a declared `SAPRead` type (`tools.js:52`). The 120-second
+  activation window and 60-second inactive-list TTL are in `dist/cache/caching-layer.js:27`.
+  Both tool-level recommendations are therefore real, but only for ARC-1.
+- No equivalent precondition was found in the installed `sap-ai-dev-toolkit` source outside its
+  own documentation (zero source hits for `expectedSourceHash`, `sourceHash`, `If-Match` or
+  `ifMatch`). This is absence of evidence in the installed source, not proof the server cannot do
+  it. Until confirmed from live tools or source, ARC-1 remains the writer for objects needing CAS.
+
+These facts close the three "unverified" items from the second review. They do not by themselves
+change the template or the gate.
