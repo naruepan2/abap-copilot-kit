@@ -62,6 +62,26 @@ approval. Do not paraphrase the diff; show it.
 
 ## 4. Keep the destination honest
 
+### Repo memory knowledge entry
+
+One rule per entry, edited in place. Never a dated row per incident — the history is git.
+An entry that names one project's object is in the wrong file; that belongs in the program record.
+
+```markdown
+## <the rule, imperative>
+
+- **Rule:** what to do, concrete and checkable
+- **Why:** the mechanism that makes it true
+- **Break it, and:** the symptom the next agent will see
+- **Seen:** 2 · **Confidence:** high · **Last confirmed:** <YYYY-MM-DD>
+- **Evidence:** project record section, table read, or tool output
+```
+
+`Seen` counts confirmations, not mentions. `Confidence` is `low` (once, unverified),
+`medium` (reproduced or checked in a table), or `high` (verified more than once, or it
+cost a real failure). The `Break it, and` line is what lets the next agent recognise a
+familiar failure before re-deriving it.
+
 - **Date version-specific claims.** `verified 2026-11-13` tells a future reader how much to trust it.
 - **Correct, do not stack.** If the new fact contradicts an existing line, replace that line and
   say what was wrong. Two contradictory lines are worse than one outdated line.
