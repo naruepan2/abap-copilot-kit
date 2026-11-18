@@ -9,7 +9,9 @@ A record is cheap to create and expensive when wrong: a guessed SID or client se
 change to the wrong system. This skill only classifies the request. It does not write files.
 
 All three skills in this family are SAP-specific: `sap-new-record` routes, `sap-new-project`
-creates a project record, and `sap-new-program` creates a program record.
+creates a project record, and `sap-new-program` creates a program record. Retirement is a
+separate workflow with its own confirmation gate: `sap-project-unregister` and
+`sap-program-unregister`.
 
 ## 1. Create a record or not
 

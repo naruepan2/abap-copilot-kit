@@ -14,6 +14,8 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `skills/sap-evidence-audit/` | Audit finished work against evidence tiers, verdicts and a coverage line |
 | `skills/sap-data-verify/` | Clean-Core-first data verification; probes the ARC-1 data gates and stops when closed |
 | `skills/sap-new-record/` | Route to the right scaffold skill: project or program |
+| `skills/sap-program-unregister/` | Retire one program record; local `_retired` by default, explicit confirmation |
+| `skills/sap-project-unregister/` | Retire one project record; refuses while programs remain |
 | `skills/sap-new-project/` | Scaffold one project record, never a program |
 | `skills/sap-new-program/` | Scaffold one program record, never a project |
 | `skills/rap-lifecycle/` | The nine-step RAP create-and-publish chain, with the owning server per step |

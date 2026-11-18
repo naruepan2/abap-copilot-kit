@@ -37,6 +37,9 @@ Projects\
 - `<PROGRAM>` — the SAP object name, e.g. `ZEXAMPLE01`.
 - `_archive` and `_sandbox` are per project, underscore prefix, so they sort apart from
   real objects.
+- `Projects/_retired/` is the local-only destination for unregistered records. It starts with
+  an underscore, so `workspace-sync.ps1` never mirrors it and the public kit repository never
+  sees it. Never push a retired record anywhere.
 - No `AGENTS.md` at project or program level. The root `AGENTS.md` already states the
   access rules once, and a second copy would drift. This deliberately differs from the
   usual pattern of one `AGENTS.md` per level.

@@ -79,9 +79,10 @@ Copy-Item .\hooks\hooks.json.template "$cp\hooks\hooks.json" -Force
 Every hook command is `node "<path>/hooks/<file>.cjs"`, so `node` must be on `PATH` before the
 next session start.
 
-Kit skills installed this way (9): `capture-lesson`, `long-task-control`,
+Kit skills installed this way (11): `capture-lesson`, `long-task-control`,
 `mcp-surface-audit`, `sap-data-verify`, `sap-evidence-audit`, `sap-new-record`,
-`sap-new-project`, `sap-new-program`, `rap-lifecycle`.
+`sap-new-project`, `sap-new-program`, `sap-project-unregister`,
+`sap-program-unregister`, `rap-lifecycle`.
 Kit agents (4, `*-by-pongg`, user-editable): `abap-developer`,
 `sap-abap-reverse-engineer`, `sap-se38-report-tester`, `sap-st22-dump-analysis`.
 
