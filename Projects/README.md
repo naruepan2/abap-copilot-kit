@@ -34,7 +34,7 @@ Projects\
 ```
 
 - `<PROJECT>` — uppercase project code, e.g. `ABC`.
-- `<PROGRAM>` — the SAP object name, e.g. `ZMME011`.
+- `<PROGRAM>` — the SAP object name, e.g. `ZEXAMPLE01`.
 - `_archive` and `_sandbox` are per project, underscore prefix, so they sort apart from
   real objects.
 - No `AGENTS.md` at project or program level. The root `AGENTS.md` already states the

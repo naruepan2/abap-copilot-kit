@@ -23,7 +23,7 @@ named baseline is missing, report `UNVERIFIED` and recommend a human decision �
 `What` and `Why` are not interchangeable:
 
 - **What** — technical, one line: object, changed behaviour, the condition that triggered it.
-  "amount rounding for negative values in ZMME011" — not "bug fix".
+  "amount rounding for negative values in ZEXAMPLE01" — not "bug fix".
 - **Why** — business reason or defect, one line: "F-042: VAT off by 1 satang on credit notes".
   For a change request, link `spec/notes.md` rather than copying the functional's text.
 - **Type** holds the category; do not repeat it in `What`.
