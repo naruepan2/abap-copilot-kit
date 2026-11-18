@@ -9,9 +9,9 @@
 
 - `~/.agents/skills` = `ponytail`, `ponytail-review`, `caveman` + the ABAP hand-installed set (§6),
   and none of the nine in §7's delete list (5 caveman + 1 toolkit + 3 mattpocock).
-- `~/.copilot/skills` = 18 folders: the 13 toolkit skills still live + the 5 kit skills from §3.
-  The other 11 toolkit skills sit in `~/.copilot/skills-disabled/` (§7) - a fresh install puts all
-  24 live, so 18 is only true after that step.
+- `~/.copilot/skills` holds the toolkit skills still live plus every kit skill from §3.
+  The 11 toolkit skills in §7 sit in `~/.copilot/skills-disabled/` after that step. Counts rot on
+  every install, so list folders instead of trusting a number here.
 - `~/.copilot/{agents,state,hooks}`, plus `~/.copilot/roster.json` and `~/.copilot/hooks/hooks.json`,
   from the kit (§3).
 - `verify-all.ps1` clean (terse, exit 0).
@@ -79,8 +79,9 @@ Copy-Item .\hooks\hooks.json.template "$cp\hooks\hooks.json" -Force
 Every hook command is `node "<path>/hooks/<file>.cjs"`, so `node` must be on `PATH` before the
 next session start.
 
-Kit skills installed this way (5): `capture-lesson`, `long-task-control`,
-`mcp-surface-audit`, `sap-new-record`, `sap-new-project`, `sap-new-program`, `rap-lifecycle`.
+Kit skills installed this way (8): `capture-lesson`, `long-task-control`,
+`mcp-surface-audit`, `sap-evidence-audit`, `sap-new-record`, `sap-new-project`,
+`sap-new-program`, `rap-lifecycle`.
 Kit agents (4, `*-by-pongg`, user-editable): `abap-developer`,
 `sap-abap-reverse-engineer`, `sap-se38-report-tester`, `sap-st22-dump-analysis`.
 

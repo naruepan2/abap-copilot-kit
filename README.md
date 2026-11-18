@@ -27,7 +27,7 @@ tooling is not.
 AGENTS.md          workspace contract: connections, access rules, session start
 INDEX.md           one-screen map of the repo and of where memory lives
 agents/            custom agents: routing, safety, evidence gates
-skills/            the kit's seven hand-written skills
+skills/            the kit's eight hand-written skills
 roster.json        delegation allowlist (read-only subagents)
 hooks/             three detection-only hooks
 docs/              architecture, tool routing, ownership, anti-hallucination
@@ -138,7 +138,7 @@ powershell -File tooling\verify-all.ps1            # is anything wrong?
 powershell -File tooling\census.ps1                # what's here, and what no gate reads?
 ```
 
-`install-kit.ps1` copies agents, tooling and this kit's seven skills. It's safe to re-run, and it
+`install-kit.ps1` copies agents, tooling and this kit's eight skills. It's safe to re-run, and it
 won't overwrite a live file that differs — use `-Force` once you're sure the clone is the newer
 one. It finds the kit root via `$env:ABAP_KIT_ROOT`, then a `kit-root.txt` pin from an earlier run,
 then simply the parent of `tooling\`.

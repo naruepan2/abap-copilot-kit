@@ -60,7 +60,7 @@ a manifest, or an explicit path.
 
 ## Ownership
 
-- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's seven skills
+- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's eight skills
   (`skills/` in the clone — edit there, then reinstall) are editable.
 - Everything else here, and any other file under `%USERPROFILE%\.copilot`, is
   installer-owned: read-only.
