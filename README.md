@@ -34,7 +34,7 @@ docs/              architecture, tool routing, ownership, anti-hallucination
 docs/reference/    lookup detail: ARC-1, skills, paths, hooks, output levels
 config-templates/  mcp.json, settings.json, arc1.env and connections skeletons
 memory-templates/  user profile template
-templates/         project / program / spec templates
+templates/         project / program / spec / plan templates
 tooling/           verify-all, census, install-kit, connection + credential scripts,
                    auth probe, context measure, workspace-sync
 backup/            recovery snapshot of user memory (nothing loads it)

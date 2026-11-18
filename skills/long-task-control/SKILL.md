@@ -17,7 +17,8 @@ the right time nor a reason anyone chose.
 
 ## 2. Escalate planning only for real reasons
 
-Use lightweight planning by default. Escalate to an explicit plan when the work:
+Use lightweight planning by default. Escalate to an explicit plan copied from `templates/plan.md`
+into the program folder as `plan-<task>.md` when the work:
 
 - spans multiple related objects or layers
 - introduces a new RAP service or data model
