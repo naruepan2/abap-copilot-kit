@@ -51,6 +51,14 @@ a manifest, or an explicit path.
 
 ## Session start
 
+Pick an input tier first. It decides what you read, not what you answer.
+
+- `light` — a question, analysis or review: `INDEX.md` and the nearest `AGENTS.md` only.
+- `task` — code, file or SAP work: add the project record and its memory card.
+- `deep` — a new project, incident or design: add the relevant reference docs and user memory.
+
+`docs/reference/detail-levels.md` governs output length. Do not confuse the two enums.
+
 1. Read `INDEX.md`.
 2. Read the nearest `AGENTS.md`.
 3. Read `project.yaml` / `program.yaml` if a project record exists for this task.
