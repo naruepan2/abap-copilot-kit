@@ -12,6 +12,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
 | `skills/sap-evidence-audit/` | Audit finished work against evidence tiers, verdicts and a coverage line |
+| `skills/sap-data-verify/` | Clean-Core-first data verification; probes the ARC-1 data gates and stops when closed |
 | `skills/sap-new-record/` | Route to the right scaffold skill: project or program |
 | `skills/sap-new-project/` | Scaffold one project record, never a program |
 | `skills/sap-new-program/` | Scaffold one program record, never a project |

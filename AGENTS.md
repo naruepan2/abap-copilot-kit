@@ -68,7 +68,7 @@ Pick an input tier first. It decides what you read, not what you answer.
 
 ## Ownership
 
-- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's eight skills
+- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's nine skills
   (`skills/` in the clone — edit there, then reinstall) are editable.
 - Everything else here, and any other file under `%USERPROFILE%\.copilot`, is
   installer-owned: read-only.
