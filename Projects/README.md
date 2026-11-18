@@ -132,7 +132,8 @@ spec_index: spec/INDEX.md
   from the deployed code.
 
 **Never edit anything under `spec/source/`.** It is the functional's document, versioned by
-them. Contradictions go to `spec/notes.md`, and the fix is reported back to them.
+them. Open questions, contradictions **and decisions** go to `spec/notes.md` — that is the one
+home for "why", so no `reports/DECISIONS.md` is created beside it. Report the fix back to them.
 
 **Never read the whole spec.** `INDEX.md` maps each section to a line range with its token
 cost; read the Summary, then at most the one slice the task touches. If the spec's line or

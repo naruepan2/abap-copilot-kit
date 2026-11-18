@@ -39,7 +39,11 @@ Numbered, each one testable. State the rule, not the implementation.
 
 ## Acceptance criteria
 
-- [ ] <observable result that proves it works>
+One row per run. `Pending` is not `passed` — write the evidence only after the run happened.
+
+| ID | Given / When / Then | REQ | Evidence |
+|---|---|---|---|
+| AC-01 | Given <state>, when <action>, then <observable result> | REQ-01 | Pending |
 
 ## Open questions
 
