@@ -71,7 +71,11 @@ Never invent a number. Write `transport: none` when there is no request.
 Projects/<PROJECT>/<PROGRAM>/program.yaml   from templates/program.yaml  (fill `project:`)
 Projects/<PROJECT>/<PROGRAM>/README.md      from templates/program-README.md
 Projects/<PROJECT>/<PROGRAM>/changes.md     from templates/changes.md
+Projects/<PROJECT>/<PROGRAM>/spec/notes.md   from templates/spec-NOTES.md
 ```
+
+`spec/notes.md` is created for every spec mode, including `none`. It is the one home for
+questions, contradictions and decisions — do not create a second `reports/DECISIONS.md`.
 
 `.baseline/` is not created here — it appears on the first activation, from `templates/changes.md`.
 Do not create an `AGENTS.md` at program level: the root contract already states the access rules.

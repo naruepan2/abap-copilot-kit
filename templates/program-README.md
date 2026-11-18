@@ -17,7 +17,7 @@ One-line purpose.
 | Builder | `program.yaml` / the object that generates it |
 | **Pre-release change log** | `changes.md` — what was activated, in what order, while the TR is open |
 | Long-run plan | `plan-<task>.md` when a task spans requests — stop condition and checkpoint |
-| Decisions | <link to the note or memory card entry that records why> |
+| Decisions | `spec/notes.md` §Decisions — the one home for why |
 | Memory card | <repo memory path, or "not created"> |
 
 `changes.md` is the AI's index for rollback before TR release: it names the version and the exact
