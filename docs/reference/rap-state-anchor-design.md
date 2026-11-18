@@ -226,3 +226,60 @@ The practical handoff protocol, for classic and RAP alike:
 - Whether `verified_at` older than seven days forces a re-check, or every task re-checks regardless.
 - Whether the new event format needs a schema marker, and how to grandfather logs still using the
   old `TR state` table without forcing a migration on an untouched program.
+
+## Part 3 — refinements from a second review
+
+These were suggested by another model and checked against this kit before being accepted. Ideas
+already present under another name are not repeated here: per-write pre-images are already
+`.baseline/<OBJ>_<TR>_v<n>.abap`, an explicit write-set is already `Approved: Write` in
+`templates/plan.md`, one writer is already in the agent file, and attribution is already "name the
+engine and tool behind every fact".
+
+### 1. Recognition instead of recall
+
+The original handshake asked "did anyone change this object?" — a question people answer wrongly
+because they forget. Replace it with a display: list the one to five objects whose fingerprint
+moved and ask "are these yours?". Seeing a concrete list produces a reliable yes/no; recalling an
+action does not. Same gate, fewer wrong answers.
+
+### 2. Anchor and CAS are different jobs
+
+The anchor is a UX device: it notices that SAP moved so the AI can ask. It does not protect a write.
+Safety at write time comes from the write contract itself: read the current source, hold a lock,
+write against the version just read, release the lock in `finally`. A red light and a seat belt are
+not interchangeable; an anchor that says "clean" is not permission to overwrite.
+
+### 3. Activated is not observed
+
+The kit already says saved ≠ activated ≠ tested. `sap-data-verify` also records that a
+non-production-in-place instance may serve a draft for about 120 seconds after activation, so
+`force_refresh=true` is needed. Promote that into an invariant: after activation, verify with a
+different engine or force a refresh before claiming the new code was seen. A write report that
+stops at "activated" is incomplete.
+
+### 4. Undo is a forward write, not a silent restore
+
+The earlier rule said the AI may propose a rollback diff but must not write without fresh approval.
+Add the missing part: undoing a change is another write under the same read-lock-write contract,
+with its own pre-image and intent. If someone else changed the object after the row being undone,
+reconcile first — never restore over an unrecognised change. A rollback is a new event, not an edit
+to history.
+
+### 5. Events do not expire; states do
+
+`released`, `cancelled` and `published` are written once and stay. `draft present`, `publish state`,
+`package count` and `verified_at` can change and need a check cost. Every state fact carries
+`source` (which tool), `by` (AI or human, and which harness), and `verified_at` or `UNVERIFIED`.
+This is why a state is never copied into a block as a bare claim.
+
+### Ideas intentionally not adopted yet
+
+- A cross-harness write ledger keyed by system, client and object. It would need a shared file
+  written in real time; the private mirror is committed later and cannot serve as a lock, and the
+  kit repository is public. Recorded as an open problem, not implemented.
+- `expectedSourceHash`, inactive-list tools and an equivalent ai-dev precondition. The second
+  review itself marked these as unverified. They must be confirmed from `tools/list` or server
+  source before becoming rules; a rule that names a missing tool fails at write time.
+- System-mode rules for BTP versus on-premise. The current machine has GSD and DS4 destinations
+  from SAP GUI local, none configured for BTP. The design must state the mode before using a
+  rule such as "$TMP is allowed", but no mode-specific rule is adopted without a system to test it.
