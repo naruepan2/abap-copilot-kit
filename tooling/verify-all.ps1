@@ -2238,6 +2238,63 @@ else {
     Note 'ISSUE' $bkHits
 }
 
+Line '9f. CHANGELOG index covers every tag'
+# The release timeline used to live only in annotated tags and in notes files under ~/.copilot/backups.
+# A fresh clone saw none of it. CHANGELOG.md is an index, not a second copy of the notes: one row per
+# tag with the date, a short theme and the peeled commit. This section compares the two directions -
+# a tag nobody indexed, and an index row naming a tag that does not exist. It does not compare the
+# theme text: that is prose, and section 9d already handles tag-versus-notes consistency.
+$changelogTags = @{}
+$changelogRows = 0
+$changelogBadRows = 0
+if (-not $repoOk) {
+    Skip 'kit repository not found - cannot compare CHANGELOG with tags'
+} else {
+    $changelogPath = Join-Path $REPO 'CHANGELOG.md'
+    if (-not (Test-Path -LiteralPath $changelogPath)) {
+        Write-Output '  ISSUE   CHANGELOG.md is missing - a clone cannot see the release timeline'
+        Note 'ISSUE' 1
+    }
+    else {
+        $changelogText = $null
+        try { $changelogText = [System.IO.File]::ReadAllText($changelogPath, [System.Text.Encoding]::UTF8) }
+        catch { Write-Output ('  ISSUE   CHANGELOG.md is unreadable: ' + $_.Exception.GetType().Name); Note 'ISSUE' 1 }
+        if ($null -ne $changelogText) {
+            foreach ($clLine in ($changelogText -split "`r?`n")) {
+                if ($clLine -notmatch '^\|\s*\|?\s*(v[0-9][0-9A-Za-z.]*)\s*\|') { continue }
+                $clTag = $Matches[1]
+                $changelogRows++
+                if ($changelogTags.ContainsKey($clTag)) { $changelogBadRows++; Write-Output ('  ISSUE   CHANGELOG.md repeats a tag: ' + $clTag) }
+                else { $changelogTags[$clTag] = $true }
+            }
+            if ($changelogRows -eq 0) {
+                Write-Output '  ISSUE   CHANGELOG.md has no version rows - nothing was checked'
+                Note 'ISSUE' 1
+            }
+        }
+    }
+    if ($repoOk) {
+        Push-Location $REPO
+        $liveTags = @(& git tag)
+        Pop-Location
+        foreach ($lt in $liveTags) {
+            if (-not $changelogTags.ContainsKey($lt)) {
+                $changelogBadRows++
+                Write-Output ('  ISSUE   tag has no CHANGELOG row: ' + $lt)
+            }
+        }
+        foreach ($ct in $changelogTags.Keys) {
+            if ($liveTags -notcontains $ct) {
+                $changelogBadRows++
+                Write-Output ('  ISSUE   CHANGELOG row names no tag: ' + $ct)
+            }
+        }
+        Write-Output ("  {0} tag(s), {1} CHANGELOG row(s), {2} mismatch(es)" -f $liveTags.Count, $changelogRows, $changelogBadRows)
+        Ran 'changelog' ($liveTags.Count + $changelogRows)
+        Note 'ISSUE' $changelogBadRows
+    }
+}
+
 Line '10. Findings ledger: is anything still open?'
 # Why this section exists, in one sentence: a finding reported into a chat log is forgotten, and a
 # finding reported into a file that gates the build is not.

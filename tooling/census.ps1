@@ -89,7 +89,7 @@ Add-Tree 'repo' 'config'    (Join-Path $REPO 'config-templates') '*'         'ki
 Add-Tree 'repo' 'memptpl'   (Join-Path $REPO 'memory-templates') '*'         'kit'   '-'
 Add-Tree 'repo' 'doc'       (Join-Path $REPO 'docs')            '*.md'       'kit'   '-'
 Add-Tree 'repo' 'note'      (Join-Path $REPO 'backup')          '*'          'kit'   '-'
-foreach ($n in @('README.md', 'INDEX.md', 'AGENTS.md', 'SETUP-NEW-MACHINE.md', 'LICENSE', '.gitattributes', '.gitignore')) {
+foreach ($n in @('README.md', 'INDEX.md', 'AGENTS.md', 'CHANGELOG.md', 'SETUP-NEW-MACHINE.md', 'LICENSE', '.gitattributes', '.gitignore')) {
     Add-Row 'repo' 'root-doc' $n (Join-Path $REPO $n) 'kit' '-'
 }
 Add-Row 'repo' 'roster'  'roster.json'                 (Join-Path $REPO 'roster.json')                 'kit' 'roster, toolkit, mirror'
