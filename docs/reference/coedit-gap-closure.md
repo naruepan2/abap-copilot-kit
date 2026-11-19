@@ -386,6 +386,47 @@ only after a separate approval, with a retention and review rule for the local i
 runtime state), cross-harness sharing, code generation, or any SAP mutation. Those need their own
 evidence and approval.
 
+### 5.12 Approval card and disabled comment blocks — IDEA, not implemented
+
+A separate copy of this idea is on the Desktop as `coedit-approval-comment-block-design.md`.
+Capability claims below are from installed `arc-1@1.10.1` source read on 2026-11-20; the rest is
+design. No template, agent file or SAP object was changed.
+
+Approval separates two axes. **Axis A (write mode)** is a radio choice: apply source changes
+(suggested) / insert disabled proposal blocks / save only. **Axis B (activation strategy)** is
+activate dependency groups (suggested) / selected objects only / defer activation. If Axis A is
+comment-block or save-only, Axis B is locked to defer. Publication is never bundled with activation.
+
+| Claim | Evidence |
+|---|---|
+| `SAPActivate` accepts `objects=[{type,name,group?}]`, `preaudit`, `activate|publish_srvb|unpublish_srvb` | `dist/handlers/schemas.js:871-887` |
+| batch sends one objectReferences request, checks every object's package before activating any, preaudit defaults true, reports per-object diagnostics on failure | `dist/adt/devtools.js:147+`, `dist/handlers/activate.js:238-281` |
+| activation and publication are separate lifecycle steps | skill `rap-lifecycle` steps 6 and 7 |
+
+Rules for the disabled-block option:
+
+- It **is a write**: fresh read + `expectedSourceHash` + read-back, same as a real edit.
+- Place one block **at each change point**, not only at the end of the object. Never comment out
+  existing code; insert the block beside it. Only `INSERT_AFTER` is uncommentable — `DELETE`,
+  `REPLACE` and `REPLACE_UNIT` require the human to edit the real source in SAP.
+- Four op types suffice; every block carries `intent-id`, `OP-n/total`, `BEFORE hash`,
+  `hash engine`, `locator`, `WHY`, `anchor_text` with `occurrence: 1`, and `line_hint` (secondary
+  only — a line number must never authorise an edit).
+- A one-block **index at the head** lists all ops for navigation; a conflict between index and an
+  on-point block is a stop-and-ask, same as an anchor conflict.
+- Preflight computes `intended_hash_after_apply` locally from a simulated patch. Comment syntax
+  is object-type dependent: ABAP `*` column 1 is known for CLAS/PROG; `//` for DDLS/BDEF remains
+  `UNVERIFIED` until probed. An existing marker for the same intent stops the write.
+- After the human applies and activates, re-read the object and compare with
+  `intended_hash_after_apply`. Block still present + code unchanged = not applied (not an error);
+  code changed but block still present = ask; hash mismatch = drift, write a new block and never
+  rewrite the old one.
+
+Comment blocks reduce the risk of the AI deciding for the human, not the risk of writing. CAS
+remains the safety mechanism. The accepted cost is more comment text in the object. For a RAP
+stack each object carries its own index block plus `object n of m`, `activation_group` and
+`order in group`.
+
 ## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
