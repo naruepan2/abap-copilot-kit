@@ -9,11 +9,14 @@ the change point.
 
 | object type | comment form | status | evidence |
 |---|---|---|---|
-| CLAS / PROG (ABAP) | `*` column 1 | **EVIDENCED** | standard ABAP; seen in installed source during §5.6–§5.8 probes |
+| CLAS / PROG (ABAP) | `*` column 1, plus `"` inline | **EVIDENCED** | CLAS source read 2026-11-20: `"` trailing comments on enum values and in the method body; `*` markers (`*"* public components of class ...`) on generated section headers. Use `*` column 1 for COEDIT blocks; the `"*` lines are generated markers — never place a block on them |
+| FUNC (function module) | `*` / `"` expected | **UNVERIFIED** | two read attempts on 2026-11-20 returned ADT 500 `[SY/530] An exception was raised`; no FUNC source was observed. Do not infer comment form from CLAS — probe a real FM in the target group first |
 | DDLS | `//` | **EVIDENCED** | live DDLS source read 2026-11-20: 16-line `////` header and `// ...` lines before annotations |
 | SRVD | `//` expected | **UNVERIFIED** | SRVD source read succeeded 2026-11-20, but that object had no existing comments — `//` is an expectation from DDL/BDEF syntax, not observed on this object |
 | BDEF | `//` | **EVIDENCED** | live BDEF source read 2026-11-20: 16-line `////` header and a commented-out `// static action ...` line inside the behavior block |
-| DDLX / SRVB | unknown | **UNVERIFIED** | do not guess — read one object of that type first |
+| DDLX | `//` expected | **UNVERIFIED** | two DDLX objects read in full 2026-11-20 (48 and 74 lines); neither had any comment. `//` is expected from the DDL family but was not observed on a DDLX object |
+| STOB/DO | n/a — generated | **DO NOT EDIT** | read 2026-11-20 returned source identical to its DDLS custom entity; a comment block here would be overwritten on regeneration. Edit the root DDLS instead |
+| SRVB | unknown | **UNVERIFIED** | do not guess — read one object of that type first |
 
 Probe note 2026-11-20: BDEF read also returned a candidate-index extension with
 `status="incomplete"`, `reason="deadline"`, `applicability="unknown"`, `omissions.deadline=1`.
@@ -127,10 +130,14 @@ managed; // original source continues untouched below
 `//` is evidenced on the probed BDEF. The OLD/NEW text and object-specific anchors are still
 design examples — confirm them against the target object before any write.
 
-## 5. DDLX / SRVB — no example
+## 5. DDLX / SRVB / STOB — no example
 
-UNVERIFIED comment form. `STOP` and read one object of that type first. Do not adapt the DDLS or
-ABAP example by analogy.
+DDLX and SRVB: UNVERIFIED comment form. `STOP` and read one object of that type that actually has
+a comment before writing. Do not adapt the DDLS or ABAP example by analogy.
+
+STOB/DO: never place a block here. The probed STOB returned the same 16-line header and entity body
+as the corresponding DDLS custom entity — it is a generated stub. Put the proposal in the root
+DDLS source; the stub follows on regeneration.
 
 ## 6. Rules that apply to all four
 
@@ -141,6 +148,7 @@ ABAP example by analogy.
 4. commented code is `UNVERIFIED` for syntax and ATC — never report a check as passed;
 5. no activation or publication under a comment-block approval;
 6. `DRIFT` never auto-creates a new intent — fresh analysis and human approval required.
+7. never insert a proposal into a generated object (STOB/DO stub); find and edit its root source.
 
 ## 7. Why WHY is in both places
 
