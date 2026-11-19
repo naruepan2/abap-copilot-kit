@@ -1,4 +1,4 @@
-# Co-edit gap closure — decision record
+﻿# Co-edit gap closure — decision record
 
 Status: **design, 2026-11-19. Not implemented.** No template, gate, agent file or SAP object was
 changed for this note. It consolidates nine idea documents from the local `New folder` workspace;
@@ -20,7 +20,31 @@ captured earlier, a later change can be detected by comparing hashes; that path 
 `UNVERIFIED` until a read-only probe confirms stability. Either way the commit window must be
 guarded: detection never authorises a write.
 
-## 2. Gap taxonomy — separate problems, separate metrics
+## 2. Evidence boundary
+
+This note has three kinds of content: locally verified tool source and read-only probes (labelled
+`SRC` / `LIVE` with path or call), ideas from the nine input documents (`IDEA`), and open items
+(`UNVERIFIED`). Never promote an idea into a rule by repetition. Section 3 is measured in this
+harness only; section 5.1 states why it may not be copied elsewhere.
+
+## 3. Capability matrix — read this first
+
+One row per MCP server **in this VS Code harness**, observed 2026-11-19. A second harness needs its
+own matrix; results are not transferable (§5.1). Blank means "not tested", not "absent".
+
+| Capability | ARC-1 | ABAP FS | ADT MCP |
+|---|---|---|---|
+| discovery / search | ✓ `SAPSearch` | ✓ object info | ✓ `abap_repository_search_object` |
+| targeted source read | ✓ `format="editable"` | ✓ `get_object_source` | ✓ `abap_object_read_file` |
+| hash with source | **✓** `object_state.sha256`, editable `sourceHash` | blank — this call returned none | blank — this call returned none |
+| active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
+| writer + CAS | source has `expectedSourceHash`; live writer **not tested** | not tested | not tested |
+| activation / ATC | not tested | not tested | destination present; no check run |
+
+Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
+cell never becomes a yes by analogy. Evidence for each row is in §5.2–§5.4.
+
+## 4. Gap taxonomy — separate problems, separate metrics
 
 | Gap | Can it be closed | Mechanism | Metric |
 |---|---|---|---|
@@ -31,20 +55,20 @@ guarded: detection never authorises a write.
 Do not spend detection calls trying to close a wrong-attribution or wrong-understanding gap with
 wrong-write controls. They are different failure domains.
 
-## 3. Conflicts in the input documents — resolved for this design
+## 5. Conflicts in the input documents — resolved for this design
 
 | Conflict | Decision | Basis |
 |---|---|---|
-| Which server owns CAS — evidence brief says ARC-1 has `expectedSourceHash`; `coedit-patch-brief.md` says ai-dev has `edit_source(expected_source_hash)`, ARC-1 `SAPWrite` not mounted | **Per-harness, not global.** The contradiction is real and must not be resolved by copying one harness's result into the other. See §3.1 | two local documents describe different harnesses; neither is transferable |
+| Which server owns CAS — evidence brief says ARC-1 has `expectedSourceHash`; `coedit-patch-brief.md` says ai-dev has `edit_source(expected_source_hash)`, ARC-1 `SAPWrite` not mounted | **Per-harness, not global.** The contradiction is real and must not be resolved by copying one harness's result into the other. See §5.1 | two local documents describe different harnesses; neither is transferable |
 | Field named `expected_source_hash` in most idea docs | Use the installed spelling `expectedSourceHash` when the schema is confirmed | `dist/handlers/schemas.js:677,789`, evidence brief §3.1 |
-| "Receipt valid until invalidation event" / `pre_write_with_atomic_cas: session` | Reject for write authorisation. SAP emits no event for a direct draft edit, so a cached receipt can stay "valid" while the source changed. Commit receipt must be read in the commit window | evidence brief §5; absence of SAP edit event |
+| "Receipt valid until invalidation event" / `pre_write_with_atomic_cas: session` | Reject for write authorisation. SAP emits no event for a direct draft edit, so a cached receipt can stay "valid" while the source changed. Commit receipt must be read in the commit window | evidence brief §5 (limits); absence of SAP edit event |
 | "anchor = UX, CAS = safety" | Narrow it: fresh read + human gate are safety; CAS is one implementation when the operation supports it. CAS covers text-source `update` and class/procedural surgery only, not metadata/create/delete | `dist/handlers/editable-source.js:14`, evidence brief §3.1 |
 | `TR state` removed in design note Part 2, but gate 10b still reads `open` | Keep as a known open item. Gate 10b must learn the event format before the old state field is removed from records | `rap-state-anchor-design.md` Part 2; evidence brief §2.2 |
 | `rap_anchor` carries `verified_at` but no `source` / `by` | Reject. Every state fact needs `source`, `by`, `verified_at`, or `UNVERIFIED` | evidence brief §2.4 |
 | `kind: classic|rap` versus 3-axis model | Keep `kind` as reporting metadata only. Change unit / physical write-set / observation strategy govern the protocol | Q6 documents converge on this |
 | Token saving 10x–50x | Treat as an unverified vendor claim. Benchmark before repeating | `test1.md`, lean v2 |
 
-### 3.1 Harness capability boundary
+### 5.1 Harness capability boundary
 
 A capability observed in one harness is **not** evidence in another. `coedit-gap-closure-plan.md`
 reports live observations from an OpenCode session; the evidence brief in this repository reports
@@ -63,9 +87,9 @@ version/date | evidence | CAS? | writer?`. A field missing from that matrix mean
 read-only or human-gated in that harness. The matrix is built from `tools/list` and read-only
 probes, never from another harness's notes. Object hashes also carry `hash_engine` and
 `source_locator`. The prohibition on cross-engine hash comparison still applies across harnesses
-and adapters; within one adapter it must be tested, not assumed — see §3.2.
+and adapters; within one adapter it must be tested, not assumed — see §5.2.
 
-### 3.2 Read-only probe — ARC-1 in this VS Code harness, 2026-11-19
+### 5.2 Read-only probe — ARC-1 in this VS Code harness, 2026-11-19
 
 Authorisation: the user stated the target SID and client, read-only, one server at a time, scope
 limited to `object_state` plus editable hash. Those identifiers are deliberately not recorded in
@@ -106,9 +130,9 @@ Consequences, stated narrowly:
 - Nothing in this probe tested `force_refresh` after activation, lock ownership, CAS rejection,
   403/409/412/423 routing, DDLS or BDEF sections, or any second harness.
 
-### 3.3 Read-only probe — ABAP FS and ADT MCP, same VS Code harness, 2026-11-19
+### 5.3 Read-only probe — ABAP FS and ADT MCP, same VS Code harness, 2026-11-19
 
-Same authorisation as §3.2: read-only, one server at a time. No write, lock, activate, publish or
+Same authorisation as §5.2: read-only, one server at a time. No write, lock, activate, publish or
 transport call. The abstraction here is the **MCP server selected in the picker**, not a different
 hosting harness; tool availability still differs by server and must be recorded per server.
 
@@ -130,7 +154,7 @@ Consequences:
   blank matrix cell means the operation is unavailable, not failed and not passed.
 - No claim from the OpenCode plan about ai-dev tool names was tested here; it remains INPUT only.
 
-### 3.4 ADT MCP after user logon, same VS Code harness, 2026-11-19
+### 5.4 ADT MCP after user logon, same VS Code harness, 2026-11-19
 
 The user logged on a destination themselves; `abap_destination_list` then returned one entry. The
 destination ID, the package name and object names are deliberately **not** recorded in this public
@@ -147,7 +171,7 @@ the hash column. Like ABAP FS, this call returned no hash; that proves only what
 not that the server has no hash capability anywhere. ARC-1 remains the sole verified hash source
 in this harness. ATC tools were not run — no check, test or activation was requested.
 
-## 4. Plan — ordered by benefit per unit of complexity
+## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
 
@@ -160,7 +184,7 @@ Inspect the **live** tool surface, not idea documents:
 4. whether `object_state` and `format="editable"` are callable, with their exact parameter sets.
 
 If a required capability is absent, the operation stays read-only or human-gated. Do not
-substitute a similar-looking tool. This step settles the conflict in §3 before anything else.
+substitute a similar-looking tool. This step settles the conflict in §5 before anything else.
 
 ### Step 1 — commit window, the core control
 
@@ -223,7 +247,7 @@ A Knowledge Graph, if built, is a navigation cache between the assistant and rea
 not SAP authority and not a decision gate. Enable it only when telemetry shows repeated reads or
 impact misses; the 10x–50x claim is not a business case.
 
-## 5. Sandbox scratch area — design (IDEA, not implemented)
+## 7. Sandbox scratch area — design (IDEA, not implemented)
 
 This section is an IDEA. It creates no record, no SAP object and no write permission.
 
@@ -293,7 +317,7 @@ Current View may be rebuilt from these events; do not edit an earlier event.
    sandbox package; an empty `<SANDBOX_ID>` directory proves nothing.
 2. Capture a pre-image only after a fresh read of the object actually being seeded, store it as a
    content-addressed blob under `baseline/`, and name the locator and hash engine.
-3. Seed writes use the commit-window rule from §4 Step 1. If no writer with a confirmed CAS is
+3. Seed writes use the commit-window rule from §6 Step 1. If no writer with a confirmed CAS is
    available for this server, the seed is human-gated, not autonomous.
 4. After a seed, re-observe with `object_state` and `format="editable"`. A changed hash or
    `hasInactiveDivergence=true` is the signal under test; an unchanged hash is a result, not a
@@ -313,7 +337,7 @@ Current View may be rebuilt from these events; do not edit an earlier event.
 - Cannot create a SAP-side event feed, close G3 (no earlier hash), validate another harness, or
   prove CAS on a writer until that writer's precondition is confirmed in this harness.
 
-## 6. Deferred — no implementation without a metric or incident
+## 8. Deferred — no implementation without a metric or incident
 
 Shared cross-harness ledger, localhost broker, SAP Z ledger, Redis/etcd, ETag/304 adapter,
 PROV-O, semantic/business capability graph, seven-dimension risk score, 25–35-case simulator,
@@ -324,14 +348,14 @@ Reason is uniform: no evidence yet that the problem is frequent or expensive eno
 the component. Adding these controls to the default path would create the verification loop and
 token cost the lean documents warn about.
 
-## 7. What must stay UNVERIFIED until checked
+## 9. What must stay UNVERIFIED until checked
 
 - The CAS-owning server and the exact write operation that supports it, **per harness and per MCP
-  server** (§3, step 0).
+  server** (§5, step 0).
 - Whether ADT MCP's destination is still logged on at the next session; the destination list was
-  empty before the user logged on and is not guaranteed to persist (§3.3, §3.4).
+  empty before the user logged on and is not guaranteed to persist (§5.3, §5.4).
 - Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
-  and editable `sourceHash` is now verified in this harness (§3.2); change detection is not.
+  and editable `sourceHash` is now verified in this harness (§5.2); change detection is not.
 - Whether the SID/client behind this ARC-1 connection is the one the user stated — the tool did
   not report either value.
 - Whether lock handles are obtainable before a write and whether an owner is queryable at all;
@@ -345,7 +369,7 @@ token cost the lean documents warn about.
 Each item needs a read-only probe, a schema check or a controlled sandbox test before it becomes
 a rule. No item in this note authorises a write, activation, publication or transport change.
 
-## 8. Related
+## 10. Related
 
 - `docs/reference/rap-state-anchor-design.md` — four-layer anchor, event handoff, limits.
 - `docs/reference/corrections.md` — where findings from verified corrections are kept.
