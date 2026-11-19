@@ -141,3 +141,42 @@ ABAP example by analogy.
 The index WHY explains the **intent** without opening the source. The inline WHY explains the
 **local edit** to the person at that line. Same reason, two resolutions — not two decisions. If
 they ever disagree, `STOP` and ask; do not auto-reconcile.
+
+## 8. Placement near existing comments
+
+**Default: put the COEDIT block BEFORE the existing developer comment**, closest to the code being
+changed. The reader sees the proposed change first, then the original comment, then the code.
+
+```abap
+**********************************************************************
+* COEDIT <intent> OP1 REPLACE_UNIT — why: ...
+* OLD: ...
+* NEW: ...
+**********************************************************************
+* existing developer comment about this line       "<<-- original, untouched
+  original code below
+```
+
+**Exception: structural header.** When the existing comment is a structural header bound to the
+code — for example `*\"* public components of class ...` in a CLAS — place the block AFTER that
+header. Removing the block then leaves the header attached to its code exactly as before.
+
+Never comment out or move the original comment in either case.
+
+### If a COEDIT marker already exists
+
+| Found | Action |
+|---|---|
+| same `intent-id` | `STOP` — never stack a second block for one intent; ask for cleanup or a new intent |
+| different `intent-id`, OLD/NEW do not overlap | may add a separate intent, without touching the old block |
+| different `intent-id`, OLD/NEW overlap or conflict | `STOP` and ask |
+| ordinary comment (header, WRICEF, change history) | not a COEDIT block — add the new block using the default or exception above |
+
+For the head index block: append after the existing file header with one blank line between; never
+insert inside the header.
+
+### Anchor restriction
+
+Never use text from an existing comment as `anchor_text`. Comments can be edited without changing
+compiled behaviour, so they are not stable anchors. Choose text from real code with
+`occurrence == 1`.
