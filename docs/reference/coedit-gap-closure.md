@@ -105,6 +105,30 @@ Consequences, stated narrowly:
 - Nothing in this probe tested `force_refresh` after activation, lock ownership, CAS rejection,
   403/409/412/423 routing, DDLS or BDEF sections, or any second harness.
 
+### 3.3 Read-only probe — ABAP FS and ADT MCP, same VS Code harness, 2026-11-19
+
+Same authorisation as §3.2: read-only, one server at a time. No write, lock, activate, publish or
+transport call. The abstraction here is the **MCP server selected in the picker**, not a different
+hosting harness; tool availability still differs by server and must be recorded per server.
+
+| Server | Call made | Result | Use for co-edit |
+|---|---|---|---|
+| ABAP FS | `abapfs_get_object_info(CL_ABAP_REGEX, CLAS)` | object type, description, package, total lines 214, main source URI — no hash, no divergence flag | object identity and source locator; **not** a hash source |
+| ABAP FS | `abapfs_get_object_source(version="inactive")` | source text lines 1–5 of 214 plus the same main URI — no `sourceHash`, no active/inactive comparison | useful for targeted reads; cannot replace ARC-1 `format="editable"` for CAS pre-image |
+| ADT MCP | `abap_destination_list` | empty list — no logged-on destination | **unusable at this moment.** Do not infer a destination from the SID or from another server's connection; logon is a separate, user-controlled step |
+
+Consequences:
+
+- The capability matrix has one row per **server in this harness**. ARC-1 currently supplies the
+  hash-bearing reads; ABAP FS supplies metadata and targeted source; ADT MCP is not available
+  until a destination is logged on.
+- `abapfs_get_object_source` returning source without a hash does not prove the server has no hash
+  capability anywhere. It proves only that this call does not return one. Do not build a rule that
+  depends on an untested ABAP FS hash.
+- Because ADT MCP has no destination, the ATC/validation column stays blank here. A blank matrix
+  cell means the operation is unavailable, not failed and not passed.
+- No claim from the OpenCode plan about ai-dev tool names was tested here; it remains INPUT only.
+
 ## 4. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
@@ -194,7 +218,10 @@ token cost the lean documents warn about.
 
 ## 6. What must stay UNVERIFIED until checked
 
-- The CAS-owning server and the exact write operation that supports it, **per harness** (§3, step 0).
+- The CAS-owning server and the exact write operation that supports it, **per harness and per MCP
+  server** (§3, step 0).
+- Whether ADT MCP can be logged on to the target, and which destination ID it uses. The live
+  destination list was empty — do not guess the ID (§3.3).
 - Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
   and editable `sourceHash` is now verified in this harness (§3.2); change detection is not.
 - Whether the SID/client behind this ARC-1 connection is really GC_S4D110 / 110 — the tool did not
