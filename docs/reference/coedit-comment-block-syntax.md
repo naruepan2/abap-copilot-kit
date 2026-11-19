@@ -11,9 +11,14 @@ the change point.
 |---|---|---|---|
 | CLAS / PROG (ABAP) | `*` column 1 | **EVIDENCED** | standard ABAP; seen in installed source during §5.6–§5.8 probes |
 | DDLS | `//` | **EVIDENCED** | live DDLS source read 2026-11-20: 16-line `////` header and `// ...` lines before annotations |
-| SRVD | `//` expected | **UNVERIFIED** | no SRVD main comment was read in the probe session; read one before writing |
-| BDEF | `//` expected | **UNVERIFIED** | no BDEF source read succeeded; read one before writing |
+| SRVD | `//` expected | **UNVERIFIED** | SRVD source read succeeded 2026-11-20, but that object had no existing comments — `//` is an expectation from DDL/BDEF syntax, not observed on this object |
+| BDEF | `//` | **EVIDENCED** | live BDEF source read 2026-11-20: 16-line `////` header and a commented-out `// static action ...` line inside the behavior block |
 | DDLX / SRVB | unknown | **UNVERIFIED** | do not guess — read one object of that type first |
+
+Probe note 2026-11-20: BDEF read also returned a candidate-index extension with
+`status="incomplete"`, `reason="deadline"`, `applicability="unknown"`, `omissions.deadline=1`.
+That is the tool's partial-parsing metadata, **not** evidence about the object's correctness. Do
+not promote it into a fact or a finding.
 
 If the form is UNVERIFIED: `STOP` and ask. Do not fall back to `*`.
 
@@ -107,11 +112,11 @@ DDLS notes:
 
 Read one SRVD of the target system and confirm the comment form before writing this.
 
-## 4. BDEF — `//` expected, UNVERIFIED
+## 4. BDEF — `//` EVIDENCED
 
 ```abap
 //////////////////////////////////////////////////////////////////////////
-// COEDIT <intent> OP1 REPLACE_UNIT — why: add save validation  [SYNTAX UNVERIFIED]
+// COEDIT <intent> OP1 REPLACE_UNIT — why: add save validation
 // OLD: validation validateStatus on save { field ApprovalStatus; }
 // NEW: validation validateStatus on save { field ApprovalStatus; }
 //      validation validateDates on save { field StartDate; }
@@ -119,7 +124,8 @@ Read one SRVD of the target system and confirm the comment form before writing t
 managed; // original source continues untouched below
 ```
 
-Do not write this example into SAP until a read-only probe confirms `//` on the target release.
+`//` is evidenced on the probed BDEF. The OLD/NEW text and object-specific anchors are still
+design examples — confirm them against the target object before any write.
 
 ## 5. DDLX / SRVB — no example
 
