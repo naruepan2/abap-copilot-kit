@@ -38,7 +38,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | targeted source read | ✓ `format="editable"` | ✓ `get_object_source` | ✓ `abap_object_read_file` |
 | hash with source | **✓** `object_state.sha256`, editable `sourceHash` | blank — this call returned none | blank — this call returned none |
 | active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
-| writer + CAS | source has `expectedSourceHash`; tool mountable, **no write made** (§5.5) | schema has no precondition field | schema has no precondition field |
+| writer + CAS | source has `expectedSourceHash`; tool mountable, **no write made** (§5.5) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
 | activation / ATC | not tested | not tested | destination present; no check run |
 
 Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
@@ -185,6 +185,33 @@ Read-only inspection; no SAP write was made.
 Consequence for the G2 seed: a CAS-protected seed is **possible in principle only with ARC-1**, and
 even there it has not been exercised. The other two exposed writers would be human-gated. A seed
 must not be described as CAS-protected until an actual mismatch/rejection test has been run.
+
+### 5.6 G2 seed exercise — ABAP FS writer, ARC-1 observer, 2026-11-19
+
+Authorisation: the user asked to create a test object with ABAP FS and to use a `Y*` name so test
+objects stay distinct from real `Z*` customizations. Object name and any customer identifiers are
+kept out of this public file. A local pre-image was saved outside the repository before the edit.
+
+Sequence and observed results:
+
+| Step | Tool | Result |
+|---|---|---|
+| create class in `$TMP` | ABAP FS `abapfs_create_object` | created, local, no transport required |
+| precondition | ARC-1 `object_state` | `hasInactiveDivergence=true` immediately after creation; main active hash `d0d1fc…`, inactive `2e71a4…` — **G1 draft signal observed on a real object** |
+| writer edit | ABAP FS `replace_string_in_abap_object` | first call failed with an expired-session lock message; one retry saved 9 lines → 13 lines. No CAS field in this writer; human-gated by design |
+| post condition | ARC-1 `object_state` | active hash unchanged (`d0d1fc…`); inactive hash changed `2e71a4…` → `f5142b…`; `hasInactiveDivergence` still `true` |
+
+Verdict: **G2 is closed for an unactivated draft edit in the same engine.** The observer saw a
+changed hash after a different writer changed the source. It is not closed for an activated edit,
+for the ai-dev engine, or for a source change with no prior hash (G3). Activation was not run, so
+the active hash comparison after activation remains untested.
+
+ADT MCP was also tried as a writer: `$TMP` creation was refused twice with a package-access
+restriction message telling the agent to stop. No ADT MCP object was created. This is a
+configuration boundary, not proof that ADT MCP cannot write anywhere.
+
+The test object is a disposable local object. It is still present at the time of writing; cleanup
+must be a separate, explicitly approved step. Do not treat it as a baseline or a customer object.
 
 ## 6. Plan — ordered by benefit per unit of complexity
 
@@ -369,8 +396,8 @@ token cost the lean documents warn about.
   source (§5.5) is not the same as observed. Needs a controlled mismatch test.
 - Whether ADT MCP's destination is still logged on at the next session; the destination list was
   empty before the user logged on and is not guaranteed to persist (§5.3, §5.4).
-- Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
-  and editable `sourceHash` is now verified in this harness (§5.2); change detection is not.
+- Whether a changed hash is detected **after activation**. Detection of an unactivated draft edit
+  is now verified (§5.6); the activated path and `force_refresh` are not.
 - Whether the SID/client behind this ARC-1 connection is the one the user stated — the tool did
   not report either value.
 - Whether lock handles are obtainable before a write and whether an owner is queryable at all;
