@@ -285,6 +285,60 @@ This does **not** justify building a graph server. It justifies a bounded, local
 with `EXTRACTED` edges first, and a benchmark before any 10x–50x claim. It also confirms the
 earlier rule: `impact` answers downstream blast radius, not activation order or publication state.
 
+### 5.10 Local index schema — IDEA, not implemented
+
+Call it an **index**, not a knowledge graph. A knowledge graph adds business capability, semantic
+and runtime-state layers; no evidence here justifies them yet. The index has one job: answer
+"which sentinel do I query next?" so a 300+-object package is not walked from source every time.
+
+Storage: local and rebuildable, under the same gitignored area as the program record — never in a
+tracked file and never in SAP. JSONL is enough for a pilot; SQLite only if multi-hop queries
+actually become slow. Do not start a server or a background crawler.
+
+Node record (one per object actually observed, **not** one per package object):
+
+```yaml
+node:
+  key: <system>|<client>|<type>|<name>       # identities, not values, stay in the local record
+  role: <root_view | projection | behavior | exposure | access | draft>
+  locator: <main | definitions | implementations>
+  hash_engine: <arc-1.object_state | arc-1.editable>   # never compare across engines
+  observed_hash: <digest>
+  observed_at: <timestamp>
+  source: <tool + version that produced it>
+  status: <FRESH | STALE | DIRTY | PARTIAL | UNKNOWN>
+```
+
+Edge record — one hop, one claim, one piece of evidence:
+
+```yaml
+edge:
+  from: <node key>
+  relation: <upstream_view | downstream_bdef | exposed_by | guarded_by | implements>
+  to: <node key>
+  assertion: EXTRACTED              # EXTRACTED now; INFERRED only after a separate decision
+  source: <SAPContext(impact) | SAPContext(deps) | source_parse | service_definition_read>
+  observed_at: <timestamp>
+  confidence: high                 # high for tool-confirmed edges; never auto-promote inferred
+```
+
+Rules learned from the §5.9 probe:
+
+- Store **only tool-confirmed edges**. The 4,245-dependency, 11 MB `deps` dump is not an index;
+  summarising it into nodes would recreate the cost the index is meant to avoid.
+- Query `impact` per sentinel, not once for the whole stack. The root view returned a BDEF and a
+  service definition but not the DCL that the projection view returned.
+- Read the service definition source for exposure edges — `impact` returned no service binding in
+  this stack, yet the definition exposed five entities across four layers.
+- Every node carries `hash_engine` and `source_locator`. A cached hash is navigation evidence only;
+  the commit window (§6 Step 1) still re-reads the write-set and never trusts this index.
+- `STALE`, `DIRTY`, `PARTIAL` and `UNKNOWN` nodes may rank candidates but may not authorise a
+  write. Re-index only the changed node and its immediate neighbours.
+
+Exit criteria before this becomes more than an idea: benchmark 20–30 tasks against source-first
+traversal; require reduced source tokens and no new impact misses, with edge recall on a small
+gold set. Until then the index stays optional and read-only.
+
 ## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
