@@ -339,6 +339,53 @@ Exit criteria before this becomes more than an idea: benchmark 20–30 tasks aga
 traversal; require reduced source tokens and no new impact misses, with edge recall on a small
 gold set. Until then the index stays optional and read-only.
 
+### 5.11 Local index benchmark — IDEA, not run
+
+Purpose: decide whether §5.10 earns its keep before any code is written. No SAP write, activation
+or transport action is part of this benchmark. It measures two questions only — does the index
+reduce reading, and does it change the answer?
+
+**Modes.** Same 20–30 tasks, same target, same human reviewer:
+
+1. `source-first` — no index; the agent explores with `SAPContext(impact)` and targeted reads.
+2. `index-assisted` — the same agent starts from §5.10 nodes/edges, then verifies only the
+   candidates the index ranks. Both modes still use the commit window (§6 Step 1); the index never
+   replaces a fresh read before a write.
+
+**Task set.** Build a gold set from the RAP stack already probed in §5.9. Cover six kinds, at
+least three each: locate a sentinel from a business phrase; one-hop impact of a root view;
+one-hop impact of a projection; exposure via service definition; access control lookup; and a
+negative task whose answer is "no such relation". Every task gets a human-confirmed expected
+object list before scoring. Call this list the gold set; do not derive it from the index under test.
+
+**Measure per task.** Use `measure-context.ps1` conventions: chars, ~tokens at 4 chars/token,
+tool calls, elapsed time, and the exact source objects read. Then score:
+
+- `source_chars` and `full_source_reads` — the two cost numbers;
+- `tool_calls` and `duplicate_reads` — catch an index that shifts cost into verification;
+- `recall` = expected objects returned / expected objects, and `false_candidates`;
+- `impact_miss` = an expected downstream object the mode did not surface, counted per severity;
+- `wrong_write_authorised` — must be zero in both modes; the index never authorises a write.
+
+**Exit gate — all must hold:**
+
+| Metric | Threshold |
+|---|---|
+| median source chars | ≥ 40% lower than source-first |
+| gold-set recall | ≥ 95%, and no high-severity impact miss |
+| duplicate reads | < 5% of calls |
+| elapsed time overhead | ≤ 20% versus source-first |
+| wrong writes authorised | 0 |
+
+Fail any one: keep the index as a read-only optional experiment, or drop it — do not enlarge it
+into a graph, add inferred edges, or start a server to make the number look better. A fail is a
+result, not a bug to hide. If the gate passes, promote §5.10 from idea to an experimental tool
+only after a separate approval, with a retention and review rule for the local index files.
+
+**Not part of this benchmark:** knowledge-graph layers (business capability, semantic meaning,
+runtime state), cross-harness sharing, code generation, or any SAP mutation. Those need their own
+evidence and approval.
+
 ## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
