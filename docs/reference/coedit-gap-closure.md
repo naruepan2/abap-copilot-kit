@@ -67,9 +67,10 @@ and adapters; within one adapter it must be tested, not assumed — see §3.2.
 
 ### 3.2 Read-only probe — ARC-1 in this VS Code harness, 2026-11-19
 
-Authorisation: the user stated target **GC_S4D110 / client 110**, read-only, one server at a time,
-scope limited to `object_state` plus editable hash. No write, lock, unlock, activate, publish or
-transport call was made. The tool did **not** independently confirm the SID or client:
+Authorisation: the user stated the target SID and client, read-only, one server at a time, scope
+limited to `object_state` plus editable hash. Those identifiers are deliberately not recorded in
+this public file. No write, lock, unlock, activate, publish or transport call was made. The tool
+did **not** independently confirm the SID or client:
 `SAPRead(type="SYSTEM")` returned only a user field and an empty collections list — no SID and
 no client. System identity therefore stays `UNVERIFIED` from the tool side; the user's statement
 is the only basis here. The user value is deliberately not recorded in this public file.
@@ -205,7 +206,95 @@ A Knowledge Graph, if built, is a navigation cache between the assistant and rea
 not SAP authority and not a decision gate. Enable it only when telemetry shows repeated reads or
 impact misses; the 10x–50x claim is not a business case.
 
-## 5. Deferred — no implementation without a metric or incident
+## 5. Sandbox scratch area — design (IDEA, not implemented)
+
+This section is an IDEA. It creates no record, no SAP object and no write permission.
+
+### Why reuse the existing `_sandbox`
+
+`Projects/README.md` already defines `Projects/<PROJECT>/_sandbox/` as scratch space, safe to
+delete. `tooling/workspace-sync.ps1:186-201` excludes folders starting with `_` from program
+discovery, and `.gitignore` excludes all of `Projects/*` except the conventions file. A nested
+`Projects/<PROJECT>/<PROGRAM>/<SANDBOX>` would add a second, deeper convention that the same rule
+does not exclude, and would blur the program folder's role as the intent record. Use the existing
+project-level scratch area, keyed by `<SANDBOX_ID>`.
+
+### Layout
+
+```text
+Projects/<PROJECT>/_sandbox/<SANDBOX_ID>/
+  sandbox.yaml        # what may be touched, by whom, until when
+  observations.jsonl  # append-only probe and seed events; NOT changes.md
+  baseline/           # content-addressed pre-images, only for objects actually seeded
+  notes.md            # disposable scratch reasoning
+```
+
+Do **not** create `program.yaml`, `project.yaml`, `spec/`, or `changes.md` here. Gate 10b recurses
+all files named `changes.md` under `Projects/` (`tooling/verify-all.ps1:2424`) and requires a
+Baseline column with `.abap` paths; a sandbox log with content-addressed blobs would fail that gate
+by design. The underscore prefix keeps the folder out of the program census and the private mirror.
+
+### Manifest — `sandbox.yaml`
+
+```yaml
+sandbox: <SANDBOX_ID>
+project: <PROJECT>          # pointer only; system/client inherited from project.yaml
+purpose: G2 changed-hash detection | G1 draft detection | G6 timeout route | ...
+owner: <human who authorised the test>
+created: <YYYY-MM-DD>
+expires: <YYYY-MM-DD>
+target_confirmation: user-stated | sap-confirmed   # how, never the value
+allowed_ops: [observe, seed_write]
+forbidden_ops: [activate, publish, release, transport_release]
+objects:
+  - object: <TYPE/NAME>     # a real, writable SAP object in a sandbox package
+    locator: main | definitions | implementations
+    hash_engine: arc-1.object_state | arc-1.editable
+    role: seed_target
+link:
+  program: none | <PROGRAM>
+  change_unit: none | <CU>
+```
+
+`system` and `client` stay in `project.yaml`, one fact in one file. They must be confirmed at
+session start; a blank field is a pending question, never a reason to guess. The manifest records
+only *how* the target was confirmed, not the identifier itself. A manifest alone never authorises
+a write — that needs a separate, explicit approval.
+
+### Journal — `observations.jsonl`
+
+One append-only event per observation or seed step. Minimum fields: `event_id`, `sandbox`,
+`intent_id`, `object`, `locator`, `hash_engine`, `before_hash`, `after_hash`, `observed_at`,
+`tool` + `version`, `by`, `by_actor`, `verification_basis`, `outcome`, `evidence_ref`. A derived
+Current View may be rebuilt from these events; do not edit an earlier event.
+
+### Rules
+
+1. A local folder cannot change a SAP hash. The seed target must be a real object in a writable
+   sandbox package; an empty `<SANDBOX_ID>` directory proves nothing.
+2. Capture a pre-image only after a fresh read of the object actually being seeded, store it as a
+   content-addressed blob under `baseline/`, and name the locator and hash engine.
+3. Seed writes use the commit-window rule from §4 Step 1. If no writer with a confirmed CAS is
+   available for this server, the seed is human-gated, not autonomous.
+4. After a seed, re-observe with `object_state` and `format="editable"`. A changed hash or
+   `hasInactiveDivergence=true` is the signal under test; an unchanged hash is a result, not a
+   failure to hide.
+5. Restore by a **forward write** under the current hash. If current differs from the recorded
+   post-image, reconcile and ask; never restore a blob blindly.
+6. On success or at `expires`, delete the whole `<SANDBOX_ID>` folder unless an incident pins it.
+   If the result changes a decision, add one `SANDBOX` / `HANDOFF` event to the program's
+   `changes.md` — intent only, no source and no baseline blob reference.
+7. Verify with `git check-ignore` that the sandbox path is ignored before writing anything. Never
+   copy an object name, SID, client, user, TR or source snippet from it into a tracked document.
+
+### What it can and cannot prove
+
+- Can exercise G1 draft detection, G2 changed-hash detection, G6 timeout routing and G9 forward
+  undo, provided a real seed object exists and the ops are explicitly approved.
+- Cannot create a SAP-side event feed, close G3 (no earlier hash), validate another harness, or
+  prove CAS on a writer until that writer's precondition is confirmed in this harness.
+
+## 6. Deferred — no implementation without a metric or incident
 
 Shared cross-harness ledger, localhost broker, SAP Z ledger, Redis/etcd, ETag/304 adapter,
 PROV-O, semantic/business capability graph, seven-dimension risk score, 25–35-case simulator,
@@ -216,7 +305,7 @@ Reason is uniform: no evidence yet that the problem is frequent or expensive eno
 the component. Adding these controls to the default path would create the verification loop and
 token cost the lean documents warn about.
 
-## 6. What must stay UNVERIFIED until checked
+## 7. What must stay UNVERIFIED until checked
 
 - The CAS-owning server and the exact write operation that supports it, **per harness and per MCP
   server** (§3, step 0).
@@ -224,8 +313,8 @@ token cost the lean documents warn about.
   destination list was empty — do not guess the ID (§3.3).
 - Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
   and editable `sourceHash` is now verified in this harness (§3.2); change detection is not.
-- Whether the SID/client behind this ARC-1 connection is really GC_S4D110 / 110 — the tool did not
-  report either value.
+- Whether the SID/client behind this ARC-1 connection is the one the user stated — the tool did
+  not report either value.
 - Whether lock handles are obtainable before a write and whether an owner is queryable at all;
   the installed ARC-1 parses an owner from a 403 conflict message (`dist/adt/errors.js:459`),
   not from a standby query.
@@ -237,7 +326,7 @@ token cost the lean documents warn about.
 Each item needs a read-only probe, a schema check or a controlled sandbox test before it becomes
 a rule. No item in this note authorises a write, activation, publication or transport change.
 
-## 7. Related
+## 8. Related
 
 - `docs/reference/rap-state-anchor-design.md` — four-layer anchor, event handoff, limits.
 - `docs/reference/corrections.md` — where findings from verified corrections are kept.
