@@ -62,7 +62,48 @@ Rule: **one capability matrix per harness**, keyed by `harness | system/client |
 version/date | evidence | CAS? | writer?`. A field missing from that matrix means the operation is
 read-only or human-gated in that harness. The matrix is built from `tools/list` and read-only
 probes, never from another harness's notes. Object hashes also carry `hash_engine` and
-`source_locator`; hashes from different engines are not comparable (OpenCode plan §3.3).
+`source_locator`. The prohibition on cross-engine hash comparison still applies across harnesses
+and adapters; within one adapter it must be tested, not assumed — see §3.2.
+
+### 3.2 Read-only probe — ARC-1 in this VS Code harness, 2026-11-19
+
+Authorisation: the user stated target **GC_S4D110 / client 110**, read-only, one server at a time,
+scope limited to `object_state` plus editable hash. No write, lock, unlock, activate, publish or
+transport call was made. The tool did **not** independently confirm the SID or client:
+`SAPRead(type="SYSTEM")` returned only a user field and an empty collections list — no SID and
+no client. System identity therefore stays `UNVERIFIED` from the tool side; the user's statement
+is the only basis here. The user value is deliberately not recorded in this public file.
+
+Object used: `CL_ABAP_REGEX` (CLAS, package `SABP_REGEX`), a standard SAP object — no customer
+identifier and no customer data involved. Calls: one `SAPSearch`, two `SAPDiagnose(action="object_state")`,
+two `SAPRead(type="CLAS", format="editable")`, one `SAPRead(type="SYSTEM")`.
+
+| Check | First read | Second read | Verdict |
+|---|---|---|---|
+| `object_state` main active `sha256` | `fbce064b8a4bd2ef9dbdd8a930560838569b63dc20d0a44f1d195bb505f50cf0` | identical | stable across two reads ~6 s apart |
+| `object_state` inactive `sha256` | same as active | same as active | no draft divergence observed |
+| `hasInactiveDivergence` | `false` | `false` | field present, true case not tested |
+| `format="editable"` `sourceHash` | `fbce064b8a4bd2ef9dbdd8a930560838569b63dc20d0a44f1d195bb505f50cf0` | identical | stable across two reads |
+
+`object_state` also returned per-section hashes: `main` 7523 bytes, `definitions` 173,
+`implementations` 132, `macros` 106, `testclasses` absent (404). The `editable` source is the
+combined `main` unit, so its hash equals `object_state.main.active.sha256`, **not** the include
+section hashes. Record `source_locator` with every hash; `main` and `implementations` are different
+values for the same object.
+
+Consequences, stated narrowly:
+
+- Within ARC-1, `object_state.sha256` and `format="editable"`'s `sourceHash` are the same digest
+  for the `main` locator. `hash_engine` must still be recorded, and cross-harness comparison
+  (ARC-1 vs ai-dev) remains forbidden until tested.
+- G1: the `hasInactiveDivergence` field is callable and readable. Detecting an actual draft was
+  not exercised.
+- G2: capturing a hash and re-reading it stably is confirmed. Detecting a **changed** source after
+  an external edit was not exercised; that needs a seeded edit in a sandbox. Do not call G2 closed
+  on this evidence alone.
+- G3: unchanged. With no earlier hash there is still nothing to compare.
+- Nothing in this probe tested `force_refresh` after activation, lock ownership, CAS rejection,
+  403/409/412/423 routing, DDLS or BDEF sections, or any second harness.
 
 ## 4. Plan — ordered by benefit per unit of complexity
 
@@ -154,8 +195,10 @@ token cost the lean documents warn about.
 ## 6. What must stay UNVERIFIED until checked
 
 - The CAS-owning server and the exact write operation that supports it, **per harness** (§3, step 0).
-- Whether `object_state` returns a stable `sha256` across two reads and whether `force_refresh`
-  exposes a change after activation.
+- Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
+  and editable `sourceHash` is now verified in this harness (§3.2); change detection is not.
+- Whether the SID/client behind this ARC-1 connection is really GC_S4D110 / 110 — the tool did not
+  report either value.
 - Whether lock handles are obtainable before a write and whether an owner is queryable at all;
   the installed ARC-1 parses an owner from a 403 conflict message (`dist/adt/errors.js:459`),
   not from a standby query.
