@@ -38,7 +38,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | targeted source read | ✓ `format="editable"` | ✓ `get_object_source` | ✓ `abap_object_read_file` |
 | hash with source | **✓** `object_state.sha256`, editable `sourceHash` | blank — this call returned none | blank — this call returned none |
 | active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
-| writer + CAS | source has `expectedSourceHash`; tool mountable, **no write made** (§5.5) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
+| writer + CAS | source has `expectedSourceHash`; tool mountable; **delete exercised**, CAS write not (§5.6) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
 | activation / ATC | not tested | not tested | destination present; no check run |
 
 Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
@@ -210,8 +210,11 @@ ADT MCP was also tried as a writer: `$TMP` creation was refused twice with a pac
 restriction message telling the agent to stop. No ADT MCP object was created. This is a
 configuration boundary, not proof that ADT MCP cannot write anywhere.
 
-The test object is a disposable local object. It is still present at the time of writing; cleanup
-must be a separate, explicitly approved step. Do not treat it as a baseline or a customer object.
+Cleanup approved and done: ARC-1 `SAPWrite(action="delete")` deleted the test class, and a
+follow-up `SAPSearch` returned no object. The local pre-image on the Desktop is scratch and is not
+referenced by any program record. Delete capability is present in the installed ARC-1 schema
+(`dist/handlers/schemas.js:657-660`) and was observed once here; it has no CAS and was applied to
+an object created for this test only.
 
 ## 6. Plan — ordered by benefit per unit of complexity
 
