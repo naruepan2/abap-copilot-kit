@@ -1,0 +1,45 @@
+# Sandbox scratch record — copy to Projects/<PROJECT>/_sandbox/<SANDBOX_ID>/sandbox.yaml
+#
+# IDEA / NOT IMPLEMENTED. See docs/reference/coedit-gap-closure.md §5.
+# This file grants nothing. Every write still needs a separate, explicit approval.
+# Nothing here is committed: Projects/* is gitignored. Verify with git check-ignore
+# before writing anything into the sandbox folder.
+
+sandbox: <SANDBOX_ID>          # short, disposable name; folder name must match
+project: <PROJECT>             # pointer only. system and client stay in project.yaml.
+purpose: <G1 draft detection | G2 changed-hash detection | G6 timeout route | G9 undo>
+owner: <human who authorised the test>
+created: <YYYY-MM-DD>
+expires: <YYYY-MM-DD>          # delete the whole <SANDBOX_ID> folder on success or expiry
+
+# Record HOW the SAP target was confirmed, never the value itself.
+# user-stated | sap-confirmed
+target_confirmation: <user-stated | sap-confirmed>
+
+# Allowlist. Anything not listed here is forbidden by default.
+allowed_ops: [observe, seed_write]
+forbidden_ops: [activate, publish, release, transport_release]
+
+# A local folder cannot change a SAP hash. Every seed target must be a real,
+# writable SAP object in a sandbox package. Empty scratch proves nothing.
+objects:
+  - object: <TYPE/NAME>        # e.g. CLAS/<NAME>, DDLS/<NAME> in a sandbox package
+    locator: <main | definitions | implementations>
+    hash_engine: <arc-1.object_state | arc-1.editable>
+    role: <seed_target | observer_only>
+
+# Optional link back to the intent record. Never copy source or a baseline blob
+# reference into changes.md — only a SANDBOX / HANDOFF intent event.
+link:
+  program: <none | PROGRAM>
+  change_unit: <none | CU>
+
+# Rules recap (full reasoning in the reference doc):
+#  - append probe and seed events to observations.jsonl, never to changes.md;
+#  - record hash_engine and source_locator on every hash; never compare across engines;
+#  - capture a pre-image only after a fresh read of the object actually being seeded;
+#  - restore by forward write under the current hash, never by blind blob restore;
+#  - if current differs from the recorded post-image, reconcile and ask a human;
+#  - do not create program.yaml, project.yaml, spec/ or changes.md in this folder:
+#    verify-all.ps1 §10b scans every changes.md under Projects/ and requires
+#    a Baseline column with .abap paths, which a content-addressed sandbox breaks.

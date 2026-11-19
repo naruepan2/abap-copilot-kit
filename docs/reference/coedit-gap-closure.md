@@ -126,9 +126,26 @@ Consequences:
 - `abapfs_get_object_source` returning source without a hash does not prove the server has no hash
   capability anywhere. It proves only that this call does not return one. Do not build a rule that
   depends on an untested ABAP FS hash.
-- Because ADT MCP has no destination, the ATC/validation column stays blank here. A blank matrix
-  cell means the operation is unavailable, not failed and not passed.
+- Because ADT MCP had no destination at the first check, the ATC/validation column was blank. A
+  blank matrix cell means the operation is unavailable, not failed and not passed.
 - No claim from the OpenCode plan about ai-dev tool names was tested here; it remains INPUT only.
+
+### 3.4 ADT MCP after user logon, same VS Code harness, 2026-11-19
+
+The user logged on a destination themselves; `abap_destination_list` then returned one entry. The
+destination ID, the package name and object names are deliberately **not** recorded in this public
+file — they belong in the local record. No write, lock, activate, publish or transport call made.
+
+| Call | Result | Use for co-edit |
+|---|---|---|
+| `abap_destination_list` | one destination | logon is user-controlled; never infer the ID from a SID or another server's connection |
+| `abap_repository_search_object` with `objectTypes=[CLAS,DDLS]` and a package filter | 11 objects returned, CLAS/OC and DDLS/DF | package discovery and candidate enumeration work |
+| `abap_object_read_file` on one DDLS | source text, `totalLines`, `lineRange`, `truncated` — **no `sourceHash`, no ETag** | targeted source read; cannot supply a CAS pre-image or an outcome hash |
+
+Consequences: ADT MCP fills the *discovery and source-read* column of the capability matrix, not
+the hash column. Like ABAP FS, this call returned no hash; that proves only what this call returns,
+not that the server has no hash capability anywhere. ARC-1 remains the sole verified hash source
+in this harness. ATC tools were not run — no check, test or activation was requested.
 
 ## 4. Plan — ordered by benefit per unit of complexity
 
@@ -236,6 +253,8 @@ by design. The underscore prefix keeps the folder out of the program census and 
 
 ### Manifest — `sandbox.yaml`
 
+Copy `templates/sandbox.yaml.template`; it carries the same fields with inline instructions.
+
 ```yaml
 sandbox: <SANDBOX_ID>
 project: <PROJECT>          # pointer only; system/client inherited from project.yaml
@@ -309,8 +328,8 @@ token cost the lean documents warn about.
 
 - The CAS-owning server and the exact write operation that supports it, **per harness and per MCP
   server** (§3, step 0).
-- Whether ADT MCP can be logged on to the target, and which destination ID it uses. The live
-  destination list was empty — do not guess the ID (§3.3).
+- Whether ADT MCP's destination is still logged on at the next session; the destination list was
+  empty before the user logged on and is not guaranteed to persist (§3.3, §3.4).
 - Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
   and editable `sourceHash` is now verified in this harness (§3.2); change detection is not.
 - Whether the SID/client behind this ARC-1 connection is the one the user stated — the tool did
