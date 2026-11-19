@@ -38,7 +38,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | targeted source read | ✓ `format="editable"` | ✓ `get_object_source` | ✓ `abap_object_read_file` |
 | hash with source | **✓** `object_state.sha256`, editable `sourceHash` | blank — this call returned none | blank — this call returned none |
 | active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
-| writer + CAS | source has `expectedSourceHash`; tool mountable; **delete exercised**, CAS write not (§5.6) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
+| writer + CAS | `expectedSourceHash`: **mismatch rejected + match accepted** (§5.8) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
 | activation / ATC | not tested | not tested | destination present; no check run |
 | TR create / delete | ✓ `SAPTransport` (§5.7) | not tested | create object into an existing TR (§5.7) |
 
@@ -239,6 +239,27 @@ into an *existing* TR id in a transportable package — the `$TMP` denial in §5
 not a blanket writer denial. No TR was released. This capability matters for co-edit because a
 test fixture can now be created and removed without leaving an open request behind.
 
+### 5.8 CAS mismatch and matching write — 2026-11-19
+
+Same fixture pattern as §5.7, new object and TR. Hash values are trimmed here; the full 64-character
+values were used in the calls. No customer identifiers or real TR numbers are recorded.
+
+| Step | Tool | Result |
+|---|---|---|
+| baseline read | ARC-1 `SAPRead(format="editable")` | `sourceHash` H1 = `fc5617…` |
+| intervening edit | ABAP FS `replace_string_in_abap_object` | added one method declaration; first call again hit the expired-session lock, one retry saved |
+| re-read | ARC-1 `SAPRead(format="editable")` | `sourceHash` H2 = `9b6130…` ≠ H1 |
+| **stale-hash write** | ARC-1 `SAPWrite(action="update", expectedSourceHash=H1, source=<valid ABAP>)` | **rejected**: "Source changed, or expectedSourceHash came from a different object/include. No write was made." |
+| verify no write | ARC-1 `SAPRead(format="editable")` | hash still H2; the proposed method implementation was absent |
+| **matching-hash write** | same call with `expectedSourceHash=H2` | **succeeded**; post hash H3 = `9f515c…` |
+| cleanup | `SAPWrite(delete)` + `SAPTransport(delete, recursive=true, removeLockedObjects=true)` | object gone (search empty), TR gone (404) |
+
+Verdict: **CAS is verified at runtime**, both directions. The earlier "source fact only" status in
+§5.5 is now closed for text-source `update` on a class main source. It remains untested for
+metadata, server-driven objects, create, delete, includes, activation and other harnesses — the
+installed schema itself excludes those from the guard. G4 (edit between read and write) is closed
+for this operation; G1/G2/G4 now have observed evidence in this harness.
+
 ## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
@@ -418,8 +439,9 @@ token cost the lean documents warn about.
 
 ## 9. What must stay UNVERIFIED until checked
 
-- Whether ARC-1's `expectedSourceHash` actually rejects a stale hash at runtime — implemented in
-  source (§5.5) is not the same as observed. Needs a controlled mismatch test.
+- CAS on operations other than text-source `update` on a class main source: metadata, server-driven
+  objects, create, delete, includes and activation remain untested and are excluded by the installed
+  schema (§5.5, §5.8).
 - Whether ADT MCP's destination is still logged on at the next session; the destination list was
   empty before the user logged on and is not guaranteed to persist (§5.3, §5.4).
 - Whether a changed hash is detected **after activation**. Detection of an unactivated draft edit
