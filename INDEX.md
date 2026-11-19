@@ -28,7 +28,8 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `docs/reference/rap-state-anchor-design.md` | Design for four-layer RAP state anchors and human handoff when SAP changes outside AI; not implemented |
 | `docs/reference/memory-setup.md` | Setup detail moved out of always-on memory: paths, public-repo visibility, hook/tool-prefix facts |
 | `docs/reference/coedit-index-benchmark-plan.md` | Preparation form for §5.11: 24 tasks, human-confirmed gold set, scoring sheet, exit gate |
-| `docs/reference/coedit-comment-block-syntax.md` | Comment form by object type with evidence status: ABAP `*`, DDLS `//`, BDEF `//` unverified |
+| `docs/reference/coedit-comment-block-syntax.md` | Comment form by object type with evidence status: ABAP `*`, DDLS `//`, BDEF `//` verified; others unverified |
+| `docs/reference/coedit-object-type-applicability.md` | Simulation map: which R3TR types are block targets, index nodes, generated, or outside the protocol |
 | `docs/reference/coedit-gap-closure.md` | Decision record: close co-edit gaps by fail-closed writes, not detection; conflicts, plan, deferred items and unverified checks |
 | `config-templates/` | `mcp.json.template` (VS Code), `mcp-config.template.json` (Copilot CLI), `settings.json.template` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
