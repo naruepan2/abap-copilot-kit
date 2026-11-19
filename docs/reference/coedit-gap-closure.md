@@ -422,8 +422,11 @@ Rules for the disabled-block option:
   code changed but block still present = ask; hash mismatch = drift, write a new block and never
   rewrite the old one.
 
-Comment blocks reduce the risk of the AI deciding for the human, not the risk of writing. CAS
-remains the safety mechanism. The accepted cost is more comment text in the object. For a RAP
+Comment blocks reduce the risk of the AI deciding for the human, not the risk of writing. The
+server-enforced precondition is the safety mechanism **only for the evidenced operation set**
+(text-source `update` on class/procedural main sources); metadata, create, delete, includes and
+activation use an explicit human gate. A lock or a client-side hash compare is not CAS. An expired
+SAP session or dropped lock mid-write is stop + revalidate + ask, never an automatic retry. The accepted cost is more comment text in the object. For a RAP
 stack each object carries its own index block plus `object n of m`, `activation_group` and
 `order in group`.
 

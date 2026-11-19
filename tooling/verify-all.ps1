@@ -701,6 +701,8 @@ if ($gateMissing.Count -gt 0) {
             'agent lost the unsupported-CAS gate'    = $wgAgent -notmatch 'no\s+precondition, use an explicit human gate'
             'agent lost OUTCOME_UNKNOWN'             = $wgAgent -notmatch 'OUTCOME_UNKNOWN'
             'agent lost the anti-loop budget'        = $wgAgent -notmatch 'Anti-loop budget'
+            'agent lost honest CAS naming'           = $wgAgent -notmatch 'only a server-enforced stale-write rejection is CAS'
+            'agent lost lock-expiry stop rule'       = $wgAgent -notmatch 'dropped lock mid-write is'
             'plan lost locator + hash engine'        = $wgPlan -notmatch 'locator \+ hash engine per object'
         }
         foreach ($k in $wgChecks.Keys) {

@@ -239,7 +239,10 @@ Rules:
   `update` and class/procedural surgery — not metadata, create or delete. If the operation has no
   precondition, use an explicit human gate instead. Record the tool, source locator and hash
   engine with the hash; never compare hashes from different engines. Fresh-read evidence from
-  earlier in the session is for planning, never write authorisation.
+  earlier in the session is for planning, never write authorisation. Name the mechanism honestly:
+  only a server-enforced stale-write rejection is CAS; a lock or a client-side compare is not.
+  Always name the operation it protects. An expired SAP session or dropped lock mid-write is
+  stop + revalidate + ask, never an automatic retry.
 - On a hash mismatch or 412: stop that object, re-read once and replan once. Do not replay the
   same write. On timeout or an unknown outcome: `OUTCOME_UNKNOWN` means zero retries until a
   read-back proves what happened. On 423: bounded backoff then handoff; never force a lock open
