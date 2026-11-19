@@ -38,7 +38,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | targeted source read | ✓ `format="editable"` | ✓ `get_object_source` | ✓ `abap_object_read_file` |
 | hash with source | **✓** `object_state.sha256`, editable `sourceHash` | blank — this call returned none | blank — this call returned none |
 | active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
-| writer + CAS | source has `expectedSourceHash`; live writer **not tested** | not tested | not tested |
+| writer + CAS | source has `expectedSourceHash`; tool mountable, **no write made** (§5.5) | schema has no precondition field | schema has no precondition field |
 | activation / ATC | not tested | not tested | destination present; no check run |
 
 Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
@@ -170,6 +170,21 @@ Consequences: ADT MCP fills the *discovery and source-read* column of the capabi
 the hash column. Like ABAP FS, this call returned no hash; that proves only what this call returns,
 not that the server has no hash capability anywhere. ARC-1 remains the sole verified hash source
 in this harness. ATC tools were not run — no check, test or activation was requested.
+
+### 5.5 Writer precondition preflight — installed source and exposed schemas
+
+Read-only inspection; no SAP write was made.
+
+| Server | Evidence | Verdict |
+|---|---|---|
+| ARC-1 | installed `arc-1@1.10.1` `dist/handlers/schemas.js:430-432,677,789`: `expectedSourceHash: z.string().optional()`; `dist/adt/source-precondition.js:7-9`: `assertSourceHash` compares a fresh editable read while holding the lock and throws before writing on mismatch; `dist/handlers/editable-source.js:14,23`: 64-character SHA-256 from `SAPRead(format="editable")`, text-source `update` and class/procedural surgery only — not metadata, server-driven objects, create or delete | CAS is **implemented in source** and optional by design. The tool `SAPWrite` became callable after activating its tool group; it was not called. Mountability is not a write test |
+| ABAP FS | exposed `replace_string_in_abap_object` schema: `fileUri`, `oldString`, `newString`, `transportChoice` — no expected-hash field | No precondition in the exposed schema; a seed write here would be human-gated |
+| ADT MCP | exposed `abap_object_edit_file` schema: `objectIdentifier`, `oldString`, `newString`, `replaceAll`, `transportNumber` — no expected-hash field | Same: no precondition in the exposed schema; human-gated |
+| ai-dev | not mounted in this VS Code harness; the OpenCode claim about `edit_source(expected_source_hash)` stays INPUT only | No action here; another harness needs its own matrix |
+
+Consequence for the G2 seed: a CAS-protected seed is **possible in principle only with ARC-1**, and
+even there it has not been exercised. The other two exposed writers would be human-gated. A seed
+must not be described as CAS-protected until an actual mismatch/rejection test has been run.
 
 ## 6. Plan — ordered by benefit per unit of complexity
 
@@ -350,8 +365,8 @@ token cost the lean documents warn about.
 
 ## 9. What must stay UNVERIFIED until checked
 
-- The CAS-owning server and the exact write operation that supports it, **per harness and per MCP
-  server** (§5, step 0).
+- Whether ARC-1's `expectedSourceHash` actually rejects a stale hash at runtime — implemented in
+  source (§5.5) is not the same as observed. Needs a controlled mismatch test.
 - Whether ADT MCP's destination is still logged on at the next session; the destination list was
   empty before the user logged on and is not guaranteed to persist (§5.3, §5.4).
 - Whether `force_refresh` exposes a change after activation. Stability of `object_state.sha256`
