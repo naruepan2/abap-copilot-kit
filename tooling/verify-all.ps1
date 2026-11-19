@@ -675,6 +675,45 @@ if (-not $repoOk) {
     }
 }
 
+Line '3c. Write gate survives edits to the agent and plan template'
+# The write gate was added after runtime probes verified hash detection and CAS rejection on
+# 2026-11-19. It is behaviour, not documentation: if a later edit drops it, the agent silently
+# returns to unguarded writes. Each signal is cheap and independent so a partial deletion is named.
+$writeGateFile = "$AG\abap-developer-by-pongg.agent.md"
+$planTemplateFile = Join-Path $REPO 'templates\plan.md'
+$gateInputs = @($writeGateFile, $planTemplateFile)
+$gateMissing = @($gateInputs | Where-Object { -not (Test-Path $_) })
+if ($gateMissing.Count -gt 0) {
+    foreach ($m in $gateMissing) { Write-Output ("  ISSUE   write-gate input missing: " + $m) }
+    Note 'ISSUE' $gateMissing.Count
+} else {
+    $wgAgent = $null; $wgPlan = $null
+    $wgReadFailed = @()
+    try { $wgAgent = [System.IO.File]::ReadAllText($writeGateFile, [System.Text.Encoding]::UTF8) } catch { $wgReadFailed += 'agent' }
+    try { $wgPlan = [System.IO.File]::ReadAllText($planTemplateFile, [System.Text.Encoding]::UTF8) } catch { $wgReadFailed += 'plan' }
+    if ($wgReadFailed.Count -gt 0) {
+        Write-Output ("  ISSUE   write-gate input unreadable: " + ($wgReadFailed -join ', '))
+        Note 'ISSUE' $wgReadFailed.Count
+    } else {
+        $wgChecks = [ordered]@{
+            'agent lost the fresh-read precondition' = $wgAgent -notmatch 'Write gate: the commit window'
+            'agent lost expectedSourceHash'          = $wgAgent -notmatch 'expectedSourceHash'
+            'agent lost the unsupported-CAS gate'    = $wgAgent -notmatch 'no\s+precondition, use an explicit human gate'
+            'agent lost OUTCOME_UNKNOWN'             = $wgAgent -notmatch 'OUTCOME_UNKNOWN'
+            'agent lost the anti-loop budget'        = $wgAgent -notmatch 'Anti-loop budget'
+            'plan lost locator + hash engine'        = $wgPlan -notmatch 'locator \+ hash engine per object'
+        }
+        foreach ($k in $wgChecks.Keys) {
+            if (-not $Summary -or $wgChecks[$k]) {
+                Write-Output ("  {0} {1}" -f $(if ($wgChecks[$k]) { 'ISSUE   ' } else { 'OK      ' }), $k)
+            }
+        }
+        $wgBad = @($wgChecks.Keys | Where-Object { $wgChecks[$_] }).Count
+        Ran 'write-gate' $wgChecks.Count
+        Note 'ISSUE' $wgBad
+    }
+}
+
 Line '4. Memory budget and shape'
 if (-not (Test-Path $MEM)) {
     Write-Output ("  SKIP    user memory folder not found: " + $MEM)

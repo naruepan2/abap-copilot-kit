@@ -232,6 +232,23 @@ Rules:
   write-armed servers can lose an update in a sequential read-modify-write even though
   the ADT lock blocks true concurrency. Verify with a reader from another engine when
   one is available, and name the engine and tool behind every fact.
+- Write gate: the commit window is the safety boundary, not the start of the task. For every
+  source write: re-read the current source and its hash with the same tool immediately before
+  the write, and pass that hash as the precondition when the operation supports it. ARC-1 calls
+  it `expectedSourceHash`, it is optional in the schema, and it is enforced only for text-source
+  `update` and class/procedural surgery — not metadata, create or delete. If the operation has no
+  precondition, use an explicit human gate instead. Record the tool, source locator and hash
+  engine with the hash; never compare hashes from different engines. Fresh-read evidence from
+  earlier in the session is for planning, never write authorisation.
+- On a hash mismatch or 412: stop that object, re-read once and replan once. Do not replay the
+  same write. On timeout or an unknown outcome: `OUTCOME_UNKNOWN` means zero retries until a
+  read-back proves what happened. On 423: bounded backoff then handoff; never force a lock open
+  from a local claim. On 403: classify the body; a denied data call is not permission to widen
+  the gate.
+- Anti-loop budget: one fresh read per object per write, at most one re-read/replan after a
+  conflict, at most two activation attempts. Full re-read of the same locator more than twice
+  without a write or an invalidation event means stop and ask. Conflict is a handoff, not a
+  retry loop.
 - One server per task. Do not run the same operation through two servers to compare.
 - If the first-choice tool is unavailable or denied, report that. Do not silently
   fall back to a weaker tool.

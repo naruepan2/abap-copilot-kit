@@ -23,7 +23,7 @@ Contract:
 - Target:      <system, client, transport>
 
 Approved:
-- Write:      <objects that may change>
+- Write:      <objects that may change> — locator + hash engine per object
 - Activate:   <yes / no>
 - Transport:  <TR / none>
 - By:         <user + date>
