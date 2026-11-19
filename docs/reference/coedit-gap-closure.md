@@ -40,6 +40,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | active/inactive divergence flag | **✓** `hasInactiveDivergence` | blank | blank |
 | writer + CAS | source has `expectedSourceHash`; tool mountable; **delete exercised**, CAS write not (§5.6) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
 | activation / ATC | not tested | not tested | destination present; no check run |
+| TR create / delete | ✓ `SAPTransport` (§5.7) | not tested | create object into an existing TR (§5.7) |
 
 Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
 cell never becomes a yes by analogy. Evidence for each row is in §5.2–§5.4.
@@ -215,6 +216,28 @@ follow-up `SAPSearch` returned no object. The local pre-image on the Desktop is 
 referenced by any program record. Delete capability is present in the installed ARC-1 schema
 (`dist/handlers/schemas.js:657-660`) and was observed once here; it has no CAS and was applied to
 an object created for this test only.
+
+### 5.7 Transport create/delete round trip — 2026-11-19
+
+Requested by the user: create a test object in a transportable package, choose the TR number,
+then remove **everything**. User-approved short description; no TR number was invented. The TR id
+and object name are deliberately omitted from this public file.
+
+| Step | Tool | Result |
+|---|---|---|
+| check existing TRs | ADT MCP `abap_transport_get_request` (read-only, `isCreation=true`) | two existing TRs returned; user chose to create a new one instead of touching either |
+| create TR | ARC-1 `SAPTransport(action="create", package=...)` | created a **local** request (no transport route configured); description matched the user's choice |
+| create object | ADT MCP `abap_object_create` with the new TR id | class created in the transportable package |
+| verify membership | ARC-1 `SAPTransport(action="get")` | status `D` (modifiable), one task, one CLAS object, `locked=true` |
+| delete object | ARC-1 `SAPWrite(action="delete")` | deleted |
+| delete TR | ARC-1 `SAPTransport(action="delete", recursive=true, removeLockedObjects=true)` | deleted despite the lingering locked-object record |
+| final check | `SAPSearch` + `SAPTransport(action="get")` | no object; TR lookup returned 404 |
+
+Verified: ARC-1 can create a named TR, and can delete a TR with its task and a stale locked-object
+record when both `recursive` and `removeLockedObjects` are passed. ADT MCP can create an object
+into an *existing* TR id in a transportable package — the `$TMP` denial in §5.6 was package policy,
+not a blanket writer denial. No TR was released. This capability matters for co-edit because a
+test fixture can now be created and removed without leaving an open request behind.
 
 ## 6. Plan — ordered by benefit per unit of complexity
 
