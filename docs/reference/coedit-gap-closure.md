@@ -41,6 +41,7 @@ own matrix; results are not transferable (§5.1). Blank means "not tested", not 
 | writer + CAS | `expectedSourceHash`: **mismatch rejected + match accepted** (§5.8) | schema has no precondition field; create + draft edit **exercised** (§5.6) | schema has no precondition field; `$TMP` creation denied by access policy (§5.6) |
 | activation / ATC | not tested | not tested | destination present; no check run |
 | TR create / delete | ✓ `SAPTransport` (§5.7) | not tested | create object into an existing TR (§5.7) |
+| graph navigation | ✓ `SAPContext` impact/deps, `SAPNavigate` references (§5.9) | not tested | ✓ package inventory + service definition source (§5.9) |
 
 Rules: ARC-1 is the only **verified** hash source here. No server is a verified writer yet. A blank
 cell never becomes a yes by analogy. Evidence for each row is in §5.2–§5.4.
@@ -260,6 +261,30 @@ metadata, server-driven objects, create, delete, includes, activation and other 
 installed schema itself excludes those from the guard. G4 (edit between read and write) is closed
 for this operation; G1/G2/G4 now have observed evidence in this harness.
 
+### 5.9 Read-only graph probe on a real RAP stack — 2026-11-19
+
+The user offered a large RAP package as a read-only exercise. All calls were read-only: no write,
+lock, activate or transport change. Package name, object names and customer identifiers are not
+recorded in this public file; only shape and counts.
+
+| Observation | Result |
+|---|---|
+| package inventory via ARC-1 `SAPRead(type="DEVC")` | 106 DDLS + 106 STOB, 57 DTEL, 10 DOMA, 7 DCLS, 5 CLAS, 2 BDEF, 1 SRVD, 1 SRVB — first 300 rows, result explicitly truncated |
+| `SAPContext(action="impact")` on the root interface view | upstream 1 view; downstream 3: one BDEF, one service definition, one behavior-pool class. No projection, binding, access control or metadata extension at this hop |
+| `SAPContext(action="deps")` on the same view | 4,245 source-derived deps resolved, 13 failed, ~11 MB of source text. It is a text dependency context, **not** a compact or complete runtime graph |
+| `SAPNavigate(action="references")` on the same view | 0 references — consistent with impact's narrow where-used answer, not proof that no relation exists |
+| `SAPContext(action="impact")` on the projection view found by name | downstream 2: service definition + access control (DCL). The root-view impact had reported neither |
+| ADT MCP `abap_object_read_file` on the service definition | 5 exposed entities, including the root, the projection, a BDEF-driven entity, a custom entity and another projection — one concept, four technology layers |
+
+Verdict: **"impact alone is enough" is false for this stack.** Each anchor answers one hop; the
+service definition names relationships that where-used did not return. A useful navigation layer
+would need the four-layer anchors (§6 Step 5) and explicit edge provenance; it must not be built
+from `deps` volume — 11 MB for one object is the opposite of a token-saving cache.
+
+This does **not** justify building a graph server. It justifies a bounded, local, read-only index
+with `EXTRACTED` edges first, and a benchmark before any 10x–50x claim. It also confirms the
+earlier rule: `impact` answers downstream blast radius, not activation order or publication state.
+
 ## 6. Plan — ordered by benefit per unit of complexity
 
 ### Step 0 — capability preflight, before any design becomes a rule
@@ -327,7 +352,8 @@ history.
 ### Step 5 — scale, after the safety core
 
 Sentinels by concern: root DDLS for data model, BDEF + behavior pool for behavior, DDLX/projection
-for UI metadata, SRVD/SRVB for exposure, draft declaration for draft. Expand only to immediate
+for UI metadata, SRVD/SRVB for exposure, draft declaration for draft. Measured on a real stack in
+§5.9: query each sentinel separately — `impact` on one view does not cover the next layer. Expand only to immediate
 neighbours 2 hops when a fingerprint moves. `impact` alone is insufficient; `deps`, `usages` and
 `relations` answer different questions. A partial graph may not determine activation order and
 may not authorise a write.
