@@ -26,6 +26,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `docs/reference/sap-docs-mcp.md` | How to use the public read-only `sap-docs` MCP for SAP Help, Community and Software Heroes |
 | `docs/reference/fr0ster-mcp-abap-adt.md` | Read-only comparison of fr0ster tool groups against the local ABAP tool surface; not installed |
 | `docs/reference/rap-state-anchor-design.md` | Design for four-layer RAP state anchors and human handoff when SAP changes outside AI; not implemented |
+| `docs/reference/coedit-gap-closure.md` | Decision record: close co-edit gaps by fail-closed writes, not detection; conflicts, plan, deferred items and unverified checks |
 | `config-templates/` | `mcp.json.template` (VS Code), `mcp-config.template.json` (Copilot CLI), `settings.json.template` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `spec-NOTES.md`, `changes.md`, `plan.md` (copy as `plan-<task>.md`) |
