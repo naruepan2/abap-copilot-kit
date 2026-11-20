@@ -45,6 +45,46 @@ scope: ADT MCP (`adt-mcp-server/*`) and ABAP Remote FS (`murbani.vscode-abap-rem
    the installed `package.json` where one exists. Live `tools/list` remains authoritative for the
    tool surface, not for package version.
 
+## Discovery protocol — for future servers and skills
+
+The table above is **a snapshot, not a registry**. A version-check skill must discover the current
+server list each run; a newly installed MCP server must not require an edit to this file before it
+can be reported.
+
+```text
+1. READ mcp.json (VS Code and, where relevant, the Copilot CLI config).
+2. ENUMERATE every entry under `servers` — key, type, command/args or url.
+3. CLASSIFY each entry by launch shape:
+     local npm package   -> installed package.json under the global npm root
+     npx / github: spec  -> unpinned; resolve version from registry or repo at check time
+     http / streamable   -> no local package; version needs a health/status endpoint
+     launcher script     -> follow the script only to identify the package; never read secrets
+4. MATCH against known source map in this file. Known -> reuse row. Unknown -> mark UNVERIFIED
+   SOURCE and ask; never guess a repository from the server key or tool names.
+5. COMPARE installed version with the upstream release/registry version for that source.
+6. REPORT per server: key, launch class, source (or UNVERIFIED), installed/current version,
+   evidence path, and a stale/unknown verdict.
+7. When a new source is confirmed by a human, append it to the table with its evidence line;
+   that becomes the known row for the next run.
+```
+
+### Expansion rules
+
+- Do not hardcode a count of servers or skills. A count in prose goes stale the moment a server is
+  installed; derive counts from the enumeration each run.
+- Extension-contributed tools are a different discovery surface: enumerate extension manifests when
+  the skill's scope includes them, and label them separately from MCP servers. Never mix their tool
+  names into the server table.
+- One package may back several server entries. Group by resolved package identity before reporting
+  a version, not by server key.
+- An unrecognised npm package may still have a `repository` field in its installed `package.json`.
+  That is evidence for the source; if there is no installed package, ask rather than infer.
+- A version check is read-only. Do not run install, update or restart commands as part of discovery;
+  an upgrade is a separate, user-approved action.
+- Skill inventory (`SKILL.md` name/description) is also dynamic. If the task covers installed
+  skills, enumerate from the skill roots rather than from a memorised list, and report only the
+  fields the harness actually sends.
+
 ## Not included
 
 - extension-contributed tools (ADT MCP, ABAP Remote FS);
