@@ -52,6 +52,15 @@
                                                  "ABAP Developer by Pongg"
                                              ],
                                 "reason":  "self; the coordinator does not delegate to itself"
+                            },
+                            {
+                                "files":  [
+                                              "abap-auto-delivery-by-pongg"
+                                          ],
+                                "displays":  [
+                                                 "ABAP Auto Delivery by Pongg"
+                                             ],
+                                "reason":  "external V8 coordinator with write authority; not delegatable, and existing specialist agents stay read-only. One object has one writer; do not run both coordinators on the same object"
                             }
                         ],
     "hard_rules":  [

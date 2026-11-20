@@ -30,7 +30,7 @@ gate is not weakened. Read them from the delivered package instead.
 | SKILL.md references | 11 `references/*.md` and `scripts/*.py` targets listed in SKILL.md all resolve |
 | Internal consistency | interaction-control, trust-and-qualification, state-machine-and-recovery and sap-guardrails agree on: unqualified → Attended Standard; critical → at least Controlled; qualified may be Unattended; stop at `READY_FOR_UAT`; no transport release/import |
 | Secret scan | no customer IDs or credentials found; the word `password` appears only in rules forbidding credential storage |
-| Validators runtime | `validate_qualification_config.py` and `compatibility_check.py` cannot run yet: `ModuleNotFoundError: No module named 'yaml'` — a missing PyYAML dependency, **not** a schema defect |
+| Validators runtime | both validators now pass with `{ "valid": true, "errors": [] }`. Python 3.15 has no PyYAML wheel here; a temp venv outside the repo used `ruamel.yaml` + a `yaml.safe_load` shim and `jsonschema`, without modifying the V8 scripts or global Python |
 
 ## Compatibility gaps identified — not yet fixed here
 

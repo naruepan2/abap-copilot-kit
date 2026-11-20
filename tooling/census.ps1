@@ -148,7 +148,7 @@ function Get-SweepReason([string]$group, [string]$p) {
     if ($group -eq 'live\agent-skills') {
         # Third-party skill content installed by npx. The kit does not own these bytes and never edits
         # them; replacing them is `npx skills` work, not this repository's.
-        if ($p -match '\\(references|templates)\\' -or $p -match '\\agents\\(openai|ui_metadata)\.yaml$') { return 'third-party skill content' }
+        if ($p -match '\\(references|templates|scripts)\\' -or $p -match '\\agents\\(openai|ui_metadata)\.yaml$') { return 'third-party skill content' }
         if ($p -match '^[^\\]+\\README\.md$' -or $p -match '^[^\\]+\\[A-Z][A-Z0-9\-]+\.md$' -or $p -match '^[^\\]+\\SKILL-MECHANICS\.md$') { return 'third-party skill content' }
         # A .bak the owner made before compacting a skill is the owner's copy of third-party work.
         if ($p -match '\.bak-') { return 'owner backup of a third-party skill' }
