@@ -161,6 +161,14 @@ function Get-SweepReason([string]$group, [string]$p) {
         if ($p -match '^Projects\\') { return 'customer project record (gitignored by design)' }
         return $null
     }
+    if ($group -eq 'live\hooks') {
+        # The Orca host writes its own hook state into ~/.copilot/hooks. These files are owned by
+        # that host, not by the kit; deleting them would break Orca, and granting them inventory
+        # rows would imply the kit manages them. Name only the observed files so any other unknown
+        # hook still fails the census. Measured 2026-11-20.
+        if ($p -eq 'orca.json' -or $p -eq 'orca.json.bak') { return 'orca-host-owned hook state' }
+        return $null
+    }
     if ($group -eq 'state') {
         # install-kit copies tooling into state\ ; the mirror list compares every one of them, so a
         # copy here is covered even though its name is not one of the inventory rows.
