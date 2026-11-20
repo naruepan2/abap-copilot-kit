@@ -1,0 +1,4 @@
+interface:
+  display_name: "Auto ABAP Delivery"
+  short_description: "Run bounded SAP ABAP delivery through evidence-backed UAT readiness"
+  brand_color: "#0A6ED1"
