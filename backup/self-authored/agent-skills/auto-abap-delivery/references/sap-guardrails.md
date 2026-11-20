@@ -15,3 +15,19 @@ Mandatory controls:
 - Discover organization ATC/CVA/readiness variants live. New priority 1/2 findings fail by default.
 - Check TADIR, package, original system, namespace, transport/task, lock, inactive version, and source hash before write.
 - Keep transport release/import, production write, mass update/delete, real external effects, and productive job scheduling outside the autonomous envelope.
+
+## Repository hygiene (V9, additive)
+
+After every uncertain or failed create/activation: persist command intent, read TADIR/object
+directory, read source and active/inactive state, check package/lock/transport-local status, then
+classify `ABSENT | PARTIAL | GHOST | ACTIVE | INACTIVE`. Cleanup or open a Decision Request. Retry
+only after reconciliation.
+
+Keep a repository hygiene ledger with `intended_objects`, `observed_objects`, `ghost_objects`,
+`cleanup_owner` and `cleanup_status`. At `READY_FOR_UAT`: `unapproved_ghost_objects = 0`,
+`unknown_partial_creations = 0`, `inactive_unexplained_objects = 0`. `READY_FOR_MANUAL_TEST` is
+allowed when an owner cleanup action is explicitly recorded and no further autonomous write is
+safe.
+
+Local-package lifecycle must be disclosed: a local package with no transport cannot establish
+deployment readiness, only local development behavior.

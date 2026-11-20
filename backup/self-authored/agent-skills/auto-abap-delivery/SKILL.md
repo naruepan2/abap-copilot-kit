@@ -59,3 +59,14 @@ Use only `READY_FOR_UAT`, `READY_FOR_MANUAL_TEST`, `BLOCKED_OWNER_DECISION`, `BL
 ## V8 mandatory completion gates
 
 Require reuse assessment for new global objects, simplicity verdict, independent test-adequacy audit, consumer-impact report when applicable, reviewed project-engineering-profile revision, qualified reviewer routing, accountability matrix, and updated autonomy qualification record.
+
+## V9 evidence guardrails (additive, already active)
+
+- Before `READY_FOR_UAT`, create the minimal post-run evidence package: `RUN_EVIDENCE.md` and `evidence-manifest.yaml` in the run folder. Use `observed_run` when no approved spec exists; never invent a retroactive approved spec.
+- Map owner confirmation to named checks. General confirmation never closes authorization-negative, data reconciliation, performance or service runtime.
+- Classify every test result as `ABAP_UNIT`, `SMOKE`, `INTEGRATION`, `SERVICE_RUNTIME`, `STATIC_REVIEW`, `MANUAL_OWNER_CONFIRMED` or `DIAGNOSTIC_DRIVER`. Never report a diagnostic driver as ABAP Unit.
+- Per-object check states are explicit: `PASS`, `FINDINGS`, `NOT_REPORTED`, `NOT_SUPPORTED`, `NOT_RUN`, `STALE`. Disclose every partial result; never claim solution-wide ATC or test success from partial coverage.
+- Reconcile the repository after uncertain create/activation. No unapproved ghost object at `READY_FOR_UAT`. Record cleanup owner and status.
+- Active but unpublished service binding without runtime OData evidence resolves to `READY_FOR_MANUAL_TEST`.
+- Unqualified scope defaults to Attended Standard. `unattended` with `resolved_from: owner_explicit_policy_override_one_scope` requires durable override/approval evidence in the run folder; otherwise `validate_run.py` fails. Critical always requires at least Controlled.
+- Class-first design and Object Responsibility Plan are **recorded but not activated** in this patch; require separate approval before enforcing them as write gates.

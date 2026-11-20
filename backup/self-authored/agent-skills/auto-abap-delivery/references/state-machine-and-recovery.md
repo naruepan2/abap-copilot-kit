@@ -14,3 +14,11 @@ Replay: reads/tests without side effects may repeat. Source write requires hash 
 
 ## V7 review states
 Add `REVIEW_PENDING`, `REVIEWING`, and `RECONFIGURING`. Review approvals are revisioned evidence snapshots and become stale when source, dependency, spec, target, profile, or evidence changes. Recovery must restore open reviews and revalidate their snapshot before applying an answer.
+
+## V9 states (additive)
+
+Add `RUNNING.REPOSITORY_RECONCILIATION`, `RUNNING.BUILDING_POST_RUN_EVIDENCE`,
+`RUNNING.REPAIRING_EVIDENCE`, and `REVIEWER_REQUIRED`. Reconciliation uses read-only repository
+checks and never replays an uncertain create. Evidence generation uses a frozen source and object
+inventory. If a required reviewer is unavailable, transition to `REVIEWER_REQUIRED` rather than
+continuing unattended.

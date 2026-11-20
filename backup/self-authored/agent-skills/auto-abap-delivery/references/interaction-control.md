@@ -51,3 +51,11 @@ Add `REVIEW_PENDING`, `REVIEWING`, and `RECONFIGURING` to the shared V6 state ma
 Never auto-continue an unattended review timeout. Notify once, optional reminder after four business hours and then daily, stop renewing write lease, and enter `PAUSED_SAFE` on expiry.
 
 Batch approval maximum default is five reversible Review Queue items from one slice and snapshot. Never batch decisions, exceptions, DDIC persistent/security/authorization/integration-contract/Clean Core exception/source-drift/external-side-effect items.
+
+## Owner override evidence (V9, additive)
+
+`resolved_from: owner_explicit_policy_override_one_scope` is not sufficient by itself. An
+unqualified scope may run `unattended` only when the run folder contains durable owner approval
+evidence naming the scope, mode, review level, target and date. Otherwise resolve to Attended
+Standard. Critical scope always requires at least Controlled, even with an override. Evidence must
+be recorded, not reconstructed from chat recollection.

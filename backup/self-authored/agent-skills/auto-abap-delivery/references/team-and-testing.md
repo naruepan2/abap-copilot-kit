@@ -14,3 +14,16 @@ Generate scenarios from acceptance criteria, invariants, object failure modes, d
 Select ABAP OO, SQL, CDS, Function Module, AMDP, or RAP test doubles by dependency and release capability. Use deterministic fixtures; no productive mutation or real outbound call. An activation is not proof of correctness.
 
 Repair at most three times per slice by default. If the same error signature repeats twice without a new hypothesis, stop and escalate.
+
+## Test artifact policy (V9, additive)
+
+`DIAGNOSTIC_DRIVER` is a distinct result type. A temporary program used because AUnit did not
+execute a class test include is a diagnostic driver, never `ABAP_UNIT`. It requires owner
+approval, a local/non-transportable package and cleanup; its result does not replace class unit
+evidence.
+
+ABAP Unit is optional and value-based under this project policy. `CLAS` with material business
+logic is the preferred owner, placed in the class test include. `PROG` and `FUGR/FUNC` are thin
+boundaries verified by selection/foreground/background or controlled boundary tests. Never label
+a test `NOT_APPLICABLE` solely because the object type is PROG or FUNC; record the real reason and
+compensating evidence.

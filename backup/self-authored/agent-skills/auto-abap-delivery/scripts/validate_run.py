@@ -15,4 +15,14 @@ mode=ip.get('execution_mode'); level=ip.get('review_level')
 if mode not in ['unattended','attended']: errors.append('invalid execution_mode')
 if mode=='unattended' and level!='not_applicable': errors.append('unattended requires review_level not_applicable')
 if mode=='attended' and level not in ['standard','guided','controlled','strict','custom']: errors.append('invalid attended review_level')
+resolved=ip.get('resolved_from','')
+qual=ip.get('qualification_state','unqualified')
+if mode=='unattended' and qual=='unqualified':
+    if resolved!='owner_explicit_policy_override_one_scope':
+        errors.append('unqualified unattended requires owner_explicit_policy_override_one_scope')
+    else:
+        approvals=[f for f in list(r.glob('approvals/*'))+list(r.glob('decisions/*'))
+                   if 'override' in f.name.lower() or 'approval' in f.name.lower()]
+        if not approvals:
+            errors.append('owner override requires durable override/approval evidence in run folder')
 print(json.dumps({'valid':not errors,'errors':errors},indent=2)); sys.exit(1 if errors else 0)

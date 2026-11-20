@@ -17,3 +17,12 @@ Load reviewed style, naming, approved patterns/components, testing, Clean Core, 
 
 ## Reviewer competency
 Route checkpoints to qualified roles. Architecture/Clean Core needs senior ABAP or architect; authorization needs Security plus owner; scenarios need functional owner/test engineer; source diff needs ABAP reviewer; contracts need integration owner.
+
+## Object Responsibility Plan (V9, additive)
+
+Before SAP write, record an approved Object Responsibility Plan: object, type, role
+(`thin_shell`, `application_logic`, `data_access`, `framework_mandated`), business logic allowed or
+not, and verification per object. Any added/removed object requires Object Set Delta Review with
+reason and approval. Replace rigid object-count limits with this delta review. Class-first design
+for new development and Object Responsibility Plan are pending separate activation; this paragraph
+only records the contract for the next phase.
