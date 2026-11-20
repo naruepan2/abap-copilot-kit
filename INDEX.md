@@ -10,6 +10,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `roster.json` | Which agents may be delegated to, and which may not |
 | `agents/*-by-pongg.agent.md` | The user's agents, editable |
 | `skills/mcp-surface-audit/` | Procedure for keeping the tool surface accurate |
+| `skills/sap-mcp-upgrade/` | User-invoked MCP/skill version check: show current vs available with sources, then ask before any upgrade |
 | `skills/capture-lesson/` | Procedure for turning a finding into a durable artifact |
 | `skills/sap-evidence-audit/` | Audit finished work against evidence tiers, verdicts and a coverage line |
 | `skills/sap-data-verify/` | Clean-Core-first data verification; probes the ARC-1 data gates and stops when closed |
