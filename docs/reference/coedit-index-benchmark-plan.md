@@ -92,7 +92,28 @@ downstream object the mode did not surface; label severity high/medium/low. `sta
 Fail any one: keep the index as an optional read-only experiment or drop it. Do not enlarge it into
 a graph, add inferred edges, or start a server to make the number look better. A fail is a result.
 
-## 5. Run rules
+## 5. Target protocol — ask once per session
+
+This is the benchmark's application of the agent's SAP-target pre-flight rule. It does not add a
+new rule; it states when to re-ask during a long read-only run.
+
+```text
+1. USE the confirmed target from this session if it is present and unambiguous.
+2. IF absent:
+   - exactly one target named explicitly by the user -> confirm once, then cache;
+   - more than one candidate appears in config or tool output -> ask which one, never pick;
+   - none named -> ask once with options; never infer from a folder, connection list or tool output.
+3. CACHE the answer for this benchmark run only. Do not carry it to a new session.
+4. RE-ASK only when the target changes, the user says "another system" without naming it,
+   or the cached answer becomes ambiguous.
+5. IF the user says "only this system": drop other candidates from scope for this run. They
+   return only after a new explicit request, not automatically.
+```
+
+`target` means SAP system **and** client. A destination name alone is not enough when a client is
+still unknown. A dropped candidate is a scope decision for this run, not a permanent deletion.
+
+## 6. Run rules
 
 - read-only calls only; no write, lock, activate, publish or transport change;
 - one task at a time, alternate mode order where practical to avoid a warm-cache advantage for one
@@ -101,7 +122,7 @@ a graph, add inferred edges, or start a server to make the number look better. A
 - stop and ask if a target, gold-set row or tool capability is unclear;
 - record the tool/server version once at the top of the run, not once per row.
 
-## 6. Output
+## 7. Output
 
 After the run, write a verdict to `docs/reference/coedit-gap-closure.md` §5.11: `PASS | FAIL |
 INCOMPLETE`, the counts, and whether §5.10 moves from IDEA to experimental tool. No code or
