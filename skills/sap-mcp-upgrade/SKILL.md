@@ -70,30 +70,59 @@ Rules for the table:
 
 If the user asks only to check versions, stop after this table.
 
-## 3. SELECT — one explicit confirmation
+## 3. SELECT — radio first, checkbox only when needed
 
-Ask the user which rows to upgrade. The question must:
+Ask **one** radio question about scope:
 
-- name the exact items, not "all";
-- show for each chosen item the command to run, files that will change,
-  old → new version, backup path, rollback command, and whether a host restart or
-  chat reload is needed;
-- state clearly that nothing has been changed yet.
+```text
+Upgrade scope:
+ ○ (suggested) Selected only — tick exact rows next; safest, per-item rollback
+ ○ Upgrade all available — every UPDATE_AVAILABLE row, in the auto safety order
+ ○ No upgrade — stop after the SHOW table
+```
 
-A "yes" to the table is not consent to apply. A blank answer means no upgrade.
+Suggested answer is `Selected only`: the table may contain grouped, unpinned or
+unverified rows, so a blanket "all" hides a decision. `Upgrade all` is reasonable
+only when every row is a clean, verified, independent `UPDATE_AVAILABLE`.
+
+Compute the **safety order automatically**; do not ask the user to reorder it.
+Show it as data in the SHOW table, one reason per row:
+
+| safety class | order | reason |
+|---|---|---|
+| installer package | first | installed skills come from this package |
+| independent npm package | middle | no dependency on other selected items |
+| `mcp.json` edit (pinning) | last | affects restart; skipped if an earlier item fails |
+| hosted / UNVERIFIED / grouped | not in sequence | no local action, or no confirmed version |
+
+If the user chose `Selected only`, ask **one** follow-up checkbox with the exact
+`UPDATE_AVAILABLE` rows already listed in that order. Every option must state the
+command, old → new version, backup path, rollback command and restart need.
+Selecting a `mcp.json` pin row **is** the approval for that config edit — the
+checkbox shows its backup and rollback, so do not ask a third question.
+
+`No upgrade` or a blank answer: stop. A "yes" to the SHOW table alone is not
+consent to apply.
+
+At most two questions total. Never ask the user to choose the order.
 
 ## 4. APPLY — approved items only
 
-- One item at a time. Save the old version and the relevant config backup first.
+- Apply **one item at a time** in the auto safety order. Never run two npm global
+  installs in parallel; they share `node_modules`.
+- Save the old version and the relevant config backup before each item.
 - Pinned npm package: upgrade only to the version shown in the table. If the
   available version changed since the table, stop and show the table again.
-- Unpinned `npx`/`github:` spec: "upgrade" means pinning a version in `mcp.json`;
-  that is a config edit and needs its own explicit approval.
+- Unpinned `npx`/`github:` spec: pinning in `mcp.json` is allowed here only when
+  that exact row was selected in the checkbox; the checkbox itself carried the
+  backup, rollback and restart notice.
 - Hosted service: no local upgrade exists. Report only.
 - Skills from an installer update through that installer's package, never by
   editing the installed `SKILL.md`. Kit skills update from the kit clone plus
   `install-kit.ps1`.
-- Stop on the first failure. Do not continue to the next item.
+- Write a checkpoint after each item: applied / failed / not attempted. Stop on
+  the first failure; never continue to the next item.
+- If rollback is later requested, revert in **reverse** apply order.
 
 ## 5. VERIFY
 
