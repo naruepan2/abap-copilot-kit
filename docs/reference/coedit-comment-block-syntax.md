@@ -10,9 +10,9 @@ the change point.
 | object type | comment form | status | evidence |
 |---|---|---|---|
 | CLAS / PROG (ABAP) | `*` column 1, plus `"` inline | **EVIDENCED** | CLAS source read 2026-11-20: `"` trailing comments on enum values and in the method body; `*` markers (`*"* public components of class ...`) on generated section headers. Use `*` column 1 for COEDIT blocks; the `"*` lines are generated markers — never place a block on them |
-| FUNC (function module) | `*` / `"` expected | **UNVERIFIED** | two read attempts on 2026-11-20 returned ADT 500 `[SY/530] An exception was raised`; no FUNC source was observed. Do not infer comment form from CLAS — probe a real FM in the target group first |
+| FUNC (function module) | `*` column 1, plus `"` inline | **EVIDENCED** | a real FUNC was read 2026-11-20 after resolving its FUGR first: `*` column-1 modification header and `"` inline comments in the body. Earlier 500 `[SY/530]` errors came from guessing a group, not from the object type |
 | DDLS | `//` | **EVIDENCED** | live DDLS source read 2026-11-20: 16-line `////` header and `// ...` lines before annotations |
-| SRVD | `//` expected | **UNVERIFIED** | SRVD source read succeeded 2026-11-20, but that object had no existing comments — `//` is an expectation from DDL/BDEF syntax, not observed on this object |
+| SRVD | `//` expected | **UNVERIFIED** | three SRVD objects read in full 2026-11-20; none had existing comments (`grep //` returned no matches on one). `//` is still an expectation from DDL/BDEF syntax, not an observation — keep STOP until a commented SRVD is read |
 | BDEF | `//` | **EVIDENCED** | live BDEF source read 2026-11-20: 16-line `////` header and a commented-out `// static action ...` line inside the behavior block |
 | DDLX | `//` expected | **UNVERIFIED** | two DDLX objects read in full 2026-11-20 (48 and 74 lines); neither had any comment. `//` is expected from the DDL family but was not observed on a DDLX object |
 | STOB/DO | n/a — generated | **DO NOT EDIT** | read 2026-11-20 returned source identical to its DDLS custom entity; a comment block here would be overwritten on regeneration. Edit the root DDLS instead |

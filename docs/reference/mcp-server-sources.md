@@ -18,7 +18,7 @@ scope: ADT MCP (`adt-mcp-server/*`) and ABAP Remote FS (`murbani.vscode-abap-rem
 | `arc-1` | stdio via the local ARC-1 launcher script | https://github.com/arc-mcp/arc-1 | installed `1.10.1`; GitHub release `v1.10.1` latest at check time |
 | `<destination-A>` | stdio via `sap-ai-dev` (one destination) | https://github.com/grknylmz/sap-ai-dev-toolkit | installed `0.9.9928`; GitHub release `v0.9.9928` latest at check time |
 | `<destination-B>` | stdio via `sap-ai-dev` (one destination) | same as above | same installed package `0.9.9928` — two entries, one version |
-| `adam` | `npx -y --allow-git=root github:ClementRingot/ADAM` | https://github.com/ClementRingot/ADAM | **not pinned locally** — resolved from the GitHub source at run time |
+| `adam` | `npx -y --allow-git=root github:ClementRingot/ADAM` | https://github.com/ClementRingot/ADAM | **not pinned locally** — GitHub latest release `v0.0.3` (published 2026-11-02) at check time; `npx` still resolves at run time |
 | `@ui5/mcp-server` | `npx -y @ui5/mcp-server` | https://github.com/UI5/mcp-server | npm registry latest `0.3.3` at check time; config has no version pin |
 | `sap-docs` | streamable HTTP to a public hosted endpoint | https://github.com/marianfoo/mcp-sap-docs | upstream release `v0.3.65` latest at check time; hosted deployment version not queried here |
 
