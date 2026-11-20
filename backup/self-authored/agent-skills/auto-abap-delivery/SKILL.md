@@ -75,3 +75,10 @@ Evidence helpers (Phase 2): `scripts/build_evidence_manifest.py --run-dir --evid
 `evidence/evidence-manifest.json`; `scripts/validate_evidence_manifest.py <run_dir>` checks it.
 Both are read-only against SAP and write only inside the run folder. They do not create
 `RUN_EVIDENCE.md`; write that summary from verified facts when preparing UAT handoff.
+
+Phase 3 policy (active): for new development, record an Object Responsibility Plan when creating a
+global object, touching RAP/CDS, or planning at least three objects. Use
+`scripts/validate_object_responsibility_plan.py <orp.yaml>` before treating it as approved. Class
+logic belongs in classes; `PROG`/`FUNC` stay thin boundaries; no new `FORM`/`PERFORM` in new
+development, while legacy Form routines may remain under a recorded exception. Team topology stays
+T0-T2 as defined in `references/dynamic-agent-team.md`; T3 multi-writer is not supported.
