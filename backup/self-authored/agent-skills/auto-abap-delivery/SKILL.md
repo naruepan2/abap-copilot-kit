@@ -70,3 +70,8 @@ Require reuse assessment for new global objects, simplicity verdict, independent
 - Active but unpublished service binding without runtime OData evidence resolves to `READY_FOR_MANUAL_TEST`.
 - Unqualified scope defaults to Attended Standard. `unattended` with `resolved_from: owner_explicit_policy_override_one_scope` requires durable override/approval evidence in the run folder; otherwise `validate_run.py` fails. Critical always requires at least Controlled.
 - Class-first design and Object Responsibility Plan are **recorded but not activated** in this patch; require separate approval before enforcing them as write gates.
+
+Evidence helpers (Phase 2): `scripts/build_evidence_manifest.py --run-dir --evidence-mode` builds
+`evidence/evidence-manifest.json`; `scripts/validate_evidence_manifest.py <run_dir>` checks it.
+Both are read-only against SAP and write only inside the run folder. They do not create
+`RUN_EVIDENCE.md`; write that summary from verified facts when preparing UAT handoff.
