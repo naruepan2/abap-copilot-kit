@@ -25,7 +25,7 @@ fbc6ae2e6722b1312ffc2700081aeccb
 | What | Where |
 |---|---|
 | Framework repo (agents, skills, hooks, templates, reference) | `$env:ABAP_KIT_ROOT`, else the pin in `~/.copilot/state/kit-root.txt`, else the parent of `tooling\` (the order `install-kit.ps1` uses) |
-| GitHub | `naruepan2/abap-copilot-kit` — **private**, on purpose |
+| GitHub | `naruepan2/abap-copilot-kit` — **public**; customer data stays in gitignored `Projects/` |
 | MCP servers (VS Code) | `%APPDATA%\Code\User\mcp.json` — user scope, key `servers` |
 | MCP servers (Copilot CLI) | `%USERPROFILE%\.copilot\mcp-config.json` — user scope, key `mcpServers`. VS Code imports this file as a discovery source named `copilot`, and that source is on by default |
 | MCP discovery import | `%APPDATA%\Code\User\settings.json` → `chat.mcp.discovery.enabled`. A server declared in both files above is a duplicate, and `chat.mcp.collisionBehavior` (default `disable`) then switches one copy off — it still appears in the tool picker, with no tools |
@@ -40,6 +40,27 @@ fbc6ae2e6722b1312ffc2700081aeccb
 Because the MCP servers and ABAP FS destinations are **user-scoped**, opening a folder selects
 nothing: every configured server stays reachable from every folder. Confirm the system and client
 explicitly before a read or a write.
+
+### Tool picker vs session snapshot — observed 2026-11-20
+
+After the user enables tools in the picker, a chat that was already open may still answer
+`disabled by the user` for those tools. In the reported case the persisted state had all tools
+set to `true`, yet `SAPWrite`, `SAPSearch`, `SAPRead`, ADT `object_create` and ABAP FS
+`get_connected_systems` stayed disabled at runtime; re-arming the tool group in that session made
+`SAPSearch` work immediately. Interpretation: the active conversation holds a stale tool
+allowlist from before the picker change — a session/cache effect, not a broken `mcp.json`.
+
+Procedure when this happens:
+
+1. Do not retry the same tool more than once and do not edit config to "fix" it.
+2. Prefer opening a **new chat** or reloading the window: tool bindings are set at session start.
+3. If an immediate retry is needed, re-arm the affected tool group once, then verify with a small
+   read-only call before doing real work.
+4. If it still fails, inspect the live `tools/list` for that server; the persisted picker state is
+   not the same thing as the current session's bound tools.
+
+This is a harness behaviour, not an SAP guardrail. Never widen a tool list or grant write access
+to a read-only agent to work around it.
 
 ## Hook contract (verified 2026-11-13 from shipped product code)
 
