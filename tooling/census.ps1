@@ -159,6 +159,10 @@ function Get-SweepReason([string]$group, [string]$p) {
         # in that folder IS tracked, so it needs its own reason rather than the folder's.
         if ($p -eq 'Projects\README.md') { return 'project template README' }
         if ($p -match '^Projects\\') { return 'customer project record (gitignored by design)' }
+        # Built-in SALV template sources are additive ABAP references for sap-new-program. They
+        # are tracked files, so the sweep sees them only until git indexes them; name them here
+        # explicitly so a missing template cannot hide among BLIND rows. Measured 2026-11-22.
+        if ($p -match '^skills\\sap-new-program\\references\\salv\\.*\.abap$') { return 'bundled SALV template source' }
         return $null
     }
     if ($group -eq 'live\hooks') {
