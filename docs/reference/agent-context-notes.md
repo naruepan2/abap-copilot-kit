@@ -64,3 +64,17 @@ outside the named project.
 
 Use it at session start for a deep task, not for every request. Measure the output size before
 assuming it saves tokens; a pack that is larger than the targeted reads is a regression.
+
+### Measured dry-run, 2026-11-22
+
+Fixture: one V9 RAP exercise with 17 files (spec, phase summary, run evidence, eight reviews,
+five artifacts) = 47,499 characters, about 11,875 tokens at four characters per token. Four
+hand-written notes were placed under one gitignored project, three with `agent_context: true` and
+one draft in `inbox/`. `context-pack.ps1 -Project <CODE> -AppliesTo rap` produced 2,162 characters,
+about 540 tokens, from two matching notes. The draft was excluded.
+
+That is a 95.4% reduction **against a full manual read**, but it is not a free win: the notes were
+written and reviewed from the fixture first. Without notes, the pack is empty. Treat the number as
+a feasibility result, not a benchmark of automatic extraction. The fixture notes were moved out of
+the kit after measurement because section 9c-2 derives forbidden names from local `Projects/`
+folder names; keeping them there made clean tracked files look like customer-object leaks.
