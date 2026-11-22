@@ -19,7 +19,7 @@ work must stay in one agent. No agent is spawned automatically by this skill.
 - Parallelism is earned by separability; specialization by capability difference.
 - Every handoff must reduce uncertainty. If it increases coordination or stale-output risk, keep the work local.
 - One production object has exactly one writer lease. Analyst, architect, auditor and recovery roles are read-only.
-- Existing read-only agents must never receive write tools. Do not add a new write-capable agent to the roster for a V9 run.
+- Existing read-only specialists stay read-only. A test agent may write only an approved class test include; it never writes production objects. Do not add a new write-capable coordinator agent to the roster.
 
 ## Agent registry for this kit
 

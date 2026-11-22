@@ -45,6 +45,42 @@ questions only if the user explicitly asks to answer all at once.
 Do not ask for a password and never read or echo `${input:...}`, `SAP_PASSWORD`, SAP user or
 client values from `mcp.json`. Asking the user in chat is the only fallback.
 
+## 2b. Template gate — only for a new executable report (PROG)
+
+If the object will be a **new classic executable report (PROG)**, choose the report template before
+writing code. Do not run this gate for CLAS, FUGR, FUNC, DDLS, RAP or an existing report.
+
+Ask one question, in the user's language:
+
+```text
+Before creating a new classic ABAP report (SE38), choose the reference template:
+1. Existing template — give the exact SE38 program name. I will read its main source,
+   includes, classes, event flow and comments before writing the new report.
+2. No template — use the bundled YSMILE SALV template in
+   skills/sap-new-program/references/salv/ (main + _TOPZ, _S01, _C01, _C02;
+   variants/edit1 and edit2 for whole-column and per-cell editing).
+```
+
+Rules:
+
+- A named template must be checked through a real SAP read tool when the target is confirmed. If
+  the name is not found, do **not** silently switch to the bundled one — ask for a corrected name or
+  explicit permission to use the built-in template. Two failed lookups is the limit; then ask the
+  user to attach the source or choose option 2.
+- No SAP connection or search tool → say so. Never claim the named template "does not exist".
+- When option 2 is chosen, read the bundled `.abap` files before generating code. They are the
+  authoritative pattern, not the Markdown summary. Keep all includes from one variant; do not mix
+  base and edit1/edit2 fragments.
+- Record the template choice in `spec/notes.md` as a decision. Do not add a new field to
+  `program.yaml`.
+- Before business logic, scan the template's comments, event flow and extension hooks. Preserve its
+  naming, include boundaries, class responsibilities and event flow unless the requirement changes
+  them.
+- Class-first still applies: a new report is a thin selection/event shell and business logic goes
+  to a justified class. The bundled template uses local classes; if material logic grows beyond a
+  small scope, record the reason and propose the class extraction rather than silently expanding
+  the local class.
+
 ## 3. Object lookup — read only
 
 After the name is known, a read-only lookup is useful but optional. Do it only when the target

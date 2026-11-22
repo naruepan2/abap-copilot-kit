@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate a minimal evidence manifest. Read-only."""
-import argparse, json, sys
+import argparse, hashlib, json, sys
 from pathlib import Path
 
 p = argparse.ArgumentParser()
@@ -14,7 +14,7 @@ if not f.exists():
     m = {}
 else:
     try:
-        m = json.loads(f.read_text(encoding="utf-8"))
+        m = json.loads(f.read_text(encoding="utf-8-sig"))
     except Exception as e:
         m = {}
         errors.append(f"invalid evidence manifest: {e}")
@@ -30,8 +30,47 @@ if m:
         errors.append("invalid evidence_mode")
     if mode == "observed_run" and not m.get("limitations"):
         errors.append("observed_run requires limitations")
-    for rel in m.get("artifacts", []):
-        if not (r / rel).exists():
+    for item in m.get("artifacts", []):
+        # Legacy manifests stored bare path strings; new receipts store {path,sha256,bytes}.
+        rel = item if isinstance(item, str) else item.get("path") if isinstance(item, dict) else None
+        if not rel:
+            errors.append("invalid artifact entry")
+            continue
+        f = r / rel
+        if not f.exists():
             errors.append(f"artifact missing: {rel}")
+        elif isinstance(item, dict):
+            data = f.read_bytes()
+            if item.get("bytes") != len(data):
+                errors.append(f"artifact byte count drift: {rel}")
+            if item.get("sha256") != hashlib.sha256(data).hexdigest():
+                errors.append(f"artifact hash drift: {rel}")
+    quality = m.get("quality", "standard")
+    if quality not in ("standard", "release"):
+        errors.append("quality must be standard or release")
+    v = m.get("validation", {})
+    if not isinstance(v, dict):
+        errors.append("validation must be an object")
+    else:
+        for key in ("checksPassed", "checkCount", "warnings"):
+            val = v.get(key)
+            if val is not None and (type(val) is not int or val < 0):
+                errors.append(f"validation.{key} must be a non-negative integer")
+        if v.get("checkCount") is not None and (v.get("checksPassed") or 0) > v["checkCount"]:
+            errors.append("checksPassed exceeds checkCount")
+        if quality == "release":
+            if v.get("warnings"):
+                errors.append("release quality requires zero warnings")
+            if v.get("errors"):
+                errors.append("release quality requires zero errors")
+            if v.get("checkCount") is None or v.get("checksPassed") != v.get("checkCount"):
+                errors.append("release quality requires complete check counts")
+    for d in m.get("diagnostics", []):
+        if not isinstance(d, dict):
+            errors.append("invalid diagnostic entry")
+            continue
+        for key in ("code", "severity", "message", "subject", "supportedFixes"):
+            if key not in d:
+                errors.append(f"diagnostic missing {key}")
 print(json.dumps({"valid": not errors, "errors": errors}, indent=2))
 sys.exit(1 if errors else 0)

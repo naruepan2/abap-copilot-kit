@@ -10,6 +10,8 @@ Operate as the control plane for a bounded SAP ABAP delivery run. Treat the user
 
 Proceed only after explicit invocation, for example `/auto-abap-delivery start`, `start-unattended`, `start-attended --level guided`, or `resume RUN-...`.
 
+Route the task first: `consultation`, `lightweight`, `standard`, `controlled`, or `full long-run`. Routes and interaction levels are separate vocabularies. Load [methodology-and-capability.md](references/methodology-and-capability.md).
+
 After Spec, plan, and Autonomy Envelope approval, resolve interaction policy using [interaction-control.md](references/interaction-control.md):
 
 - Initial default for unqualified scope: `execution_mode: attended`, `review_level: standard`.
@@ -21,15 +23,15 @@ After Spec, plan, and Autonomy Envelope approval, resolve interaction policy usi
 
 ## Workflow
 
-1. **Discover safely**: inspect the live MCP/tool surface and SAP target read-only. Never trust a remembered tool list. Load [capability-and-intake.md](references/capability-and-intake.md).
+1. **Discover safely**: inspect the live MCP/tool surface and SAP target read-only. Never trust a remembered tool list. Load [capability-and-intake.md](references/capability-and-intake.md). Build the client matrix and re-check the tool gate before discovery, write, verification, and recovery; load [client-and-tool-reality.md](references/client-and-tool-reality.md).
 2. **Draft the assignment**: gather outcome, landscape, object/package/TR, scope, acceptance criteria, test permissions, and production boundary. Ask only what tools and SAP metadata cannot establish.
-3. **Resolve architecture and guardrails**: determine ECC, S/4HANA, ABAP Cloud, Clean Core, released API, authorization, client, LUW, lock, performance, transport, and observability controls. Load [sap-guardrails.md](references/sap-guardrails.md).
+3. **Resolve architecture and guardrails**: determine ECC, S/4HANA, ABAP Cloud, Clean Core, released API, authorization, client, LUW, lock, performance, transport, and observability controls. Resolve Methodology Profiles A–D and the Standard-first capability ladder; unknown dependencies block write. Load [sap-guardrails.md](references/sap-guardrails.md) and [methodology-and-capability.md](references/methodology-and-capability.md).
 4. **Assess trust and qualification**: load [trust-and-qualification.md](references/trust-and-qualification.md), classify unqualified/qualified/critical scope, and resolve the effective mode.
 5. **Seek approval**: freeze Spec, implementation plan, test plan, execution contract, autonomy envelope, and resolved interaction policy. Do not write SAP source before approval.
 6. **Initialize the run**: execute `scripts/init_run.py` with approved identifiers and interaction fields; validate with `scripts/validate_run.py`.
 7. **Plan the team**: choose one-agent role passes, three roles, or five-to-seven specialist roles based on risk. Enforce one writer per production object. Load [team-and-testing.md](references/team-and-testing.md).
 8. **Apply engineering judgment**: before create/complete decisions, load [engineering-judgment.md](references/engineering-judgment.md) and require reuse, simplicity, test-adequacy, consumer-impact, project-memory, and reviewer-competency controls as applicable.
-9. **Execute by slice**: fresh-read, check preconditions, add characterization/failing test when feasible, implement minimum change, syntax-check, activate, focused-test, repair, regress, ATC/CVA/readiness-check, audit, and checkpoint.
+9. **Execute by slice**: fresh-read, check preconditions, add characterization/failing test when feasible, implement minimum change, syntax-check, activate, focused-test, repair, regress, ATC/CVA/readiness-check, audit, and checkpoint. Every slice states preconditions, exact objects, verification, postconditions, evidence output, and safe stop. Prefer class-based design (L1/L2/G); a new `FORM`/`PERFORM` needs a recorded reason. Apply UI text contracts, RAP persistence mapping, and notes-as-data rules from the linked references.
 10. **Apply interaction policy**:
    - unattended: continue silently within approved boundaries;
    - attended: create revisioned Review Queue items at configured checkpoints and enter `REVIEW_PENDING`;
@@ -42,7 +44,7 @@ After Spec, plan, and Autonomy Envelope approval, resolve interaction policy usi
 ## Non-negotiable rules
 
 - SAP reality is authority for source, activation, locks, transport, SID/client; durable artifacts are authority for approved scope and policy.
-- Persist command intent before a side effect and reconcile observed result afterward.
+- Persist command intent before a side effect and reconcile observed result afterward. Read back source, active/inactive state, and inventory after **every** state change; success text is not proof.
 - Never blindly replay source write, activation, test-data creation, RFC/IDoc/API send, posting, commit, or mass update.
 - Never overwrite source drift. Pause affected work, stale evidence/reviews, and decide safely.
 - Never weaken expected results to make tests pass.
@@ -56,11 +58,11 @@ After Spec, plan, and Autonomy Envelope approval, resolve interaction policy usi
 
 Use only `READY_FOR_UAT`, `READY_FOR_MANUAL_TEST`, `BLOCKED_OWNER_DECISION`, `BLOCKED_TOOLING`, `PAUSED_SAFE`, `FAILED_SAFE`, or `CANCELLED`. Do not use `DONE` before UAT and a separate production workflow.
 
-## V8 mandatory completion gates
+## Mandatory completion gates
 
 Require reuse assessment for new global objects, simplicity verdict, independent test-adequacy audit, consumer-impact report when applicable, reviewed project-engineering-profile revision, qualified reviewer routing, accountability matrix, and updated autonomy qualification record.
 
-## V9 evidence guardrails (additive, already active)
+## Evidence guardrails
 
 - Before `READY_FOR_UAT`, create the minimal post-run evidence package: `RUN_EVIDENCE.md` and `evidence-manifest.yaml` in the run folder. Use `observed_run` when no approved spec exists; never invent a retroactive approved spec.
 - Map owner confirmation to named checks. General confirmation never closes authorization-negative, data reconciliation, performance or service runtime.
@@ -69,16 +71,36 @@ Require reuse assessment for new global objects, simplicity verdict, independent
 - Reconcile the repository after uncertain create/activation. No unapproved ghost object at `READY_FOR_UAT`. Record cleanup owner and status.
 - Active but unpublished service binding without runtime OData evidence resolves to `READY_FOR_MANUAL_TEST`.
 - Unqualified scope defaults to Attended Standard. `unattended` with `resolved_from: owner_explicit_policy_override_one_scope` requires durable override/approval evidence in the run folder; otherwise `validate_run.py` fails. Critical always requires at least Controlled.
-- Class-first design and Object Responsibility Plan are **recorded but not activated** in this patch; require separate approval before enforcing them as write gates.
+- Class-first design and the Object Responsibility Plan are active policy for new development: record the design decision and the ORP before write, and validate the ORP with its script. This is a recorded policy, not an automatic ABAP style parser — a human or lint/syntax tool still judges source quality.
+- A test agent may write only an approved class test include. It never writes production objects.
 
-Evidence helpers (Phase 2): `scripts/build_evidence_manifest.py --run-dir --evidence-mode` builds
-`evidence/evidence-manifest.json`; `scripts/validate_evidence_manifest.py <run_dir>` checks it.
+Evidence helpers: `scripts/build_evidence_manifest.py <run_dir> --evidence-mode --quality standard|release --checks-passed N --check-count N [--warnings N]` builds `evidence/evidence-manifest.json` with per-artifact SHA-256/byte counts and a machine-readable check summary; optional `evidence/diagnostics.json` entries carry a stable `code`, `severity`, `message`, `subject`, and `supportedFixes`. `scripts/validate_evidence_manifest.py <run_dir>` checks it: a `release` manifest requires zero warnings, complete check counts, and no artifact hash drift. Use `standard` while iterating and `release` only for the frozen handoff artifact.
 Both are read-only against SAP and write only inside the run folder. They do not create
 `RUN_EVIDENCE.md`; write that summary from verified facts when preparing UAT handoff.
 
-Phase 3 policy (active): for new development, record an Object Responsibility Plan when creating a
-global object, touching RAP/CDS, or planning at least three objects. Use
-`scripts/validate_object_responsibility_plan.py <orp.yaml>` before treating it as approved. Class
-logic belongs in classes; `PROG`/`FUNC` stay thin boundaries; no new `FORM`/`PERFORM` in new
-development, while legacy Form routines may remain under a recorded exception. Team topology stays
-T0-T2 as defined in `references/dynamic-agent-team.md`; T3 multi-writer is not supported.
+Object Responsibility Plan policy: for new development, record an ORP when creating a global
+object, touching RAP/CDS, or planning at least three objects. Use
+`scripts/validate_object_responsibility_plan.py <orp.yaml>` before treating it as approved. Prefer
+class-based design; choose L1/L2/G per `references/prog-design-methodology.md`. A new
+`FORM`/`PERFORM` is allowed only with a recorded reason (framework-mandated, approved legacy
+point, or documented limitation); legacy Form routines may remain under a recorded exception.
+Team topology stays T0-T2 as defined in `references/dynamic-agent-team.md`; T3 multi-writer is not
+supported.
+
+## Required references
+
+- Live reality: `references/client-and-tool-reality.md`, `references/capability-and-intake.md`,
+  `references/repository-reliability.md`.
+- Methodology and design: `references/methodology-and-capability.md`,
+  `references/prog-design-methodology.md`, `references/ui-text-and-type-contracts.md`,
+  `references/rap-persistence-and-draft.md`, `references/engineering-judgment.md`,
+  `references/sap-guardrails.md`.
+- Interaction and learning: `references/interaction-control.md`, `references/unattended-execution.md`,
+  `references/dynamic-agent-team.md`, `references/team-and-testing.md`,
+  `references/second-brain-governance.md`, `references/evidence-and-uat.md`.
+- Deterministic gates: `scripts/validate_run.py`, `validate_evidence_manifest.py`,
+  `validate_object_responsibility_plan.py`, `validate_client_matrix.py`,
+  `validate_methodology_resolution.py`, `validate_prog_design_decision.py`,
+  `validate_rap_persistence_mapping.py`. Run relevant scripts before SAP write and before
+  completion. A failed validator is repaired or stops the run in the correct safe state — never
+  waived silently.

@@ -11,5 +11,9 @@ Default run budget: 8 hours, 500 tool calls, 3 repairs per slice, 2 repeats of t
 Use start, blocked, and completion notifications only unless the owner opts into a digest. Autonomous development ends before UAT and production.
 
 
-## V7 interaction compatibility
-Unattended is the default execution mode and has `review_level: not_applicable`. It uses Decision Inbox only for genuine authority boundaries. A user request to switch to attended must apply at a reconciled safe checkpoint through `RECONFIGURING`; do not interrupt an atomic SAP operation.
+## Interaction default
+Unattended is **not** the default. Unqualified scope preselects Attended Standard; only qualified
+task and topology may default to unattended, and critical scope requires at least Controlled.
+An owner override is a shadow trial: it may permit one scoped unattended run with durable approval
+evidence, but it does not promote qualification. A switch to attended applies at a reconciled safe
+checkpoint through `RECONFIGURING`; do not interrupt an atomic SAP operation.

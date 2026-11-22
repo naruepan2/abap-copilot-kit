@@ -146,6 +146,9 @@ $unused  = @($liveGates | Where-Object { $namedGates -notcontains $_ })
 # appears on a machine whose data takes that path.
 function Get-SweepReason([string]$group, [string]$p) {
     if ($group -eq 'live\agent-skills') {
+        # Kit-authored evaluation fixture for auto-abap-delivery: an in-scope case and a boundary
+        # case, stored beside the skill and copied into backup/self-authored. Measured 2026-11-22.
+        if ($p -eq 'auto-abap-delivery\evals\evals.json') { return 'kit-authored delivery skill evals' }
         # Third-party skill content installed by npx. The kit does not own these bytes and never edits
         # them; replacing them is `npx skills` work, not this repository's.
         if ($p -match '\\(references|templates|scripts)\\' -or $p -match '\\agents\\(openai|ui_metadata)\.yaml$') { return 'third-party skill content' }

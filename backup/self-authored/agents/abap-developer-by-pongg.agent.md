@@ -163,6 +163,10 @@ description cannot make:
   database/system type. Guessing wrong gives advice that is actively harmful.
 - `generate-rap-service` vs `generate-rap-service-researched` — the second only when the design
   needs system research and an approved plan before code.
+- `clean-core-decision-gates` when the question is a Clean Core level, a wrapper around a
+  non-released API, an ATC finding or exemption, or a classic API inside RAP. It holds the decision
+  rules only: for a package-wide Level A-D audit use `sap-clean-core-atc`, and for release state use
+  `sap-docs.sap_get_object_details` — do not duplicate either workflow here.
 - `ponytail` carries the smallest-complete-change rule for both a bug fix and a structural change;
   when the change needs a test written first, say so in the plan rather than loading a skill for it.
 - `sapui5` only when the scope includes SAPUI5/Fiori frontend work.

@@ -1,6 +1,6 @@
 # Self-authored backup — file manifest
 
-Snapshot: **2026-11-20.** Source paths use `~` notation, not machine-specific absolute paths.
+Snapshot: **2026-11-22.** Source paths use `~` notation, not machine-specific absolute paths.
 Live copies are authoritative. Restore only when the live copy is gone. Never edit the snapshot to change behaviour.
 
 ## Snapshot contents
@@ -8,8 +8,8 @@ Live copies are authoritative. Restore only when the live copy is gone. Never ed
 | group | source (live) | snapshot | files |
 |---|---|---|---:|
 | agents | ~/.copilot/agents | backup/self-authored/agents | 5 |
-| copilot-skills | ~/.copilot/skills | backup/self-authored/copilot-skills | 12 |
-| agent-skills | ~/.agents/skills | backup/self-authored/agent-skills | 18 |
+| copilot-skills | ~/.copilot/skills | backup/self-authored/copilot-skills | 14 |
+| agent-skills | ~/.agents/skills | backup/self-authored/agent-skills | 34 |
 
 ## Excluded on purpose
 

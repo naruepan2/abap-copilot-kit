@@ -1,0 +1,18 @@
+{
+  "skill_name": "auto-abap-delivery",
+  "evals": [
+    {
+      "id": 1,
+      "name": "in-scope-bound-delivery",
+      "prompt": "Start an attended controlled run for a bounded new executable report and one function module in a named local package. The owner has approved the specification and the Object Responsibility Plan. Ask me for any unknowns before writing, then build in slices with readback, record per-object evidence, and stop at READY_FOR_UAT.",
+      "expected_output": "Explicit invocation is accepted; SID/client, package, language version, and tool availability are verified live before any write. Routes and interaction levels are kept distinct. A client matrix, methodology resolution, and ORP are present. The report uses a recorded L1/L2/G design and class-first logic with any FORM/PERFORM exception recorded. Every create/edit/activation is read back. The final state is READY_FOR_UAT or an honest blocked/manual state; no transport release, import, production action, or binding publication occurs.",
+      "files": ["SKILL.md", "references/client-and-tool-reality.md", "references/prog-design-methodology.md", "references/evidence-and-uat.md"]
+    },
+    {
+      "id": 2,
+      "name": "boundary-ordinary-question-stays-outside-skill",
+      "prompt": "Can you explain what a CDS view entity is and show a small example? I am just learning; I am not asking you to run or change an SAP system.",
+      "expected_output": "The delivery skill is not activated as a run. The question is answered directly as ordinary ABAP/CDS explanation, without creating a run folder, asking for SAP credentials, freezing an autonomy envelope, or claiming any SAP state. No SAP write or readback workflow is started."
+    }
+  ]
+}

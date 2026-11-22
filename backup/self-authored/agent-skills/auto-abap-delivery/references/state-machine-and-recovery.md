@@ -12,13 +12,14 @@ After restart: acquire new fencing token; load append-only logs; rediscover tool
 Replay: reads/tests without side effects may repeat. Source write requires hash reconciliation. Activation requires active/inactive reconciliation. External sends, postings, commit/mass updates never replay without idempotency proof and are normally outside this skill.
 
 
-## V7 review states
+## Review states
 Add `REVIEW_PENDING`, `REVIEWING`, and `RECONFIGURING`. Review approvals are revisioned evidence snapshots and become stale when source, dependency, spec, target, profile, or evidence changes. Recovery must restore open reviews and revalidate their snapshot before applying an answer.
 
-## V9 states (additive)
+## Additional states
 
 Add `RUNNING.REPOSITORY_RECONCILIATION`, `RUNNING.BUILDING_POST_RUN_EVIDENCE`,
-`RUNNING.REPAIRING_EVIDENCE`, and `REVIEWER_REQUIRED`. Reconciliation uses read-only repository
-checks and never replays an uncertain create. Evidence generation uses a frozen source and object
-inventory. If a required reviewer is unavailable, transition to `REVIEWER_REQUIRED` rather than
-continuing unattended.
+`RUNNING.REPAIRING_EVIDENCE`, and `REVIEWER_REQUIRED`. Enter reconciliation on timeout, `409`,
+`500`, or an ambiguous create/edit/activation response; it uses read-only repository checks and
+never replays an uncertain create. Evidence generation uses a frozen source and object inventory.
+If a required reviewer is unavailable, transition to `REVIEWER_REQUIRED` rather than continuing
+unattended.

@@ -3,6 +3,8 @@
 ## Live discovery
 - Enumerate MCP servers, tool names/schemas, read/write/destructive classification, health, identity, SID/client, authorization, object coverage, source read/edit, activation, ABAP Unit, ATC, trace, diff, lock, and transport capabilities.
 - Save `capability-snapshot.yaml`. Refresh after restart, configuration change, unknown-tool response, or resume.
+- Re-check availability per phase (discovery, write, verification, recovery) and keep a client matrix. Load [client-and-tool-reality.md](client-and-tool-reality.md).
+- For an API/dependency claim, record the release-state channel used, client, and capture time. A zero-row release-state query is `NOT_REPORTED`, not "not released". See [sap-guardrails.md](sap-guardrails.md).
 
 ## Intake order
 1. Business outcome, current/expected behavior, work type, ticket/spec, sample input/output, deadline, desired `READY_FOR_UAT` boundary.

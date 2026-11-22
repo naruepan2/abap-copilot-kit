@@ -1,4 +1,4 @@
-# V7 interaction control
+# Interaction control
 
 ## Model
 
@@ -38,7 +38,7 @@ A review becomes stale after relevant source, dependency, spec, target, profile,
 
 ## States
 
-Add `REVIEW_PENDING`, `REVIEWING`, and `RECONFIGURING` to the shared V6 state machine. Scheduled review wait time is not blocker time.
+Add `REVIEW_PENDING`, `REVIEWING`, and `RECONFIGURING` to the shared state machine. Scheduled review wait time is not blocker time.
 
 ## Switching
 
@@ -52,10 +52,15 @@ Never auto-continue an unattended review timeout. Notify once, optional reminder
 
 Batch approval maximum default is five reversible Review Queue items from one slice and snapshot. Never batch decisions, exceptions, DDIC persistent/security/authorization/integration-contract/Clean Core exception/source-drift/external-side-effect items.
 
-## Owner override evidence (V9, additive)
+## Owner override evidence
 
 `resolved_from: owner_explicit_policy_override_one_scope` is not sufficient by itself. An
 unqualified scope may run `unattended` only when the run folder contains durable owner approval
 evidence naming the scope, mode, review level, target and date. Otherwise resolve to Attended
 Standard. Critical scope always requires at least Controlled, even with an override. Evidence must
-be recorded, not reconstructed from chat recollection.
+be recorded, not reconstructed from chat recollection. An override run is a shadow trial: it
+creates shadow evidence and never promotes qualification automatically.
+
+Controlled approves methodology/package, material object-set changes, writer ownership, activation
+batches, and publish/runtime actions. Strict approves every material state-changing batch. A
+general owner "it works" statement closes only the named checks it actually names.
