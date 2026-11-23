@@ -68,6 +68,8 @@ Require reuse assessment for new global objects, simplicity verdict, independent
 - Map owner confirmation to named checks. General confirmation never closes authorization-negative, data reconciliation, performance or service runtime.
 - Classify every test result as `ABAP_UNIT`, `SMOKE`, `INTEGRATION`, `SERVICE_RUNTIME`, `STATIC_REVIEW`, `MANUAL_OWNER_CONFIRMED` or `DIAGNOSTIC_DRIVER`. Never report a diagnostic driver as ABAP Unit.
 - Per-object check states are explicit: `PASS`, `FINDINGS`, `NOT_REPORTED`, `NOT_SUPPORTED`, `NOT_RUN`, `STALE`. Disclose every partial result; never claim solution-wide ATC or test success from partial coverage.
+- Behavior verification is a separate axis: `BEHAVIOR_VERIFIED`, `BEHAVIOR_UNVERIFIED`, `BEHAVIOR_FAILED`, `BEHAVIOR_UNCERTAIN`. A PASS on presence or activation never promotes an unverified behavior claim; see [evidence-and-uat.md](references/evidence-and-uat.md). A `coincidental_reliance` advisory keeps the status but names why a passing check holds.
+- The final manifest carries a `coverage` list: every check that did not produce a result is named with a reason and, for `READY_FOR_UAT`, a disposition. A clean manifest without coverage is not a clean verification.
 - Reconcile the repository after uncertain create/activation. No unapproved ghost object at `READY_FOR_UAT`. Record cleanup owner and status.
 - Active but unpublished service binding without runtime OData evidence resolves to `READY_FOR_MANUAL_TEST`.
 - Unqualified scope defaults to Attended Standard. `unattended` with `resolved_from: owner_explicit_policy_override_one_scope` requires durable override/approval evidence in the run folder; otherwise `validate_run.py` fails. Critical always requires at least Controlled.

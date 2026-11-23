@@ -49,3 +49,50 @@ to `READY_FOR_MANUAL_TEST`, not `READY_FOR_UAT`, unless the approved spec explic
 service runtime evidence. The same state applies when authorization-negative checks, data
 reconciliation, performance checks, target-client execution, or owner cleanup remains. ATC
 `processed=0` is `NOT_REPORTED`, never PASS.
+
+### Behavior verification (separate axis)
+
+The per-object check states above describe *checks*. A second, independent axis describes whether a
+claimed behavior was actually exercised:
+
+| Status | Meaning |
+|---|---|
+| `BEHAVIOR_VERIFIED` | A named test or directly observed runtime result exercises the asserted behavior |
+| `BEHAVIOR_UNVERIFIED` | Artifacts are present and wired, activation succeeded, but no check exercises the behavior |
+| `BEHAVIOR_FAILED` | A check exercised the behavior and it did not hold |
+| `BEHAVIOR_UNCERTAIN` | The check cannot be run or interpreted in this session; name what would settle it |
+
+Present-and-wired is necessary but not sufficient. A `PASS` on syntax/activation never promotes a
+`BEHAVIOR_UNVERIFIED` claim. Typical cases: a create succeeds while determined business fields
+never persist (implicit RAP mapping), or a function module returns a value the SALV does not
+display. Route `BEHAVIOR_UNVERIFIED` and `BEHAVIOR_UNCERTAIN` to `READY_FOR_MANUAL_TEST` or to a
+named human-verification item; never silently absorb them into a passing verdict.
+
+**Reliance check (advisory).** Before finalizing `BEHAVIOR_VERIFIED`, ask *why* it holds and
+classify the evidence already recorded: `declared` (a real precondition or enforced ordering) or
+`coincidental_reliance` (`undeclared-precondition`, `incidental-ordering`, or `fixture-only`). A
+coincidental pass keeps its status and score — it is advisory only — but is recorded with a detail
+and normally fixed by promoting the hidden assumption into a declared precondition.
+
+Store behavior claims in `evidence/behavior-verification.json` as
+`{"behavior_verification":[{"truth":"...","status":"BEHAVIOR_VERIFIED","evidence_id":"EV-..","reliance":"declared"}]}`.
+`reliance: coincidental_reliance` requires `reliance_detail`. `scripts/validate_evidence_manifest.py`
+checks this file through the manifest.
+
+### Verification coverage
+
+A clean manifest is not proof that everything was checked. Every gate that did **not** produce a
+result must appear in `evidence/coverage.json`:
+
+```json
+{"coverage":[{"check":"ATI/ATC object ZI_X","status":"NOT_REPORTED","reason":"processed=0 for variant V","disposition":"manual_uat_item"}]}
+```
+
+Status is `CHECKED | NOT_REPORTED | NOT_SUPPORTED | UNCHECKABLE`; `CHECKED` needs an `evidence_id`,
+so a check cannot be called covered without a result to point at. `NOT_REPORTED`, `NOT_SUPPORTED`
+and `UNCHECKABLE` always need a `reason` — a silent skip is worse than a disclosed gap.
+`UNCHECKABLE` never blocks and never falsely blesses; it records that this tool/runtime cannot
+decide the claim. `READY_FOR_UAT` additionally requires a `disposition` (`manual_uat_item`,
+`approved_waiver`, or `not_applicable_proven`) for every non-`CHECKED` entry. This is an artifact
+requirement at completion, not a new mid-run human gate; `READY_FOR_MANUAL_TEST` may carry gaps
+without dispositions. Run the validator on the final manifest before selecting the final state.

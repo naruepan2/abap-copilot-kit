@@ -72,5 +72,75 @@ if m:
         for key in ("code", "severity", "message", "subject", "supportedFixes"):
             if key not in d:
                 errors.append(f"diagnostic missing {key}")
+
+    # Axis 1: behavior verification. Present-and-wired is not behavior proved.
+    behavior_statuses = {
+        "BEHAVIOR_VERIFIED", "BEHAVIOR_UNVERIFIED",
+        "BEHAVIOR_FAILED", "BEHAVIOR_UNCERTAIN",
+    }
+    reliance_kinds = {"declared", "coincidental_reliance"}
+    reliance_details = {"undeclared-precondition", "incidental-ordering", "fixture-only"}
+    behavior = m.get("behavior_verification")
+    if not isinstance(behavior, list) or not behavior:
+        errors.append("behavior_verification requires at least one entry")
+    else:
+        seen_truths = set()
+        for i, item in enumerate(behavior):
+            if not isinstance(item, dict):
+                errors.append(f"behavior_verification[{i}] must be an object")
+                continue
+            truth = str(item.get("truth", "")).strip()
+            if not truth:
+                errors.append(f"behavior_verification[{i}].truth is required")
+            elif truth in seen_truths:
+                errors.append(f"duplicate behavior truth: {truth}")
+            seen_truths.add(truth)
+            status = item.get("status")
+            if status not in behavior_statuses:
+                errors.append(f"behavior_verification[{i}].status invalid: {status}")
+            if status == "BEHAVIOR_VERIFIED":
+                if not str(item.get("evidence_id", "")).strip():
+                    errors.append(f"behavior_verification[{i}].evidence_id required when verified")
+                reliance = item.get("reliance")
+                if reliance not in reliance_kinds:
+                    errors.append(f"behavior_verification[{i}].reliance invalid: {reliance}")
+                if reliance == "coincidental_reliance" and item.get("reliance_detail") not in reliance_details:
+                    errors.append(f"behavior_verification[{i}].reliance_detail required (undeclared-precondition|incidental-ordering|fixture-only)")
+            if status in ("BEHAVIOR_UNVERIFIED", "BEHAVIOR_UNCERTAIN") and not str(item.get("reason", "")).strip():
+                errors.append(f"behavior_verification[{i}].reason required for non-verified behavior")
+            if run.get("state") == "READY_FOR_UAT" and status != "BEHAVIOR_VERIFIED":
+                errors.append(f"READY_FOR_UAT requires behavior verified: {truth or i}")
+        if run.get("state") == "READY_FOR_UAT" and len(seen_truths) < 1:
+            errors.append("READY_FOR_UAT requires at least one verified behavior claim")
+
+    # Axis 2: verification coverage. A gap must be named, not silently omitted.
+    coverage_statuses = {"CHECKED", "NOT_REPORTED", "NOT_SUPPORTED", "UNCHECKABLE"}
+    dispositions = {"manual_uat_item", "approved_waiver", "not_applicable_proven"}
+    coverage = m.get("coverage")
+    if not isinstance(coverage, list) or not coverage:
+        errors.append("coverage requires at least one entry")
+    else:
+        seen_checks = set()
+        for i, item in enumerate(coverage):
+            if not isinstance(item, dict):
+                errors.append(f"coverage[{i}] must be an object")
+                continue
+            check = str(item.get("check", "")).strip()
+            if not check:
+                errors.append(f"coverage[{i}].check is required")
+            elif check in seen_checks:
+                errors.append(f"duplicate coverage check: {check}")
+            seen_checks.add(check)
+            status = item.get("status")
+            if status not in coverage_statuses:
+                errors.append(f"coverage[{i}].status invalid: {status}")
+            if status != "CHECKED":
+                if not str(item.get("reason", "")).strip():
+                    errors.append(f"coverage[{i}].reason required for non-CHECKED status")
+                if run.get("state") == "READY_FOR_UAT":
+                    if item.get("disposition") not in dispositions:
+                        errors.append(f"READY_FOR_UAT requires disposition for uncovered check: {check or i}")
+            elif not str(item.get("evidence_id", "")).strip():
+                errors.append(f"coverage[{i}].evidence_id required when CHECKED")
 print(json.dumps({"valid": not errors, "errors": errors}, indent=2))
 sys.exit(1 if errors else 0)

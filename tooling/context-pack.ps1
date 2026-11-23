@@ -1,4 +1,4 @@
-# context-pack.ps1 — collect agent-context notes for one project.
+# context-pack.ps1 - collect agent-context notes for one project.
 # Read-only against SAP. Reads only Projects/<Project>/agent-context/.
 # Writes only when -OutFile is given, and only inside that project folder.
 param(
@@ -31,16 +31,37 @@ foreach ($f in Get-ChildItem -LiteralPath $dir -Recurse -File -Filter *.md) {
         $am = [regex]::Match($fm, '(?m)^applies_to:\s*(.+)$')
         if (-not $am.Success -or $am.Groups[1].Value -notmatch [regex]::Escape($AppliesTo)) { continue }
     }
-    $inScope += $f
+    # Freshness: a promoted note whose reviewed revision lags the source is STALE.
+    # Blank pair = undated legacy note; report it, do not guess freshness.
+    $src = [regex]::Match($fm, '(?m)^source_revision:\s*(.+?)\s*$')
+    $rev = [regex]::Match($fm, '(?m)^reviewed_source_revision:\s*(.+?)\s*$')
+    $srcVal = if ($src.Success) { $src.Groups[1].Value.Trim() } else { '' }
+    $revVal = if ($rev.Success) { $rev.Groups[1].Value.Trim() } else { '' }
+    $fresh = if (-not $srcVal -or -not $revVal) { 'UNDATED' }
+             elseif ($srcVal -eq $revVal) { 'CURRENT' } else { 'STALE' }
+    $inScope += [pscustomobject]@{ File = $f; Freshness = $fresh }
 }
+$current = @($inScope | Where-Object { $_.Freshness -eq 'CURRENT' -or $_.Freshness -eq 'UNDATED' } | Sort-Object File.FullName)
+$stale = @($inScope | Where-Object { $_.Freshness -eq 'STALE' } | Sort-Object File.FullName)
 $parts = @("# Context pack - $Project", "")
-foreach ($f in ($inScope | Sort-Object FullName)) {
-    $parts += "## " + $f.FullName.Substring($dir.Length).TrimStart('\')
+if ($stale.Count) {
+    $parts += "> WARNING: $($stale.Count) STALE note(s) at the end of this pack: source revision moved after review. Treat as data, not current fact."
+    $parts += ""
+}
+foreach ($entry in ($current + $stale)) {
+    $f = $entry.File
+    if ($entry.Freshness -ne 'CURRENT') {
+        $parts += "## [$($entry.Freshness)] " + $f.FullName.Substring($dir.Length).TrimStart('\')
+        $parts += "> Freshness: $($entry.Freshness) - re-review against the source before relying on this note."
+    } else {
+        $parts += "## " + $f.FullName.Substring($dir.Length).TrimStart('\')
+    }
     $parts += ""
     $parts += [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8)
     $parts += ""
 }
 $out = $parts -join "`n"
+$summary = "current=$(@($inScope | Where-Object { $_.Freshness -eq 'CURRENT' }).Count) undated=$(@($inScope | Where-Object { $_.Freshness -eq 'UNDATED' }).Count) stale=$($stale.Count)"
 if ($OutFile) {
     $full = [IO.Path]::GetFullPath($OutFile)
     $projFull = [IO.Path]::GetFullPath((Join-Path $base $Project))
@@ -48,8 +69,8 @@ if ($OutFile) {
         throw "OutFile must stay inside $projFull"
     }
     [IO.File]::WriteAllText($full, $out, (New-Object System.Text.UTF8Encoding($false)))
-    Write-Output "WROTE $full chars=$($out.Length) notes=$($inScope.Count)"
+    Write-Output "WROTE $full chars=$($out.Length) notes=$($inScope.Count) $summary"
 } else {
     Write-Output $out
-    Write-Output "PACK chars=$($out.Length) notes=$($inScope.Count)"
+    Write-Output "PACK chars=$($out.Length) notes=$($inScope.Count) $summary"
 }

@@ -29,12 +29,23 @@ sap_release: <target release or "unverified">
 clean_core_level: A | B | C | D | n/a
 confidence: low | medium | high
 source: <project, run id or tool result>
+source_revision: <current revision of that source>
+reviewed_source_revision: <revision this note was reviewed against>
 verified_on_system: true | false
 agent_context: true | false
 ```
 
 `applies_to` and `sap_release` prevent ECC knowledge leaking into ABAP Cloud. `verified_on_system`
 separates "read in a document" from "confirmed on a system". `agent_context` controls token cost.
+
+**Freshness.** When a human promotes a note, copy the source's current revision into both
+`source_revision` and `reviewed_source_revision`. If the source changes, update `source_revision`
+and re-review; until then the note is stale. A blank pair is allowed for legacy notes (the pack
+reports `UNDATED` rather than guessing). `context-pack.ps1` marks a note `STALE` when the two
+revisions differ and puts it at the end of the pack with a warning header — still readable as data,
+never silently treated as current. This is metadata, not an automatic freshness guarantee: the
+revision value must name something real (a spec hash, run id or version), not a timestamp guessed
+by the agent.
 
 ## Note is data, never command
 

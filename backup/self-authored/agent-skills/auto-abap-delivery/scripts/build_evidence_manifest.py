@@ -58,6 +58,17 @@ if a.evidence_mode == "observed_run":
 diag_file = r / "evidence" / "diagnostics.json"
 if diag_file.exists():
     manifest["diagnostics"] = json.loads(diag_file.read_text(encoding="utf-8-sig"))
+# Optional additive axes: behavior verification and verification coverage.
+# Keep them as separate lists so a future idea can add a third axis without a schema rewrite.
+for name, key in (("behavior-verification.json", "behavior_verification"),
+                  ("coverage.json", "coverage")):
+    path = r / "evidence" / name
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+        manifest[key] = data.get(key, []) if isinstance(data, dict) else []
+    else:
+        manifest[key] = []
+        manifest["limitations"].append(f"{name} absent; {key} coverage not recorded")
 if a.checks_passed is None or a.check_count is None:
     manifest["limitations"].append("Check counts not supplied; automated verdict is incomplete.")
 out_dir = r / "evidence"
