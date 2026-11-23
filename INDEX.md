@@ -33,6 +33,8 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `docs/reference/coedit-object-type-applicability.md` | Simulation map: which R3TR types are block targets, index nodes, generated, or outside the protocol |
 | `docs/reference/mcp-server-sources.md` | Non-extension MCP servers in `mcp.json`, their source repos and version identity; basis for version-check skills |
 | `docs/reference/improvement-register.md` | Read first before improving the kit: ideas from external systems, applied/pending/rejected status and the reasons |
+| `docs/memory-model.md` | One memory model: layers, one home per decision, pointers to schema, capture and backup |
+| `docs/memory-decisions.md` | Memory-specific adopted/rejected/deferred decisions and the vocabulary map that aligns levels, tiers and states |
 | `docs/auto-abap-delivery/` | Evidence copy of the V8 package (idea, merge guide, install) and the read-only inspection record; not an installed implementation |
 | `skills/kit-backup/` | User-invoked snapshot/verify/restore for self-authored agents and skills into `backup/self-authored/` |
 | `docs/reference/coedit-gap-closure.md` | Decision record: close co-edit gaps by fail-closed writes, not detection; conflicts, plan, deferred items and unverified checks |

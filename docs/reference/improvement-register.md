@@ -11,6 +11,11 @@ register, not policy. Policy lives in the agent, skill and gate files named in e
 **Public-safe:** this file names public repositories, kit paths and generic techniques. It never
 names a customer, host, SAP user, client, transport or private run folder.
 
+**Memory decisions have a second, narrower view:** [`../memory-decisions.md`](../memory-decisions.md)
+records *why* a memory idea was adopted/rejected/deferred and aligns vocabulary across sources.
+This register stays the record of *what was read* and the status of every idea. The model overview
+is [`../memory-model.md`](../memory-model.md). Do not maintain two copies of a decision.
+
 ## Evidence tiers
 
 | Mark | Meaning |
@@ -32,6 +37,7 @@ gate result.
 | `abap-skills-main` | 17 composable ABAP skills; upstream `likweitan/abap-skills` | MIT | 2026-11-22 | All text files read in full; 129 SVG icons and the 4.7 MB `AppList.json` treated as data assets, not prose |
 | GSD Core (`gsd-core-next`) | Meta-prompting / spec-driven phase loop with fresh-context subagents; `@opengsd/gsd-core` v1.23.0 | MIT | 2026-11-23 | README, context-engineering explanation, ADR-22 drift guard, ADR-1671 size budget, `gsd-verifier.md`, out-of-scope temporal-context read in full; test names used as signal across the large test tree |
 | OpenViking (`OpenViking-main`) | Context database for agents; virtual filesystem, L0/L1/L2 layers, retrieval and session memory | **AGPLv3** | 2026-11-23 | README, concept docs 03 (context layers), 07 (retrieval), 08 (session) read in full; implementation tree (~6k files) not read wholesale |
+| `opencode-mem` (`tickernelz/opencode-mem`) | Persistent-memory plugin for coding agents; Turso/libSQL + vectors, markdown vault backend, capture/hygiene/redaction rules | MIT | 2026-11-23 | README read in full from GitHub; vector/embedding infrastructure deliberately excluded from consideration |
 
 License consequence: ideas from MIT sources may be re-implemented freely; **do not copy OpenViking
 code**. Re-express the idea in our own words, as with the other sources.
@@ -95,6 +101,22 @@ reviewed notes in `agent-context/`.
 
 Not imported: `viking://` virtual filesystem, vectors, VLM, session→memory LLM extraction, Studio UI.
 AGPLv3 plus scale mismatch.
+
+## Ideas from opencode-mem (long-term memory without vectors)
+
+All rows are `PENDING` until a separate decision implements them. The capture pipeline, user-profile
+learning, Turso/libSQL, embeddings, dreaming and web UI are out of scope.
+
+| Idea | Kit analogue | Status | Why / next step |
+|---|---|---|---|
+| Distinguish memory from AGENTS.md and Skills; capture is not authority; summaries must separate plans, attempts, failures, observed results and unverified claims | `docs/memory-decisions.md`, `skills/capture-lesson/SKILL.md`, behavior axis in evidence manifest | `APPLIED` (this consolidation) | Already aligned; `memory-decisions.md` now records the fifth source that agrees. No behavior change. |
+| Capture provenance on each note: which session/run produced it and when (`captured_at`, `source_run`) | `templates/agent-context-note.md`, `docs/reference/agent-context-notes.md` | `PENDING` | Makes the new freshness pair meaningful (which run reviewed which source revision). Fits `Seen`/`Last confirmed` in capture-lesson. |
+| Redact credential shapes at the write boundary, before a lesson/memory is persisted; `<private>` regions fail closed | `skills/capture-lesson/SKILL.md`, delivery `references/second-brain-governance.md` | `APPLIED` (this consolidation) | Closes a pre-write gap; gates were detective only. Best-effort, never a full secret scrub claim. |
+| Tool evidence in a note is bounded and partial: state omissions; a model summary is not a verifier | `skills/capture-lesson/SKILL.md`, behavior/coverage axes | `APPLIED` (this consolidation) | `capture-lesson` now says evidence is a sample and omissions must be stated. Complements `coincidental_reliance`. |
+| Hygiene vocabulary: `pinned` notes never auto-edited, `status: deprecated` names `superseded_by`, soft-delete recoverable, imports reject newer `schemaVersion` rather than guessing | `references/second-brain-governance.md`, note frontmatter | `PENDING` (lower priority) | Human promotion already exists; add vocabulary only when contradictions actually appear. Do not copy the background LLM consolidation. |
+
+Not imported: local vector search, Turso shards, auto-capture on idle, profile learning, dreaming
+consolidation via LLM, web UI, API tokens. Scale and the user's explicit no-vector decision.
 
 ## Open items from earlier work (still valid)
 

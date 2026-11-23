@@ -62,6 +62,11 @@ State, in one line each:
 Then show the diff — the exact lines added, changed, or removed, with the file path — and wait for
 approval. Do not paraphrase the diff; show it.
 
+Redact before writing, not only in a later audit: omit token, password, PEM-key and bearer shapes
+from the proposed text. If a value might be a credential and its boundary is unclear, leave it out
+or ask. This is best-effort for the kit's own copies, not a full secret scrub. Evidence captured in
+a note is a bounded sample of the session, not proof of the whole run; say what was omitted.
+
 ## 4. Keep the destination honest
 
 ### Repo memory knowledge entry

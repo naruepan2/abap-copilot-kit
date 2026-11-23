@@ -11,6 +11,7 @@ source_revision: <revision of the source when this note was reviewed, e.g. spec 
 reviewed_source_revision: <same value at review time; leave blank only for undated legacy notes>
 verified_on_system: false
 agent_context: false
+instructional_authority: false
 ---
 
 ## Observation

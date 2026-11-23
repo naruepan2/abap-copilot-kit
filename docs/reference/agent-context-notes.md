@@ -22,7 +22,7 @@ Copy `templates/agent-context-note.md`. Required for `agent_context: true`:
 
 ```yaml
 title: <short fact>
-type: adr | error-fix | pattern | clean-core | template | reference
+type: adr | error-fix | pattern | capability | tool-profile | clean-core | template | reference
 status: draft | active | stable | deprecated
 applies_to: [rap, cds, classic, ...]
 sap_release: <target release or "unverified">
@@ -33,7 +33,12 @@ source_revision: <current revision of that source>
 reviewed_source_revision: <revision this note was reviewed against>
 verified_on_system: true | false
 agent_context: true | false
+instructional_authority: false
 ```
+
+This is the **only** note schema in the kit. Delivery-run learning candidates use it too; the
+delivery skill's `second-brain-governance.md` points here and adds run policy only. There is no
+separate vault root and no `00-inbox/` folder — drafts live in `agent-context/inbox/`.
 
 `applies_to` and `sap_release` prevent ECC knowledge leaking into ABAP Cloud. `verified_on_system`
 separates "read in a document" from "confirmed on a system". `agent_context` controls token cost.
