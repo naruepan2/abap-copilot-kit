@@ -73,6 +73,8 @@ if m:
             if key not in d:
                 errors.append(f"diagnostic missing {key}")
 
+    dispositions = {"manual_uat_item", "approved_waiver", "not_applicable_proven"}
+
     # Axis 1: behavior verification. Present-and-wired is not behavior proved.
     behavior_statuses = {
         "BEHAVIOR_VERIFIED", "BEHAVIOR_UNVERIFIED",
@@ -108,14 +110,16 @@ if m:
                     errors.append(f"behavior_verification[{i}].reliance_detail required (undeclared-precondition|incidental-ordering|fixture-only)")
             if status in ("BEHAVIOR_UNVERIFIED", "BEHAVIOR_UNCERTAIN") and not str(item.get("reason", "")).strip():
                 errors.append(f"behavior_verification[{i}].reason required for non-verified behavior")
-            if run.get("state") == "READY_FOR_UAT" and status != "BEHAVIOR_VERIFIED":
-                errors.append(f"READY_FOR_UAT requires behavior verified: {truth or i}")
-        if run.get("state") == "READY_FOR_UAT" and len(seen_truths) < 1:
-            errors.append("READY_FOR_UAT requires at least one verified behavior claim")
+            if run.get("state") == "READY_FOR_UAT" and status in ("BEHAVIOR_UNVERIFIED", "BEHAVIOR_UNCERTAIN"):
+                # A non-behavioral change may have no behavior to verify. Allow UAT when the
+                # uncertainty is explicitly dispositioned, exactly like a coverage gap.
+                if item.get("disposition") not in dispositions:
+                    errors.append(f"READY_FOR_UAT requires disposition for unverified behavior: {truth or i}")
+            if run.get("state") == "READY_FOR_UAT" and status == "BEHAVIOR_FAILED":
+                errors.append(f"READY_FOR_UAT requires behavior not failed: {truth or i}")
 
     # Axis 2: verification coverage. A gap must be named, not silently omitted.
     coverage_statuses = {"CHECKED", "NOT_REPORTED", "NOT_SUPPORTED", "UNCHECKABLE"}
-    dispositions = {"manual_uat_item", "approved_waiver", "not_applicable_proven"}
     coverage = m.get("coverage")
     if not isinstance(coverage, list) or not coverage:
         errors.append("coverage requires at least one entry")

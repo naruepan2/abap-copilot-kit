@@ -65,8 +65,11 @@ claimed behavior was actually exercised:
 Present-and-wired is necessary but not sufficient. A `PASS` on syntax/activation never promotes a
 `BEHAVIOR_UNVERIFIED` claim. Typical cases: a create succeeds while determined business fields
 never persist (implicit RAP mapping), or a function module returns a value the SALV does not
-display. Route `BEHAVIOR_UNVERIFIED` and `BEHAVIOR_UNCERTAIN` to `READY_FOR_MANUAL_TEST` or to a
-named human-verification item; never silently absorb them into a passing verdict.
+display. Route `BEHAVIOR_UNVERIFIED` and `BEHAVIOR_UNCERTAIN` to a named human-verification item; never
+silently absorb them into a passing verdict. `READY_FOR_UAT` may still be selected when a
+non-behavioral change has no behavior to exercise, provided each such claim carries an explicit
+`reason` and a `disposition` (`manual_uat_item`, `approved_waiver`, `not_applicable_proven`) — the
+same rule as a coverage gap. `BEHAVIOR_FAILED` always blocks UAT.
 
 **Reliance check (advisory).** Before finalizing `BEHAVIOR_VERIFIED`, ask *why* it holds and
 classify the evidence already recorded: `declared` (a real precondition or enforced ordering) or

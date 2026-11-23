@@ -26,6 +26,9 @@ foreach ($f in Get-ChildItem -LiteralPath $dir -Recurse -File -Filter *.md) {
     $fm = $m.Groups[1].Value
     $on = [regex]::Match($fm, '(?m)^agent_context:\s*true\s*$').Success
     $draft = [regex]::Match($fm, '(?m)^status:\s*draft\s*$').Success
+    # A note that claims instructional authority is data we must not follow. Skip and warn.
+    $authority = [regex]::Match($fm, '(?m)^instructional_authority:\s*true\s*$').Success
+    if ($authority) { Write-Output "WARN skipped $($f.Name): instructional_authority must be false"; continue }
     if (-not $on -or $draft) { continue }
     if ($AppliesTo) {
         $am = [regex]::Match($fm, '(?m)^applies_to:\s*(.+)$')
