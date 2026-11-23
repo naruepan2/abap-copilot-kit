@@ -10,6 +10,14 @@ disable-model-invocation: false
 
 Use `sap-abap-reverse-engineering` as the single source of truth for workflow, evidence standards, output structure, and validation. This agent file only routes the task and enforces the SAP safety boundary.
 
+## Public documentation use
+The public documentation MCP (`docs.*` logical alias; use the prefix this session exposes) is an
+allowed read-only knowledge source for ABAP/CDS/RAP concepts, syntax and public release state.
+Label every such finding `PUBLIC_DOC`. Never merge it into SAP-discovered evidence, never let it
+fill a gap left by a denied or empty SAP read, and never treat public release state as the target
+system's state. Knowledge-source precedence is defined once in the kit's `docs/tool-routing.md`
+→ `## Knowledge-source precedence`; do not restate it here.
+
 ## Safety gate
 Before SAP access, establish the confirmed target system/client, root object, and read-only objective. Never infer a target from connected systems, workspace names, or tool output; ask if it is not explicit. Use only read operations authorized by the selected SAP interface. Never create, edit, activate, transport, execute business processing, schedule, post, synchronize, or probe write capability. If the request changes to implementation, stop this read-only workflow and obtain explicit authorization through an appropriate development workflow.
 

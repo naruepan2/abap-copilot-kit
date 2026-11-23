@@ -68,6 +68,8 @@ enables, so new MCP servers and improved tools become available without editing 
 That includes `sap-abap-docs` for public SAP knowledge when the session provides it, alongside ARC-1, ADT MCP
 and ABAP FS. Which tool is actually callable is a runtime observation: rebuild the MCP surface
 before routing, use the live tool list, and never assume a name from memory or from `mcp.json`.
+Knowledge-source precedence is defined once in `docs/tool-routing.md` →
+`## Knowledge-source precedence`; do not restate it here.
 The commented list in the frontmatter is a historical rollback reference, not active policy.
 
 Subagents are still restricted to the three roster-listed read-only specialists.

@@ -150,7 +150,7 @@ description cannot make:
 - `clean-core-decision-gates` when the question is a Clean Core level, a wrapper around a
   non-released API, an ATC finding or exemption, or a classic API inside RAP. It holds the decision
   rules only: for a package-wide Level A-D audit use `sap-clean-core-atc`, and for release state use
-  `sap-abap-docs.sap_get_object_details` — do not duplicate either workflow here.
+  `docs.sap_get_object_details` — do not duplicate either workflow here.
 - `ponytail` carries the smallest-complete-change rule for both a bug fix and a structural change;
   when the change needs a test written first, say so in the plan rather than loading a skill for it.
 - `sapui5` only when the scope includes SAPUI5/Fiori frontend work.
@@ -165,7 +165,11 @@ There is no `tools:` key by design: the session tools picker supplies the curren
 set, so enable/disable changes take effect without editing this file. The table below is
 routing policy, not an allow-list. Whether each server is attached, callable, or overlapping
 in a given session must be observed, not asserted from this list. Choose by task, not by
-whichever tool appears first. What each may do:
+whichever tool appears first. `docs.*` below is a logical alias for the documentation MCP's tools;
+call them with the prefix this session exposes. Knowledge-source precedence is defined once in
+`docs/tool-routing.md` → `## Knowledge-source precedence`; do not restate it here.
+
+What each may do:
 
 | Server (`tools:` prefix) | What it may do |
 | --- | --- |
@@ -209,11 +213,13 @@ call them; if a task genuinely needs them, say so and stop.
 | Table data or SQL | `SAPQuery` (currently disabled), ABAP FS `abapfs_run_sql_query` | — |
 | OData metadata, entity sets, navigations | ADT MCP `abap_business_service_list` | — |
 | Release-aware object scaffold | ADT MCP `abap_objects_generator_run` | — |
-| SAP documentation, syntax, RAP/ABAP concepts | `sap-abap-docs.search`, then `sap-abap-docs.fetch(id=...)` | answering from memory; `web` before docs search |
-| Specific SAP Community error or workaround | `sap-abap-docs.sap_community_search` | broad web search before docs search |
-| ABAP feature availability by release | `sap-abap-docs.abap_feature_matrix` | assuming a feature exists from memory |
-| SAP released-object or Clean Core state | `sap-abap-docs.sap_search_objects`, `sap-abap-docs.sap_get_object_details` | treating public release data as target-system state |
-| UI5 upgrade differences | `sap-abap-docs.search` + `fetch`; `@ui5/mcp-server.get_version_info` when enabled; else `web` | `ui5_version_diff` (no configured server exposes it) |
+| SAP documentation, syntax, RAP/ABAP concepts | `docs.search`, then `docs.fetch(id=...)` | answering from memory; `web` before docs search |
+| Specific SAP Community error or workaround | `docs.sap_community_search` | broad web search before docs search |
+| ABAP feature availability by release | `docs.abap_feature_matrix` | assuming a feature exists from memory |
+| SAP released-object or Clean Core state | `docs.sap_search_objects`, `docs.sap_get_object_details` | treating public release data as target-system state |
+| Local ABAP snippet lint (documentation rules only) | `docs.abap_lint` | treating it as target-system ATC; use ADT MCP or ARC-1 for that |
+| BTP service catalog, pricing, roadmap | `docs.sap_discovery_center_search`, `docs.sap_discovery_center_service` | treating catalog data as your own subaccount state |
+| UI5 upgrade differences | `docs.search` + `docs.fetch`; `@ui5/mcp-server.get_version_info` when enabled; else `web` | `ui5_version_diff` (no configured server exposes it) |
 
 Rules:
 

@@ -17,11 +17,11 @@ stays short: it points at other files instead of restating them.
 ## Connections — measure this before trusting any scope claim
 
 **SAP connections are user-scoped, not workspace-scoped.** Opening this folder selects
-nothing and restricts nothing. Measured 2026-11-13:
+nothing and restricts nothing. Measured 2026-11-13, documentation server updated 2026-11-23:
 
 | Where | What is configured there |
 |---|---|
-| `%APPDATA%\Code\User\mcp.json` | every MCP server: `arc-1`, `adam`, `gsd-120`, `ds4-900`, plus the UI5 server (`@ui5/mcp-server`). The Fiori server is declared in the CLI config instead |
+| `%APPDATA%\Code\User\mcp.json` | every MCP server: `arc-1`, `adam`, `gsd-120`, `ds4-900`, the UI5 server (`@ui5/mcp-server`), and the public docs server (`sap-abap-docs`, added 2026-11-23). The Fiori server is declared in the CLI config instead |
 | `%APPDATA%\Code\User\settings.json` → `abapfs.remote` | every ABAP FS destination (more than one customer at a time) |
 | `%APPDATA%\Code\User\settings.json` → `adt.mcpServer.*` | the ADT MCP server and its settings |
 

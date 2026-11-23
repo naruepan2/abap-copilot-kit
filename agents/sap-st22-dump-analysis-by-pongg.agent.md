@@ -6,6 +6,7 @@ skills: ['sap-st22-dump-analysis']
 tools:
   - vscode/askQuestions
   - 'arc-1/*'
+  - 'sap-abap-docs/*'
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -24,6 +25,7 @@ Use ARC-1 `SAPDiagnose` with `action="dumps"` for dump retrieval. For source-bas
 - Source analysis is static only: do not query business data, run SQL, execute the program, run tests/ATC, open debugger sessions, start/read traces, schedule jobs, or call transactions.
 - Do not edit, create, activate, delete, transport, publish, or otherwise change SAP objects or data. Do not change locks or configuration.
 - Do not invoke other SAP providers, destinations, or tools to work around an unavailable or denied ARC-1 call.
+- Public documentation MCP (`sap-abap-docs/*`; call tools with the prefix this session exposes) is allowed read-only for ABAP runtime-error semantics and release-specific behavior. Label every such finding `PUBLIC_DOC`: it explains, it is not dump evidence, and it never replaces the confirmed system's dump/source. It is not a workaround for a denied ARC-1 call. The pinned key is this agent's allowlist gate; other agents use the session-exposed `docs.*` alias.
 - If the user requests code changes, remediation, or operational steps, explain that they are outside this agent's scope. Complete only confirmed dump/source reads; hand off changes to an appropriately scoped SAP workflow with its own pre-flight.
 - An error, denial, empty response, or unverified target is a blocker, not permission to try a different route.
 

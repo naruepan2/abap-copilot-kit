@@ -51,9 +51,10 @@ was read whole.
 | `sap_discovery_center_service` | BTP service pricing, roadmap and links | A service instance in your own subaccount |
 | `abap_lint` | Lint an ABAP snippet against documentation rules | Target-system ATC - use ADT MCP or ARC-1 |
 
-The `sap-ui5-docs` key was removed on 2026-11-23, so `ui5_version_diff` is no longer exposed by
-any configured server. For UI5 version differences use `@ui5/mcp-server.get_version_info` when
-that server is enabled, otherwise `web`.
+On 2026-11-23 the original `sap-docs` key (same mcp-sap-docs endpoint) was replaced; a short-lived
+`sap-ui5-docs` alias on that endpoint was then removed, leaving only `sap-abap-docs`. No configured
+server now exposes `ui5_version_diff`. For UI5 version differences use
+`@ui5/mcp-server.get_version_info` when that server is enabled, otherwise `web`.
 
 For Clean Core decisions, `sap_search_objects` and `sap_get_object_details` read a public release
 state repository. Treat the result as authoritative public release data, but still confirm the

@@ -1,7 +1,7 @@
 # MCP server sources — version-check basis
 
 Status: **verified from local `mcp.json`, installed package metadata and public repositories on
-2026-11-20.** Contains no credentials, hostnames, users or connection names — only server keys,
+2026-11-20; documentation-server rows updated 2026-11-23.** Contains no credentials, hostnames, users or connection names — only server keys,
 launch shapes, source URLs and version identity. Use as the input for a skill that checks and
 updates versions. Extension-owned MCP tools are deliberately excluded.
 

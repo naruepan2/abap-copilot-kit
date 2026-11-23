@@ -11,9 +11,23 @@ Do not copy that table here or into memory. A duplicated routing table becomes a
 silently stale source of truth; an earlier copy of this one rotted within two months and was
 wrong on seven points.
 
-The public `sap-abap-docs` server is documentation-only. It reaches ABAP/RAP documentation,
-SAP Community and release-state data, not an SAP system. Its usage and tool limits are in
-`docs/reference/sap-docs-mcp.md`; its task rows stay in the agent table.
+## Knowledge-source precedence
+
+This is the single home for the rule. Agent files point here; do not copy the table into them.
+`docs.*` below is a *logical alias* for tools on the public documentation MCP (`search`, `fetch`,
+`abap_lint`, `abap_feature_matrix`, `sap_*`). It is not a callable tool prefix: invoke each tool
+with the prefix the current session exposes in its tools picker or `tools/list`.
+
+| Rank | Source | Authority | Limits |
+| --- | --- | --- | --- |
+| 1 | Live target system (ARC-1, ADT MCP, ABAP FS) | Authority for target state, source, metadata and data | Only on a confirmed system/client; a failed or denied call is a blocker |
+| 2 | Documentation MCP (`docs.*`) | Authority for public knowledge: syntax, RAP/CDS concepts, Clean ABAP, release matrix, public release state, BTP catalog | Never target state; `abap_lint` is not target ATC; public release data is a candidate, not proof |
+| 2 (UI5 only) | UI5 MCP (`@ui5/mcp-server`, when enabled) | UI5 API reference and version info | Configured but disabled in picker by default; not a target-system source |
+| 3 | `web` | Supplement for material outside the documentation corpus | Prefer `docs.*` for SAP material; name the source and date |
+| 4 | Model knowledge | Hypothesis only | Confirm against 1–3 before stating it as fact |
+
+The server key is `sap-abap-docs`; usage and tool limits are in
+`docs/reference/sap-docs-mcp.md`. Its task rows stay in the agent table.
 
 ## Why routing is needed at all
 
