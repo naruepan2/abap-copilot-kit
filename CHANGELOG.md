@@ -24,6 +24,7 @@ text that has to stay identical in three places already.
 | v0.9.5 | 2026-11-17 | Toolkit review and pre-release rollback design | `1b2e09e` |
 | v0.10.0 | 2026-11-18 | Skills for review, data and retirement; public-repo safety | `8eeb4e7` |
 | v0.11.0 | 2026-11-23 | Evidence taxonomy, one memory model, hardened delivery agent | `3e0fb85` |
+| v0.12.0 | 2026-11-23 | One docs MCP, knowledge-source precedence, audit-hardened gates | `e6880d0` |
 
 `verify-all.ps1` section 9f checks that every tag has a row and every row names a real tag.
 Add the new row in the same commit as the release notes, before creating the tag. Do not rewrite
