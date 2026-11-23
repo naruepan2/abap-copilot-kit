@@ -386,6 +386,29 @@ only after a separate approval, with a retention and review rule for the local i
 runtime state), cross-harness sharing, code generation, or any SAP mutation. Those need their own
 evidence and approval.
 
+**Run record — 2026-11-23: `INCOMPLETE` (preflight only, 0 of 24 tasks measured).** The approved run
+was attempted and stopped at the plan's §0 preconditions; every task is `SKIP`, not `FAIL`. Reasons,
+all observed in this session:
+
+1. No read-only SAP tools were attached — the session had only the public documentation MCP. The
+   required `SAPContext(impact)`, `object_state` and `SAPRead(format="editable")` calls were not
+   callable.
+2. No SAP system **and** client was confirmed by the user in this session. A destination name or a
+   folder name is not a target (plan §5); the earlier session's target is not carried forward.
+3. The human-confirmed gold set in plan §2 is still blank. Deriving expected objects from the index
+   under test is forbidden, so no scoring row was eligible.
+4. §5.10 has no built index to measure — it remains an IDEA. There is also no `index-assisted` mode
+   to run.
+
+No source-char, recall, timing or duplicate-read numbers were produced, and none were reused from
+the earlier local dry run (that results file is no longer on disk). No index was promoted, no code
+or template was added by this benchmark, and `wrong_write_authorised = 0` by absence of writes.
+
+To run for real: open a session with the three read-only SAP tool families attached, have the user
+confirm the exact target once, fill and tick the §2 gold set from the local record, build the §5.10
+index from tool-confirmed edges only, then execute both modes on the same 24 tasks with the §3 sheet
+and the §4 exit gate. A second `INCOMPLETE` without those preconditions is not a pass.
+
 ### 5.12 Approval card and disabled comment blocks — IDEA, not implemented
 
 A separate copy of this idea is on the Desktop as `coedit-approval-comment-block-design.md`.

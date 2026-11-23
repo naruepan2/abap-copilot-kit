@@ -146,7 +146,7 @@ These are not from the four external sources; they are carried forward so they a
 
 | Item | Status | Reference |
 |---|---|---|
-| Formal local-index benchmark with a blind agent; current state is dry-run plus guardrails | `PENDING` | `docs/reference/coedit-index-benchmark-plan.md` |
+| Formal local-index benchmark with a blind agent; current state is dry-run plus guardrails | `INCOMPLETE` — preflight 2026-11-23, 0/24 tasks measured (no SAP tools, no confirmed target, blank gold set, no index to test) | `docs/reference/coedit-index-benchmark-plan.md`; verdict in `docs/reference/coedit-gap-closure.md` §5.11 |
 | `activated` hash plus `force_refresh` probe | `UNVERIFIED` | `docs/reference/coedit-gap-closure.md` |
 | Approval card + disabled comment blocks (two axes: write mode apply/blocks/save-only, activation strategy groups/selected/defer). Comment blocks are themselves writes (fresh read + hash + read-back); only `INSERT_AFTER` is uncommentable; DDLS/BDEF `//` syntax still `UNVERIFIED`. Not wired into any agent or skill, and it is a human gate, so it conflicts with Unattended — adopting it would mean an explicit attended/deferred run, never a global ask-before-fix rule. | `IDEA` — designed 2026-11-19, not implemented | `docs/reference/coedit-gap-closure.md` §5.12, `docs/reference/coedit-comment-block-syntax.md` |
 | Cross-harness ledger, graph server and T3 multi-writer | `PENDING` / not qualified | same |

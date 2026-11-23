@@ -67,7 +67,9 @@ in-flight command detector. The index narrows their candidates; it does not repl
 
 Prerequisites before any table exists: the V9.4 decision rows are overridden with a recorded reason;
 measurements follow the register's ≥5 warmups / ≥30 iterations rule; divergence, fail-closed rebuild
-and writer-busy selftests are green in `verify-all.ps1`.
+and writer-busy selftests are green in `verify-all.ps1`. The local-index benchmark is still
+`INCOMPLETE` (preflight 2026-11-23, 0/24 tasks — see `coedit-gap-closure.md` §5.11), so no measured
+basis for an index exists yet.
 
 | Table | Trigger |
 |---|---|
