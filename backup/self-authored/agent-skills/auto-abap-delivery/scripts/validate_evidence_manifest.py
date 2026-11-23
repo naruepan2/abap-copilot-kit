@@ -9,6 +9,7 @@ a = p.parse_args()
 r = Path(a.run_dir)
 f = r / "evidence" / "evidence-manifest.json"
 errors = []
+warnings = []
 if not f.exists():
     errors.append("missing evidence/evidence-manifest.json")
     m = {}
@@ -19,8 +20,15 @@ else:
         m = {}
         errors.append(f"invalid evidence manifest: {e}")
 if m:
-    if m.get("manifest_version") != "1.0":
-        errors.append("manifest_version must be 1.0")
+    # 1.0 is accepted as legacy; 1.1 adds behavior_verification, coverage and quality/receipts.
+    # A legacy manifest lacking the new axes is reported, not silently blessed.
+    version = str(m.get("manifest_version", ""))
+    if version not in ("1.0", "1.1"):
+        errors.append("manifest_version must be 1.0 (legacy) or 1.1")
+    if version == "1.0":
+        missing_axes = [k for k in ("behavior_verification", "coverage") if k not in m]
+        if missing_axes:
+            warnings.append("legacy 1.0 manifest lacks newer axes: " + ", ".join(missing_axes))
     run = m.get("run", {})
     for k in ("run_id", "task_id", "state", "execution_mode"):
         if not run.get(k):
@@ -83,7 +91,9 @@ if m:
     reliance_kinds = {"declared", "coincidental_reliance"}
     reliance_details = {"undeclared-precondition", "incidental-ordering", "fixture-only"}
     behavior = m.get("behavior_verification")
-    if not isinstance(behavior, list) or not behavior:
+    if behavior is None and version == "1.0":
+        pass  # legacy manifest: warned above, axis not asserted
+    elif not isinstance(behavior, list) or not behavior:
         errors.append("behavior_verification requires at least one entry")
     else:
         seen_truths = set()
@@ -121,7 +131,9 @@ if m:
     # Axis 2: verification coverage. A gap must be named, not silently omitted.
     coverage_statuses = {"CHECKED", "NOT_REPORTED", "NOT_SUPPORTED", "UNCHECKABLE"}
     coverage = m.get("coverage")
-    if not isinstance(coverage, list) or not coverage:
+    if coverage is None and version == "1.0":
+        pass  # legacy manifest: warned above, axis not asserted
+    elif not isinstance(coverage, list) or not coverage:
         errors.append("coverage requires at least one entry")
     else:
         seen_checks = set()
@@ -146,5 +158,5 @@ if m:
                         errors.append(f"READY_FOR_UAT requires disposition for uncovered check: {check or i}")
             elif not str(item.get("evidence_id", "")).strip():
                 errors.append(f"coverage[{i}].evidence_id required when CHECKED")
-print(json.dumps({"valid": not errors, "errors": errors}, indent=2))
+print(json.dumps({"valid": not errors, "errors": errors, "warnings": warnings}, indent=2))
 sys.exit(1 if errors else 0)

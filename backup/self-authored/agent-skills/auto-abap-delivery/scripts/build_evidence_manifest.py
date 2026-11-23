@@ -21,7 +21,7 @@ r = Path(a.run_dir)
 s = json.loads((r / "run-state.json").read_text(encoding="utf-8-sig"))
 ip = s.get("interaction_policy", {})
 manifest = {
-    "manifest_version": "1.0",
+    "manifest_version": "1.1",
     "generated_at": datetime.now(timezone.utc).isoformat(),
     "run": {
         "run_id": s.get("run_id"),
