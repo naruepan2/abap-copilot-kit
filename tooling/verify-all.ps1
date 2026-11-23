@@ -1054,7 +1054,28 @@ else {
     }
     else {
         Write-Output ('  OK      ' + $gateOut.Trim())
-        Ran 'write-gate' 6
+        Ran 'write-gate' 7
+    }
+}
+
+Line '5e. Command-intent ledger survives restart without blind replay'
+# Measured 2026-11-23: init_run.py creates command-log.jsonl empty and validate_run.py only checks
+# that it exists. reconcile_run.py needs caller-supplied hashes, so "action sent, outcome unknown"
+# cannot be distinguished from "never sent" after a crash. The detector is JSONL-first by decision;
+# no SQLite, migration or second source of truth is introduced.
+$intentPy = Join-Path $env:USERPROFILE '.agents\skills\auto-abap-delivery\scripts\command_intent.py'
+if (-not $pyCmd) { Skip 'python not on PATH - the command ledger cannot be exercised' }
+elseif (-not (Test-Path $intentPy)) { Skip 'command_intent.py not found - nothing to exercise' }
+else {
+    $intentOut = ''
+    try { $intentOut = ((& $pyCmd.Source $intentPy selftest) -join '') } catch { $intentOut = '' }
+    if ($intentOut -notmatch 'selftest OK') {
+        Write-Output ('  ISSUE   command-intent ledger self-test failed: ' + $intentOut.Trim())
+        Note 'ISSUE' 1
+    }
+    else {
+        Write-Output ('  OK      ' + $intentOut.Trim())
+        Ran 'command-ledger' 6
     }
 }
 

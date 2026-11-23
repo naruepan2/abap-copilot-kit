@@ -39,6 +39,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `docs/auto-abap-delivery/` | Evidence copy of the V8 package (idea, merge guide, install) and the read-only inspection record; not an installed implementation |
 | `skills/kit-backup/` | User-invoked snapshot/verify/restore for self-authored agents and skills into `backup/self-authored/` |
 | `docs/reference/coedit-gap-closure.md` | Decision record: close co-edit gaps by fail-closed writes, not detection; conflicts, plan, deferred items and unverified checks |
+| `docs/reference/derived-index-design.md` | Future option only: safe shape of a disposable SQLite locator index; triggers, rebuild and fail-closed rules |
 | `config-templates/` | `mcp.json.template` (VS Code), `mcp-config.template.json` (Copilot CLI), `settings.json.template` and ARC-1 skeletons: `arc1.env.template`, `arc1-connections.template.json` |
 | `memory-templates/` | Seed for user memory |
 | `templates/` | `project.yaml`, `project-README.md`, `program.yaml`, `program-README.md`, `spec.md`, `spec-INDEX.md`, `spec-NOTES.md`, `changes.md`, `plan.md` (copy as `plan-<task>.md`), `sandbox.yaml.template` (idea only — see `docs/reference/coedit-gap-closure.md`) |
