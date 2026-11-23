@@ -35,6 +35,12 @@ Status values: **adopted** (active in a named file), **rejected** (deliberately 
 | opencode-mem | Tool evidence in a note is bounded and partial | **adopted in this consolidation** | `skills/capture-lesson/SKILL.md` | One sentence: state what was omitted; summary is not a verifier of the whole run. |
 | opencode-mem | `pinned` / `supersede` / recoverable trash / schemaVersion reject | deferred | `docs/reference/improvement-register.md` | Human promotion exists; add vocabulary only when contradictions actually appear. |
 | opencode-mem | Vector database, auto-capture on idle, profile learning, dreaming, web UI | rejected | — | User's explicit no-vector decision, scale mismatch, background LLM calls. |
+| V9.4 design | SQLite as authoritative local run state (`.abap-agent/memory.db`) | deferred | `docs/reference/improvement-register.md` §V9.4 | One writer, two program records, no notes. Needs a divergence detector, fenced writer and a measured recovery failure first. A DB is a storage form, not a new authority: SAP and the approved run contract stay authority. |
+| V9.4 design | `knowledge_notes` table indexing reviewed Markdown notes | rejected as a retrieval source (deferred as a derived index) | same | Would duplicate `agent_context`, freshness and `instructional_authority` into a second store. `context-pack.ps1` reads frontmatter fresh; a stale DB row could bypass the note skip/warn gate. |
+| V9.4 design | SQL `CHECK (instructional_authority = 0)` | deferred | same | The rule is already declarative in the note schema and enforced at the only retrieval path. A CHECK on a derived row gives false assurance if Markdown is canonical. |
+| V9.4 design | Command-intent / unreconciled-command ledger | adopted as a scoped next step (JSONL-first) | existing `command-log.jsonl` + `reconcile_run.py`; `improvement-register.md` §V9.4 | The only genuinely new capability: durable "what was in flight" after a crash. Extend the existing log; promote to SQL only if the query becomes slow. |
+| V9.4 design | Numeric retrieval budgets, FTS5, dual Python/Node adapter, 8 migrations, 76 tests, 1M-row benchmarks | deferred | `docs/reference/improvement-register.md` §V9.4 | Same scale triggers already used for L0/L1/L2 and the local-index benchmark; the partial harness smoke run does not meet the design's own measurement rules. |
+| V9.4 design | Future PostgreSQL + pgvector shared team platform | rejected (reconfirmed) | — | Reopens the closed no-vector / no-multi-writer decision. |
 
 ## Vocabulary map
 

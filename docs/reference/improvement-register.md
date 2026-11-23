@@ -38,6 +38,7 @@ gate result.
 | GSD Core (`gsd-core-next`) | Meta-prompting / spec-driven phase loop with fresh-context subagents; `@opengsd/gsd-core` v1.23.0 | MIT | 2026-11-23 | README, context-engineering explanation, ADR-22 drift guard, ADR-1671 size budget, `gsd-verifier.md`, out-of-scope temporal-context read in full; test names used as signal across the large test tree |
 | OpenViking (`OpenViking-main`) | Context database for agents; virtual filesystem, L0/L1/L2 layers, retrieval and session memory | **AGPLv3** | 2026-11-23 | README, concept docs 03 (context layers), 07 (retrieval), 08 (session) read in full; implementation tree (~6k files) not read wholesale |
 | `opencode-mem` (`tickernelz/opencode-mem`) | Persistent-memory plugin for coding agents; Turso/libSQL + vectors, markdown vault backend, capture/hygiene/redaction rules | MIT | 2026-11-23 | README read in full from GitHub; vector/embedding infrastructure deliberately excluded from consideration |
+| V9.4 Embedded SQL Memory Layer | Local experimental design: 1,080-line master + 58-line test-traceability addendum + a partial local benchmark harness | local design, provenance not asserted | 2026-11-23 | Both documents read in full; harness files and smoke result inspected by the analysis teams. No V9.4 machinery was implemented or promoted. |
 
 License consequence: ideas from MIT sources may be re-implemented freely; **do not copy OpenViking
 code**. Re-express the idea in our own words, as with the other sources.
@@ -118,6 +119,27 @@ learning, Turso/libSQL, embeddings, dreaming and web UI are out of scope.
 Not imported: local vector search, Turso shards, auto-capture on idle, profile learning, dreaming
 consolidation via LLM, web UI, API tokens. Scale and the user's explicit no-vector decision.
 
+## Reviewed from V9.4 Embedded SQL Memory Layer (2026-11-23)
+
+Five read-only analysis teams (idea, memory, delivery, safety, scale) reviewed the design. Verdict:
+**keep experimental, revise rather than redesign.** Most of its ideas are existing kit rules in SQL
+form; its 8 migrations, 76 tests and 1M-row benchmark profiles are sized for a multi-user platform,
+while this kit has one writer, two program records and no agent-context notes. Full decision
+rationale is in [`../memory-decisions.md`](../memory-decisions.md).
+
+| Idea | Status | Why / next step |
+|---|---|---|
+| Unreconciled command-intent ledger (`command_id`, status enum, partial index) for restart recovery | `PENDING` — JSONL-first | Genuinely new: after a crash we cannot tell "action sent, outcome unknown" from "never sent"; today `command-log.jsonl` is created empty and `reconcile_run.py` needs caller-supplied hashes. Extend the existing JSONL log + a read-only detector; no DB, migrations or FTS. |
+| SQLite as authoritative run state, `.abap-agent/memory.db` at project root | `DEFERRED` | Only a store form, not new semantics. Requires a Markdown↔index divergence detector, fail-closed rebuild and a fenced single writer first. Recorded scale trigger: a real recovery failure or measured query cost, not the design's SLO table. |
+| `knowledge_notes` table as an index of reviewed notes | `DEFERRED` | Would create a second source of truth for `agent_context`, freshness and `instructional_authority`; `context-pack.ps1` parses frontmatter fresh and has nothing to diverge today. Revisit only when a real note corpus exists and divergence detection is implemented. |
+| Numeric retrieval budgets (200/50/12 notes, 120 KB) and FTS5 ranking | `DEFERRED` | ~220× the measured ~540-token pack; same reason L0/L1/L2 was deferred. FTS only after the design's own trigger (>5,000 notes or 25,000 chunks). |
+| Schema-enforced `instructional_authority = 0` SQL CHECK | `DEFERRED` | Redundant while Markdown is canonical and `context-pack.ps1` skips such notes. Keep as an invariant only if a DB becomes a retrieval source. |
+| Evidence metadata fields `source_hash`, `spec_hash`, `tool_profile_hash`, `expires_at` | `DEFERRED` | Evidence manifest 1.1 already has per-artifact SHA-256, behavior/coverage axes and freshness prose. Add fields only after a freshness incident. |
+| Python writer + Node read-only dual adapter, migration checksum chain, 76-test matrix, 1M-row benchmark profiles | `DEFERRED` | Scale mismatch and unmet prerequisites: the local harness has 1 SQL file, 8 tables and one smoke run; its config uses 2 warmups/5 iterations against a required ≥5/≥30. |
+| Future PostgreSQL + pgvector "shared team platform" | `REJECTED` (reconfirmed) | Reopens the decision already closed by the explicit no-vector and no-multi-writer policy; multi-writer is `PENDING / not qualified` in the register. |
+| Commit "sanitized evidence summaries" containing `system_id`, client, `file_path`, hashes | `REJECTED` | Would commit exactly the identifier join that §9c of `verify-all.ps1` exists to prevent. Only schema DDL with placeholders and synthetic benchmark config may be tracked. |
+| `OWNER_ACTION_REQUIRED` as a blocking status, or owner approval for migrations during a run | `DEFERRED` with constraint | If ever implemented, define it as a terminal handoff for a genuine decision boundary only, and restrict migrations to initialization. A mid-run gate would break Unattended's "approve once, run to gate" contract. The separate approval-card design stays `IDEA` and is not imported here. |
+
 ## Open items from earlier work (still valid)
 
 These are not from the four external sources; they are carried forward so they are not lost.
@@ -126,6 +148,7 @@ These are not from the four external sources; they are carried forward so they a
 |---|---|---|
 | Formal local-index benchmark with a blind agent; current state is dry-run plus guardrails | `PENDING` | `docs/reference/coedit-index-benchmark-plan.md` |
 | `activated` hash plus `force_refresh` probe | `UNVERIFIED` | `docs/reference/coedit-gap-closure.md` |
+| Approval card + disabled comment blocks (two axes: write mode apply/blocks/save-only, activation strategy groups/selected/defer). Comment blocks are themselves writes (fresh read + hash + read-back); only `INSERT_AFTER` is uncommentable; DDLS/BDEF `//` syntax still `UNVERIFIED`. Not wired into any agent or skill, and it is a human gate, so it conflicts with Unattended — adopting it would mean an explicit attended/deferred run, never a global ask-before-fix rule. | `IDEA` — designed 2026-11-19, not implemented | `docs/reference/coedit-gap-closure.md` §5.12, `docs/reference/coedit-comment-block-syntax.md` |
 | Cross-harness ledger, graph server and T3 multi-writer | `PENDING` / not qualified | same |
 | `agents/abap-developer-by-pongg.agent.md` mojibake reported by git diff | `RESOLVED` | Bytes were verified `E2 80 94` (valid UTF-8 em dash) in working tree and live profile; the mojibake was a PowerShell pipe display artifact, not file corruption. The diff is a real tools-unpin plus Fast-path addition and is safe to commit. |
 

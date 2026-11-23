@@ -11,7 +11,7 @@ UAT pack: executive summary; approved revisions; changed objects; before/after; 
 ## Post-run evidence
 
 Before `READY_FOR_UAT`, create the evidence package in the run folder: `RUN_EVIDENCE.md`,
-`evidence-manifest.yaml`, `SPEC_CONFORMANCE.md` when a spec exists, `OBJECT_VERIFICATION_MATRIX.md`,
+`evidence/evidence-manifest.json`, `SPEC_CONFORMANCE.md` when a spec exists, `OBJECT_VERIFICATION_MATRIX.md`,
 `REPOSITORY_HYGIENE.md`, `AGENT_PERFORMANCE.md`, `LEARNING_CANDIDATES.md`, and `UAT_HANDOFF.md`.
 Mark evidence mode as `specification_conformance` only when an approved spec exists; otherwise use
 `observed_run` and state that full conformance cannot be confirmed. Never create a retroactive

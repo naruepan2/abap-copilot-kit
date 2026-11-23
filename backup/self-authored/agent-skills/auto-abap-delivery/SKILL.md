@@ -64,7 +64,7 @@ Require reuse assessment for new global objects, simplicity verdict, independent
 
 ## Evidence guardrails
 
-- Before `READY_FOR_UAT`, create the minimal post-run evidence package: `RUN_EVIDENCE.md` and `evidence-manifest.yaml` in the run folder. Use `observed_run` when no approved spec exists; never invent a retroactive approved spec.
+- Before `READY_FOR_UAT`, create the minimal post-run evidence package: `RUN_EVIDENCE.md` in the run folder and `evidence/evidence-manifest.json` (built by the helper below). The JSON file, not a root-level YAML, is what `validate_evidence_manifest.py` gates. Use `observed_run` when no approved spec exists; never invent a retroactive approved spec.
 - Map owner confirmation to named checks. General confirmation never closes authorization-negative, data reconciliation, performance or service runtime.
 - Classify every test result as `ABAP_UNIT`, `SMOKE`, `INTEGRATION`, `SERVICE_RUNTIME`, `STATIC_REVIEW`, `MANUAL_OWNER_CONFIRMED` or `DIAGNOSTIC_DRIVER`. Never report a diagnostic driver as ABAP Unit.
 - Per-object check states are explicit: `PASS`, `FINDINGS`, `NOT_REPORTED`, `NOT_SUPPORTED`, `NOT_RUN`, `STALE`. Disclose every partial result; never claim solution-wide ATC or test success from partial coverage.
