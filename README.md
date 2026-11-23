@@ -30,7 +30,8 @@ INDEX.md           one-screen map of the repo and of where memory lives
 agents/            shipped developer agent and read-only specialists
 skills/            hand-written skills for routing, records, evidence and delivery
 docs/              architecture, tool routing, ownership, anti-hallucination
-docs/reference/    lookup detail: ARC-1, skills, paths, hooks, output levels
+docs/              memory model and decisions, plus architecture and ownership
+docs/reference/    lookup detail: ARC-1, skills, paths, hooks, improvement register
 config-templates/  mcp.json, settings.json, arc1.env and connections skeletons
 memory-templates/  user profile template
 templates/         project / program / spec / notes / plan templates
@@ -144,6 +145,10 @@ flowchart LR
 
 Both memory layers live outside this repository: user memory in the VS Code user data folder,
 repo memory in each workspace. Copying them here would create a second version nothing reads.
+The design is documented once in [`docs/memory-model.md`](docs/memory-model.md) with its
+adopt/reject/defer decisions in [`docs/memory-decisions.md`](docs/memory-decisions.md);
+external ideas and their status are in
+[`docs/reference/improvement-register.md`](docs/reference/improvement-register.md).
 
 Capture is a skill rather than a hook on purpose: the failure hook has not produced a ledger in
 this harness, so the loop runs while the finding is still fresh in context.

@@ -1,6 +1,6 @@
 # Self-authored backup — file manifest
 
-Snapshot: **2026-11-22.** Source paths use `~` notation, not machine-specific absolute paths.
+Snapshot: **2026-11-23.** Source paths use `~` notation, not machine-specific absolute paths.
 Live copies are authoritative. Restore only when the live copy is gone. Never edit the snapshot to change behaviour.
 
 ## Snapshot contents
