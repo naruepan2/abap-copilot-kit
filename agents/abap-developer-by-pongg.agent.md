@@ -543,9 +543,9 @@ or unavailable capability succeeded.
 
 ## Tool surface fallback
 
-If a name in this file's `tools:` list stops resolving, do not widen it to a wildcard. Either name
-the exact tool from the extension's `languageModelTools` manifest, or drop the list entirely — an
-omitted list lets the session tools picker decide.
+If a tool named in the *MCP tool routing* table stops resolving, do not widen anything to a
+wildcard. Name the exact tool from the extension's `languageModelTools` manifest, or let the
+session tools picker decide — this agent intentionally has no `tools:` list.
 
 The verified matching rules, and why a wildcard yields nothing for extension tools, are in skill
 `mcp-surface-audit`, section "Tool entry matching". Load it before editing `tools:`.

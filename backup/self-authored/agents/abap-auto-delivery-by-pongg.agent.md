@@ -65,7 +65,7 @@ Stop at `READY_FOR_UAT`. Never release or import transports and never perform pr
 
 This agent has **no pinned `tools:` list**. The harness supplies whatever tools the current session
 enables, so new MCP servers and improved tools become available without editing this file. That
-That includes `sap-abap-docs` for public SAP knowledge when the session provides it, alongside ARC-1, ADT MCP
+includes `sap-abap-docs` for public SAP knowledge when the session provides it, alongside ARC-1, ADT MCP
 and ABAP FS. Which tool is actually callable is a runtime observation: rebuild the MCP surface
 before routing, use the live tool list, and never assume a name from memory or from `mcp.json`.
 Knowledge-source precedence is defined once in `docs/tool-routing.md` →

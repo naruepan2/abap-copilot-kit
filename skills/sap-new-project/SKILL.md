@@ -16,7 +16,7 @@ Skip anything the user already stated. Restate known values, ask only what is mi
 validate each answer before the next question. Use options rather than free prose. Match the
 user's language.
 
-- **Project code** — exact characters as typed. `LUF`, `LuF` and `luf` are different names.
+- **Project code** — exact characters as typed. `ABC`, `Abc` and `abc` are different names.
   Do not uppercase, lowercase or "fix" it. Check `Projects/README.md` and the folder names;
   if a folder with that exact name exists, stop and tell the user to load skill `sap-new-program`.
 - **SID, code client, test client, language** — ask the user. If unknown, leave the field blank.

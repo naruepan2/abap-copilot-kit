@@ -1037,6 +1037,27 @@ else {
     Note 'ISSUE' $wrong
 }
 
+Line '5d. Delivery write gate covers repository paths and the deny shape'
+# Measured 2026-11-23: the PreToolUse gate inspected object-name fields only, so `filePath` on a
+# create_file/edit call bypassed the namespace check while the agent claimed it was enforced.
+# Its six-case self-test also checks that a denial carries the top-level permissionDecision.
+$gatePy = Join-Path $REPO 'tooling\aad_write_gate.py'
+$pyCmd = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pyCmd) { Skip 'python not on PATH - the write gate cannot be exercised' }
+elseif (-not (Test-Path $gatePy)) { Skip 'aad_write_gate.py not found - nothing to exercise' }
+else {
+    $gateOut = ''
+    try { $gateOut = ((& $pyCmd.Source $gatePy --selftest) -join '') } catch { $gateOut = '' }
+    if ($gateOut -notmatch 'selftest OK') {
+        Write-Output ('  ISSUE   delivery write gate self-test failed: ' + $gateOut.Trim())
+        Note 'ISSUE' 1
+    }
+    else {
+        Write-Output ('  OK      ' + $gateOut.Trim())
+        Ran 'write-gate' 6
+    }
+}
+
 Line '6. Repo memory: does it duplicate the agent?'
 $rmN = 0; $rmMirror = 0
 if (-not $awsOk) {
@@ -1942,6 +1963,8 @@ Line '9c. A doc may not name an identifier it is supposed to keep out'
 # The rule this section enforces is narrower than "no identifiers", because the server labels are a
 # legitimate part of an MCP config and renaming them breaks the launcher wiring. What is forbidden is
 # an identifier JOINED to the thing that makes it customer data: a client number, a host, or a user.
+# Hardened 2026-11-23: a client number anywhere in a file that names a label is a join, even when the
+# two are on different lines; "clients" (plural) counts as well as "client".
 $labels = @('gsd-110', 'gsd-120', 'ds4-900')
 $clientJoined = 0
 $labelFiles = 0
@@ -1967,14 +1990,21 @@ if ($repoOk) {
         $named = $false
         foreach ($lb in $labels) { if ($lt.IndexOf($lb, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $named = $true } }
         if ($named) { $labelFiles++ }
-        # The join is the defect: a label on the same line as a client number or a real host.
+        # Client join: label anywhere in the file + a client number anywhere in the file.
+        $clientLines = @($lt -split "`r?`n" | Where-Object { $_ -match '(?i)\bclients?\s*[:=]?\s*\d{2,3}\b' })
+        if ($named -and $clientLines.Count -gt 0) {
+            $clientJoined++
+            Write-Output ("  ISSUE   " + $rel + " joins a server label to a client number")
+            foreach ($cl in $clientLines) { Write-Output ("          " + $cl.Trim()) }
+        }
+        # Host join: keep the same-line rule, because a URL elsewhere in the file is normal prose.
         foreach ($line in ($lt -split "`r?`n")) {
             $hasLabel = $false
             foreach ($lb in $labels) { if ($line.IndexOf($lb, [StringComparison]::OrdinalIgnoreCase) -ge 0) { $hasLabel = $true } }
             if (-not $hasLabel) { continue }
-            if ($line -match '(?i)client\s*[:=]?\s*\d{2,3}' -or $line -match '(?i)https?://[a-z0-9.-]+\.(com|net|local|corp|cloud|internal)') {
+            if ($line -match '(?i)https?://[a-z0-9.-]+\.(com|net|local|corp|cloud|internal)') {
                 $clientJoined++
-                Write-Output ("  ISSUE   " + $rel + " joins a server label to a client or host: " + $line.Trim())
+                Write-Output ("  ISSUE   " + $rel + " joins a server label to a host: " + $line.Trim())
             }
         }
     }
@@ -1987,6 +2017,25 @@ if ($repoOk) {
     }
     Ran 'labels' $labelScanned
     Note 'ISSUE' $clientJoined
+    # Self-test the two shapes the old regex missed: plural "clients" and a number on another line.
+    # Build the digits at runtime so this gate does not flag its own test fixture.
+    $stA = '1' + '20'
+    $stB = '9' + '00'
+    $joinProbe = @(
+        "destinations GSD DEV / LUF DS4 DEV, clients $stA / $stB",
+        "external debugger, client $stA",
+        'SAP_CLIENT: {{SAP_CLIENT}}'
+    )
+    $joinHits = @($joinProbe | Where-Object { $_ -match '(?i)\bclients?\s*[:=]?\s*\d{2,3}\b' })
+    if ($joinHits.Count -ne 2) { Write-Output '  ISSUE   identifier-join self-test failed - the client detector cannot be trusted'; Note 'ISSUE' 1 }
+    else {
+        # Also exercise the file-level branch: label on line 1, client number on line 2.
+        $probeText = "server label gsd-120`nclient $stA"
+        $probeNamed = $probeText -match '(?i)gsd-110|gsd-120|ds4-900'
+        $probeLines = @($probeText -split "`r?`n" | Where-Object { $_ -match '(?i)\bclients?\s*[:=]?\s*\d{2,3}\b' })
+        if (-not ($probeNamed -and $probeLines.Count -eq 1)) { Write-Output '  ISSUE   file-level identifier-join self-test failed'; Note 'ISSUE' 1 }
+        else { Write-Output '  self-test: catches singular/plural clients and cross-line joins, ignores a placeholder' }
+    }
 }
 else {
     Write-Output '  SKIP    kit repository not found (set $env:ABAP_KIT_ROOT)'

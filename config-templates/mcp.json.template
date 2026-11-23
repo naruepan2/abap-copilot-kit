@@ -18,19 +18,19 @@
     }
   ],
   "servers": {
-    // ARC-1 — intent-based ADT server. Read-only by default; each capability is a
-    // separate positive opt-in. Do not write a tool count here: it drifts between
-    // releases and a stale number is worse than none.
+    // ARC-1 — intent-based ADT server. Start it through the local launcher: it resolves the
+    // connection (URL, client, user) from arc1-connections.json and the password from Windows
+    // Credential Manager. Do NOT put SAP_URL/SAP_USER/SAP_PASSWORD here — a second logon then needs
+    // no config edit. Absolute powershell.exe path matters: a bare "powershell" fails on a trimmed PATH.
     "arc-1": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "arc-1@latest"],
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "C:\\Users\\<you>\\.copilot\\state\\sap-arc1-launcher.ps1",
+        "-Connection", "<connection name from arc1-connections.json>"
+      ],
       "env": {
-        "SAP_URL": "https://{{SAP_HOST}}:{{SAP_PORT}}",
-        "SAP_USER": "{{SAP_USER}}",
-        "SAP_PASSWORD": "${input:sap-password}",
-        "SAP_CLIENT": "{{SAP_CLIENT}}",
-        "SAP_LANGUAGE": "EN",
         "SAP_INSECURE": "false",
         "NODE_EXTRA_CA_CERTS": "{{CA_BUNDLE_PATH}}",
         "SAP_ALLOW_WRITES": "true",

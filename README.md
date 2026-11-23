@@ -49,9 +49,10 @@ Projects/          local notebook, gitignored, mirrored to a private repository
 profile's `mcp.json`; ABAP FS and ADT endpoints live in the user `settings.json`. Opening a folder
 changes nothing — several systems can be reachable at the same time.
 
-Profiles matter: the default profile's `mcp.json` is not inherited by a profile that has none of its
-own. If a server disappears from the picker, check the active profile's MCP configuration, then
-reload the window and start a new chat before declaring it broken.
+Profiles matter: a profile without its own `mcp.json` inherits the default one **only when**
+`useDefaultFlags.mcp` is `true` for that profile (both current profiles have it `true`). If a server
+disappears from the picker, check that flag and the active profile's MCP configuration, then reload
+the window and start a new chat before declaring it broken.
 
 A folder named after a project is a label, not a fence. Say the system and client out loud before
 reading or writing anything. A workspace `.mcp.json` would pin them down, but that means copying

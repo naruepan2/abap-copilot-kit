@@ -67,7 +67,8 @@ draft with `confidence: low` is never loaded into a context pack.
 
 ## Clean Core note
 
-Do not hardcode A–D definitions from memory. Use `docs.sap_get_object_details` (public documentation MCP; session-exposed prefix) and record the
+Do not hardcode A–D definitions from memory. Use the `docs.*` logical alias for the public
+documentation MCP (call it with the session-exposed prefix) and record the
 object, clean core level, release state and source in the note. Unknown means `n/a` plus
 `verified_on_system: false`.
 

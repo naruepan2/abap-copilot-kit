@@ -21,7 +21,7 @@ Hard rules:
 ## 1. Resolve the target from the filesystem
 
 Read `Projects/README.md`, then match the folder names exactly. Project and program codes are
-case-sensitive. `LUF`, `LuF`, and `luf` are three different names; never "correct" the case.
+case-sensitive. `ABC`, `Abc`, and `abc` are three different names; never "correct" the case.
 
 If the user's message is ambiguous, ask again before any read beyond the folder listing:
 

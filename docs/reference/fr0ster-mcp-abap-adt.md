@@ -21,8 +21,8 @@ configs and manifests, so treat them as declared, not as a verified live catalog
 | Server / source | Tools seen | Posture |
 |---|---|---|
 | `arc-1` (mcp.json) | `SAPRead`, `SAPSearch`, `SAPContext`, `SAPWrite`, `SAPActivate`, `SAPDiagnose`, `SAPQuery`, `SAPTransport`, `SAPGit`, `SAPLint`, `SAPManage` | writes on, transport writes on, packages `$TMP,Z*,Y*`; data preview and free SQL **off since 2026-11-18** |
-| `adam` (mcp.json) | `abap_debug`, `abap_debug_session`, `abap_source`, `abap_search`, `abap_breakpoints` | external debugger, client 120 |
-| `gsd-120` / `ds4-900` (mcp.json) | ADT tools via `adt-mcp-server/*` | destinations `GSD … DEV` / `LUF DS4 DEV`, clients 120 / 900 |
+| `adam` (mcp.json) | `abap_debug`, `abap_debug_session`, `abap_source`, `abap_search`, `abap_breakpoints` | external debugger, one locally configured client |
+| `gsd-120` / `ds4-900` (mcp.json) | ADT tools via `adt-mcp-server/*` | two destination-scoped toolkit servers, one client each (values in local config) |
 | ABAP Remote FS (extension) | `abapfs_get_object_source`, `abapfs_search_objects`, `abapfs_search_object_source`, `abapfs_run_atc_analysis`, `abapfs_run_sql_query`, `abapfs_analyze_dumps`, `abapfs_analyze_traces`, `abapfs_get_version_history`, debugger tools | 13 named tools allowed in the agent |
 | `sap-docs` (mcp.json, HTTP) | `search`, `fetch`, `abap_feature_matrix`, `sap_search_objects`, `ui5_version_diff` | documentation only, no SAP system data |
 

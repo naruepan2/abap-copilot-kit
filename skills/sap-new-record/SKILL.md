@@ -29,7 +29,7 @@ question about where an object lives. Record growth without work is noise.
 | a record already exists | no new record | read it and continue with the task |
 
 If the project code is ambiguous, resolve it **before** delegating. Codes are case-sensitive:
-`LUF`, `LuF` and `luf` are three different names. Read `Projects/README.md` and the folder names
+`ABC`, `Abc` and `abc` are three different names. Read `Projects/README.md` and the folder names
 as written; never silently "correct" the case. If no project matches exactly, offer the user two
 choices: re-check the spelling, or load skill `sap-new-project` to register that exact code first.
 Do not pick a near-match.

@@ -17,7 +17,7 @@ spec contract.
 A program cannot exist without a project. Resolve it **before any other question or SAP call**.
 
 - If the code came from the user or the session, restate it **exactly as typed** for confirmation.
-  `LUF`, `LuF` and `luf` are three different names. Never change the case silently.
+  `ABC`, `Abc` and `abc` are three different names. Never change the case silently.
 - If it is not known, ask the user directly. Do not infer it from the object name, a recent
   conversation, or a folder listing.
 - If several projects exist, read `Projects/README.md` (not a recursive scan) and offer the
