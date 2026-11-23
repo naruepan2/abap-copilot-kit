@@ -67,7 +67,7 @@ draft with `confidence: low` is never loaded into a context pack.
 
 ## Clean Core note
 
-Do not hardcode A–D definitions from memory. Use `sap-docs.sap_get_object_details` and record the
+Do not hardcode A–D definitions from memory. Use `sap-abap-docs.sap_get_object_details` and record the
 object, clean core level, release state and source in the note. Unknown means `n/a` plus
 `verified_on_system: false`.
 

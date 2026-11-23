@@ -20,7 +20,7 @@ scope: ADT MCP (`adt-mcp-server/*`) and ABAP Remote FS (`murbani.vscode-abap-rem
 | `<destination-B>` | stdio via `sap-ai-dev` (one destination) | same as above | same installed package `0.9.9928` — two entries, one version |
 | `adam` | `npx -y --allow-git=root github:ClementRingot/ADAM` | https://github.com/ClementRingot/ADAM | **not pinned locally** — GitHub latest release `v0.0.3` (published 2026-11-02) at check time; `npx` still resolves at run time |
 | `@ui5/mcp-server` | `npx -y @ui5/mcp-server` | https://github.com/UI5/mcp-server | npm registry latest `0.3.3` at check time; config has no version pin |
-| `sap-docs` | streamable HTTP to a public hosted endpoint | https://github.com/marianfoo/mcp-sap-docs | upstream release `v0.3.65` latest at check time; hosted deployment version not queried here |
+| `sap-abap-docs` | streamable HTTP, `abap` variant, public hosted endpoint | https://github.com/marianfoo/mcp-sap-docs | upstream release `v0.3.65` at check time; hosted deployment `0.3.67` verified 2026-11-23 |
 
 ## Evidence per row
 
@@ -28,7 +28,7 @@ scope: ADT MCP (`adt-mcp-server/*`) and ABAP Remote FS (`murbani.vscode-abap-rem
 - `sap-ai-dev-toolkit`: `package.json` `repository.url` = `git+https://github.com/grknylmz/sap-ai-dev-toolkit.git`, `homepage` points to the same repo; installed version `0.9.9928`; latest GitHub release `v0.9.9928`.
 - `adam`: the `mcp.json` command names `github:ClementRingot/ADAM` directly; no installed package version exists.
 - `@ui5/mcp-server`: npm registry `latest` metadata gives version `0.3.3`, `repository.url` = `git+https://github.com/UI5/mcp-server.git`, `homepage` = repo README. No global install; `npx -y` follows latest.
-- `sap-docs`: repo `marianfoo/mcp-sap-docs` confirmed public, description "MCP SAP Docs (Upstream)", latest release `v0.3.65`; README documents the same hosted streamable-HTTP endpoint configured in `mcp.json`. The repo is the upstream of two variants (`sap-docs`, `abap`) selected by `MCP_VARIANT`.
+- `sap-abap-docs`: repo `marianfoo/mcp-sap-docs` confirmed public, description "MCP SAP Docs (Upstream)", latest release `v0.3.65`; README documents the same hosted streamable-HTTP endpoint and the two variants selected by `MCP_VARIANT`. The configured key selects the `abap` variant; `tools/list` returned 9 tools on 2026-11-23.
 
 ## Rules for a version-check skill
 
@@ -37,7 +37,7 @@ scope: ADT MCP (`adt-mcp-server/*`) and ABAP Remote FS (`murbani.vscode-abap-rem
    with no pin — "current" means what the source/registry resolves at start time.
 2. The two `<destination-*>` entries are separate server records backed by **one installed
    package**. Check the package once; do not report two different versions.
-3. `sap-docs` is **hosted HTTP**. The upstream repo version is not proof of the deployed endpoint's
+3. `sap-abap-docs` is **hosted HTTP**. The upstream repo version is not proof of the deployed endpoint's
    version. A version claim about the running service needs a health/status check on that service.
 4. Never read or print credentials, SAP users, connection names or host details from `mcp.json` to
    derive a version. Read only the `command`, `args` shape and server key.
@@ -89,4 +89,4 @@ can be reported.
 
 - extension-contributed tools (ADT MCP, ABAP Remote FS);
 - optional companion servers shipped inside `sap-ai-dev-toolkit` but not configured here;
-- the `abap` variant of `mcp-sap-docs` (`mcp-abap.*`) — not configured in this `mcp.json`.
+- the `sap-docs` variant of `mcp-sap-docs` (`mcp-sap-docs.marianzeis.de`) — removed from `mcp.json` on 2026-11-23. It was the only configured variant exposing `ui5_version_diff`.

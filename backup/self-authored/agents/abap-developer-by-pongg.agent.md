@@ -150,7 +150,7 @@ description cannot make:
 - `clean-core-decision-gates` when the question is a Clean Core level, a wrapper around a
   non-released API, an ATC finding or exemption, or a classic API inside RAP. It holds the decision
   rules only: for a package-wide Level A-D audit use `sap-clean-core-atc`, and for release state use
-  `sap-docs.sap_get_object_details` — do not duplicate either workflow here.
+  `sap-abap-docs.sap_get_object_details` — do not duplicate either workflow here.
 - `ponytail` carries the smallest-complete-change rule for both a bug fix and a structural change;
   when the change needs a test written first, say so in the plan rather than loading a skill for it.
 - `sapui5` only when the scope includes SAPUI5/Fiori frontend work.
@@ -172,7 +172,7 @@ whichever tool appears first. What each may do:
 | ARC-1 (`arc-1`) | read and write, through one registered connection at a time |
 | SAP ADT MCP (`adt-mcp-server`) | read scope plus ATC; authorized for only some of the reachable systems |
 | ABAP Remote FS (`murbani.vscode-abap-remote-fs`) | read-only inspection: dumps, traces, version history, debugger, SQL |
-| SAP Docs (`sap-docs`) | public read-only documentation: SAP Help, SAP Community, Software Heroes, ABAP/UI5/BTP docs; no SAP system data |
+| SAP ABAP Docs (`sap-abap-docs`) | public read-only ABAP/RAP-focused documentation: ABAP Keyword Documentation, Clean ABAP guides, SAP Community, release-state data; no SAP system data |
 
 **Which system each server reaches is machine-specific, so it is not written here.** It is
 recorded in `Projects/_routing.local.md`, which is gitignored, together with which client each
@@ -209,11 +209,11 @@ call them; if a task genuinely needs them, say so and stop.
 | Table data or SQL | `SAPQuery` (currently disabled), ABAP FS `abapfs_run_sql_query` | — |
 | OData metadata, entity sets, navigations | ADT MCP `abap_business_service_list` | — |
 | Release-aware object scaffold | ADT MCP `abap_objects_generator_run` | — |
-| SAP documentation, syntax, RAP/ABAP/UI5/BTP concepts | `sap-docs.search`, then `sap-docs.fetch(id=...)` | answering from memory; `web` before docs search |
-| Specific SAP Community error or workaround | `sap-docs.sap_community_search` | broad web search before docs search |
-| ABAP feature availability by release | `sap-docs.abap_feature_matrix` | assuming a feature exists from memory |
-| SAP released-object or Clean Core state | `sap-docs.sap_search_objects`, `sap-docs.sap_get_object_details` | treating public release data as target-system state |
-| UI5 upgrade differences | `sap-docs.ui5_version_diff` | reading full release notes by hand |
+| SAP documentation, syntax, RAP/ABAP concepts | `sap-abap-docs.search`, then `sap-abap-docs.fetch(id=...)` | answering from memory; `web` before docs search |
+| Specific SAP Community error or workaround | `sap-abap-docs.sap_community_search` | broad web search before docs search |
+| ABAP feature availability by release | `sap-abap-docs.abap_feature_matrix` | assuming a feature exists from memory |
+| SAP released-object or Clean Core state | `sap-abap-docs.sap_search_objects`, `sap-abap-docs.sap_get_object_details` | treating public release data as target-system state |
+| UI5 upgrade differences | `sap-abap-docs.search` + `fetch`; `@ui5/mcp-server.get_version_info` when enabled; else `web` | `ui5_version_diff` (no configured server exposes it) |
 
 Rules:
 

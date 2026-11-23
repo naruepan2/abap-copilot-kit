@@ -24,7 +24,7 @@ Shared read-only. Keep it under one screen; it is a map, not documentation.
 | `hooks/` | Detection-only hooks: three `*.cjs` scripts plus `hooks.json.template` |
 | `docs/` | Architecture, ownership, tool routing, anti-hallucination rules |
 | `docs/reference/` | Lookup detail kept out of memory: ARC-1 layers and gotchas, TLS, skill inventory, physical paths, hook contract, detail levels |
-| `docs/reference/sap-docs-mcp.md` | How to use the public read-only `sap-docs` MCP for SAP Help, Community and Software Heroes |
+| `docs/reference/sap-docs-mcp.md` | How to use the public read-only `sap-abap-docs` MCP for ABAP/RAP docs, Community and release state |
 | `docs/reference/fr0ster-mcp-abap-adt.md` | Read-only comparison of fr0ster tool groups against the local ABAP tool surface; not installed |
 | `docs/reference/rap-state-anchor-design.md` | Design for four-layer RAP state anchors and human handoff when SAP changes outside AI; not implemented |
 | `docs/reference/memory-setup.md` | Setup detail moved out of always-on memory: paths, public-repo visibility, hook/tool-prefix facts |

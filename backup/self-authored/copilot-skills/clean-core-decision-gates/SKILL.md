@@ -15,8 +15,8 @@ Four decisions that change a design. Each rule has one home; do not repeat it in
 
 ## Boundary
 
-- Need per-object Level A-D classification for a whole package -> load installer skill `sap-clean-core-atc`. It owns the audit workflow and its ARC-1 / mcp-sap-docs calls. Do not rebuild it here.
-- Need the release state of one object -> `sap-docs.sap_get_object_details`, or `GetAPIReleaseState` when that server is in scope, per the agent's MCP routing table. Public data is a candidate, not target-system truth.
+- Need per-object Level A-D classification for a whole package -> load installer skill `sap-clean-core-atc`. It owns the audit workflow and its ARC-1 / sap-abap-docs calls. Do not rebuild it here.
+- Need the release state of one object -> `sap-abap-docs.sap_get_object_details`, or `GetAPIReleaseState` when that server is in scope, per the agent's MCP routing table. Public data is a candidate, not target-system truth.
 - Need to run ATC -> ADT MCP per the agent's tool routing. This skill interprets findings; it does not run them.
 
 ## 1. Level of an extension

@@ -68,9 +68,9 @@
 
     // Public, read-only SAP documentation. No key or login. Declare in VS Code mcp.json only;
     // do not copy the same key into ~/.copilot/mcp-config.json (see verify-all section 8b).
-    "sap-docs": {
+    "sap-abap-docs": {
       "type": "http",
-      "url": "https://mcp-sap-docs.marianzeis.de/mcp"
+      "url": "https://mcp-abap.marianzeis.de/mcp"
     }
   }
 }
