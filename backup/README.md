@@ -9,6 +9,7 @@ from here only when the live copy is gone; never edit here and expect a change i
 | Folder | What it holds | Regenerable? |
 |---|---|---|
 | `user-memory/` | the three user memory files that load into every request (refreshed 2026-11-16) | **No** — collected from sessions |
+| `20261124-reverse-engineering/` | self-authored reverse-engineering skill + Pongg agent snapshot (2026-11-24) | **No** — locally edited |
 | `../tooling/` | `verify-all.ps1`, `measure-context.ps1`, `who-locks.ps1` | No — authored |
 | `../roster.json` | the delegation allowlist | No — a human decision |
 

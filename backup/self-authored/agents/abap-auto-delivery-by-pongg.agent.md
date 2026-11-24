@@ -30,10 +30,12 @@ handoffs:
     send: false
 # Deterministic PreToolUse gate: blocks transport release/import, service publication,
 # and write targets outside Z*/Y*/$TMP/TEST_DEMO*. Fail-open on an unreadable payload.
+# The shim lives at a fixed user-level path and resolves the gate through the kit-root
+# pin, so moving/recloning the kit needs only install-kit.ps1, not an agent edit.
 hooks:
   PreToolUse:
     - type: command
-      command: 'python "D:\abap-copilot-kit\tooling\aad_write_gate.py"'
+      command: 'powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\<you>\.copilot\state\write-gate-shim.ps1"'
       timeout: 10
 # Legacy 71-tool list retained below as a comment for rollback; it is not active.
 # tools_full:

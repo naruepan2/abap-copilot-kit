@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SAP ABAP Reverse Engineering Evidence Model (extended)",
+  "description": "Structured companion to the Technical Specification and PRD. Extends the external TS/PRD kit schema with occurrence/canonical source-read separation, path registries, dependency reconciliation, and scratchpad/rendition status.",
+  "type": "object",
+  "required": ["schema_version", "solution", "architectures", "activated_modules", "evidence", "objects", "claims", "dependencies", "counts"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0.0"},
+    "solution": {
+      "type": "object",
+      "required": ["name", "scope", "root_object", "intensity_profile"],
+      "properties": {
+        "name": {"type": "string"},
+        "scope": {"type": "string"},
+        "root_object": {"type": "string", "description": "Full canonical name of the verified root"},
+        "intensity_profile": {"enum": ["FOCUSED", "COMPREHENSIVE", "MAXIMUM", "CUSTOM"]},
+        "target_system": {"type": "string", "description": "Confirmed system/client or NOT_CONFIRMED"}
+      }
+    },
+    "architectures": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Multi-label architecture classes",
+      "items": {"type": "string"}
+    },
+    "activated_modules": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "locator", "claim_class"],
+        "properties": {
+          "id": {"type": "string"},
+          "source": {"type": "string", "description": "Object/version/metadata endpoint read"},
+          "locator": {"type": "string", "description": "Line range, source position, or provider query; NOT_COLLECTED if not applicable"},
+          "excerpt": {"type": "string"},
+          "claim_class": {"enum": ["OBSERVED", "INTERPRETATION", "ASSUMPTION", "HYPOTHESIS", "UNVERIFIED_INTENT", "NOT_COLLECTED"]},
+          "provenance": {"type": "string", "description": "live read | supplied artifact | user statement | inference"}
+        }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "status", "evidence_ids"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string", "description": "Full canonical name, character-for-character"},
+          "type": {"type": "string"},
+          "layer": {"type": "string"},
+          "role": {"type": "string"},
+          "archetype": {"type": "string"},
+          "status": {"enum": ["Detected", "Expected and Detected", "Expected but Missing", "Not Applicable", "Unverified"]},
+          "read_status": {"enum": ["full", "targeted", "metadata", "not_read", "failed"]},
+          "fingerprint": {"type": "string"},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "classification", "confidence", "evidence_ids", "target_sections"],
+        "properties": {
+          "id": {"type": "string"},
+          "statement": {"type": "string"},
+          "classification": {"enum": ["OBSERVED", "INTERPRETATION", "ASSUMPTION", "HYPOTHESIS", "UNVERIFIED_INTENT", "NOT_COLLECTED"]},
+          "confidence": {"enum": ["High", "Medium", "Low"]},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}},
+          "target_sections": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "kind", "evidence_ids"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "kind": {"type": "string", "description": "SQL dependency, ABAP call, service exposure, association, enhancement, configuration, documentation"},
+          "dynamic": {"type": "boolean"},
+          "occurrence_id": {"type": "string"},
+          "path_id": {"type": "string"},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["occurrence_count", "unique_object_count", "source_read_count", "selected_scope_count"],
+      "properties": {
+        "occurrence_count": {"type": "integer"},
+        "unique_object_count": {"type": "integer"},
+        "source_read_count": {"type": "integer"},
+        "selected_scope_count": {"type": "integer"},
+        "count_status": {"enum": ["EXACT", "PARTIAL_OR_TRUNCATED", "NOT_APPLICABLE"]},
+        "root_included": {"enum": [true, false, "UNKNOWN"]}
+      },
+      "description": "Never convert occurrence counts into unique-object counts; keep source reads separate from graph size."
+    },
+    "reconciliation": {
+      "type": "object",
+      "properties": {
+        "status": {"enum": ["MATCHED", "PARTIAL", "CONFLICTED", "UNAVAILABLE", "NOT_APPLICABLE"]},
+        "artifact_provenance": {"type": "string"},
+        "artifact_format": {"type": "string"},
+        "parser_disposition": {"type": "string"},
+        "divergences": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["TECHNICAL_SPECIFICATION", "CHAT_ANALYSIS", "BOTH"]},
+        "prd_requested": {"type": "boolean"},
+        "language": {"enum": ["EN", "TH", "EN+TH"]},
+        "output_format": {"enum": ["MARKDOWN", "MARKDOWN_WORD_READY", "DOCX", "HTML"]},
+        "template_provenance": {"type": "string"},
+        "rendition_parity": {"enum": ["MATCHED", "DIVERGED", "NOT_APPLICABLE"]},
+        "scratchpad_status": {"enum": ["NOT_USED", "DELETED", "DELETE_FAILED", "RETAINED_FOR_RESUME"]}
+      }
+    }
+  }
+}

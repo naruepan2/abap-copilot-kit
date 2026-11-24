@@ -86,6 +86,8 @@ Add-Tree 'repo' 'tooling'   (Join-Path $REPO 'tooling')         '*'          'ki
 Add-Tree 'repo' 'hook'      (Join-Path $REPO 'hooks')           '*'          'kit'   'scripts, reads, mirror, subagent-gate'
 Add-Tree 'repo' 'template'  (Join-Path $REPO 'templates')       '*'          'kit'   '-'
 Add-Tree 'repo' 'config'    (Join-Path $REPO 'config-templates') '*'         'kit'   'labels, credentials'
+# Shared binary/text assets are not SKILL.md files; MANIFEST.sha256 is their integrity record.
+Add-Tree 'repo' 'asset'     (Join-Path $REPO 'reference-assets')  '*'         'kit'   '-'
 Add-Tree 'repo' 'memptpl'   (Join-Path $REPO 'memory-templates') '*'         'kit'   '-'
 Add-Tree 'repo' 'doc'       (Join-Path $REPO 'docs')            '*.md'       'kit'   '-'
 Add-Tree 'repo' 'note'      (Join-Path $REPO 'backup')          '*'          'kit'   '-'
@@ -107,6 +109,7 @@ Add-Row  'live' 'roster'  'roster.json' (Join-Path $COPILOT 'roster.json') 'mach
 
 # State: files the tools and hooks write at run time.
 Add-Row 'state' 'tooling'  'verify-all.ps1'       (Join-Path $COPILOT 'state\verify-all.ps1')       'installer' 'mirror'
+Add-Row 'state' 'tooling'  'write-gate-shim.ps1'  (Join-Path $COPILOT 'state\write-gate-shim.ps1')  'installer' 'mirror'
 Add-Row 'state' 'tooling'  'measure-context.ps1'  (Join-Path $COPILOT 'state\measure-context.ps1')  'installer' 'mirror'
 Add-Row 'state' 'tooling'  'sap-connection.ps1'   (Join-Path $COPILOT 'state\sap-connection.ps1')   'installer' 'mirror'
 Add-Row 'state' 'tooling'  'sap-secret.ps1'       (Join-Path $COPILOT 'state\sap-secret.ps1')       'installer' 'mirror'
@@ -145,7 +148,18 @@ $unused  = @($liveGates | Where-Object { $namedGates -notcontains $_ })
 # above its definition is a runtime error rather than a parse error - the kind of defect that only
 # appears on a machine whose data takes that path.
 function Get-SweepReason([string]$group, [string]$p) {
+    if ($group -eq 'live\skills') {
+        # kit-authored skill subtrees (references/, templates/, schemas/, tools/) installed by
+        # install-kit.ps1; only SKILL.md gets an inventory row, so the rest need a reason. The
+        # name is specific so an unknown skill's subtree still fails as BLIND.
+        if ($p -match '^sap-abap-reverse-engineering\\') { return 'kit-authored reverse-engineering skill content' }
+        if ($p -match '^sap-new-program\\references\\salv\\') { return 'shared SALV asset pointer in installed skill' }
+        return $null
+    }
     if ($group -eq 'live\agent-skills') {
+        # Kit-authored reverse-engineering skill copied locally by the 2026-11-24 session; it is not
+        # in .skill-lock.json, so the generic third-party reason below would be inaccurate.
+        if ($p -match '^sap-abap-reverse-engineering\\') { return 'kit-authored reverse-engineering skill (local copy)' }
         # Kit-authored evaluation fixture for auto-abap-delivery: an in-scope case and a boundary
         # case, stored beside the skill and copied into backup/self-authored. Measured 2026-11-22.
         if ($p -eq 'auto-abap-delivery\evals\evals.json') { return 'kit-authored delivery skill evals' }
@@ -162,10 +176,13 @@ function Get-SweepReason([string]$group, [string]$p) {
         # in that folder IS tracked, so it needs its own reason rather than the folder's.
         if ($p -eq 'Projects\README.md') { return 'project template README' }
         if ($p -match '^Projects\\') { return 'customer project record (gitignored by design)' }
-        # Built-in SALV template sources are additive ABAP references for sap-new-program. They
-        # are tracked files, so the sweep sees them only until git indexes them; name them here
-        # explicitly so a missing template cannot hide among BLIND rows. Measured 2026-11-22.
-        if ($p -match '^skills\\sap-new-program\\references\\salv\\.*\.abap$') { return 'bundled SALV template source' }
+        # Shared assets are tracked files outside a SKILL.md folder. Add-Tree 'repo' 'asset' names
+        # them for coverage; the sweep still sees them, so they need an explicit reason. The
+        # MANIFEST.sha256 beside them is verified by `sap-new-program`'s resolution rules.
+        if ($p -match '^reference-assets\\') { return 'shared kit asset (MANIFEST.sha256)' }
+        # Kit-authored skills own their references/, templates/, schemas/ and tools/ subtrees;
+        # Add-Tree 'repo' 'skill' above names only SKILL.md, so the rest need an explicit reason.
+        if ($p -match '^skills\\') { return 'kit-authored skill content' }
         return $null
     }
     if ($group -eq 'live\hooks') {

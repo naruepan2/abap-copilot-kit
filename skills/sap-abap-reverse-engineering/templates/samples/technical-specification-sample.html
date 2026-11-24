@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html data-theme="morning" lang="th">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technical Specification — ZC_DEMO_OPEN_ORDER_MARGIN (SAMPLE)</title>
+  <!--
+  Derived rendition of technical-specification-sample.md.
+  Structural markers follow the external kit convention so a renderer can
+  address documents/modules without touching this file's presentation layer:
+    data-doc="ts|prd"  data-lang="th|en"  data-module="core|..."
+  Only content inside these marked regions may be regenerated.
+-->
+  <style>
+    :root {
+      --ink: #16202b;
+      --muted: #5b6b7c;
+      --line: #d8e0e8;
+      --bg: #f6f8fa;
+      --card: #fff;
+      --ac: #1f5fa8;
+      --acbg: #e8f0fa;
+      --hi: #a3231b;
+      --hibg: #fdeceb;
+      --md: #8a5a00;
+      --mdbg: #fdf4e3;
+      --li: #7a3d8f;
+      --libg: #f6ecf9;
+      --hi-ink: #7a2a24;
+      --fm-ink: #2b3947;
+      --code-bg: #eef2f6;
+      --code-line: #e0e7ee;
+      --thead-ink: #123f6f;
+      --mark-bg: #ffdf72;
+      --mark-ink: #131e29;
+      --row-alt: #fafcfd;
+      --obs-bg: #e9f6ef;
+      --obs-ink: #1f6a45;
+      --obs-line: #c2e5d2;
+      --md-line: #f0ddb3;
+      --li-line: #e2cfeb;
+      --mock-bg: #eef1f4;
+      --mock-ink: #566573;
+      --mock-line: #dbe1e7;
+      --svg-node: #fff;
+      --svg-label: #16202b;
+      --svg-node-out: #e8f0fa;
+      --svg-phys: #f4f7fa;
+      --svg-phys-stroke: #8a99a8;
+      --svg-stroke: #1f5fa8;
+      --svg-edge: #5b6b7c;
+      --svg-edge-label: #6b7c8d
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      padding: 0 1rem 4rem;
+      background: var(--bg);
+      color: var(--ink);
+      font: 400 15px/1.7 "Leelawadee UI", "Tahoma", "Segoe UI", system-ui, sans-serif
+    }
+
+    .page {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      background: var(--card);
+      padding: 2.5rem 2.75rem 3rem;
+      border: 1px solid var(--line);
+      border-radius: 10px
+    }
+
+    .banner {
+      background: var(--hibg);
+      border: 1px solid #f0c3bf;
+      border-left: 5px solid var(--hi);
+      border-radius: 6px;
+      padding: .85rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: .92rem
+    }
+
+    .banner strong {
+      color: var(--hi);
+      display: block;
+      margin-bottom: .25rem;
+      letter-spacing: .03em
+    }
+
+    .banner p {
+      margin: .25rem 0 0;
+      color: var(--hi-ink)
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      line-height: 1.35;
+      margin: 0 0 .4rem
+    }
+
+    h1 .obj {
+      color: var(--ac);
+      font-family: Consolas, monospace
+    }
+
+    code {
+      background: var(--code-bg);
+      border-color: var(--code-line);
+      color: var(--ink)
+    }
+
+    thead th {
+      color: var(--thead-ink)
+    }
+
+    mark.match {
+      background: var(--mark-bg);
+      color: var(--mark-ink)
+    }
+
+    .fm {
+      border-left: 3px solid var(--ac);
+      padding: .2rem 0 .2rem .9rem;
+      margin: 0 0 1.6rem;
+      color: var(--fm-ink);
+      font-size: .94rem
+    }
+
+    .fm div {
+      margin: .15rem 0
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 1.6rem;
+      font-size: .9rem
+    }
+
+    nav.toc {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 0 0 2rem;
+      font-size: .88rem
+    }
+
+    nav.toc h2 {
+      font-size: .75rem;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 0;
+      margin: 0 0 .6rem;
+      padding: 0
+    }
+
+    nav.toc ol {
+      margin: 0;
+      padding-left: 1.1rem;
+      columns: 2;
+      column-gap: 2.5rem
+    }
+
+    nav.toc li {
+      margin: .15rem 0;
+      break-inside: avoid
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin: 2.5rem 0 .8rem;
+      padding-bottom: .4rem;
+      border-bottom: 2px solid var(--line);
+      scroll-margin-top: 1rem
+    }
+
+    h2 .n {
+      color: var(--ac);
+      margin-right: .45rem
+    }
+
+    h3 {
+      font-size: 1rem;
+      margin: 1.5rem 0 .55rem;
+      color: var(--ink)
+    }
+
+    h2 .en,
+    h3 .en {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: .82em
+    }
+
+    p {
+      margin: .7rem 0
+    }
+
+    code {
+      font-family: Consolas, monospace;
+      font-size: .88em;
+      background: var(--code-bg);
+      border: 1px solid var(--code-line);
+      color: var(--ink);
+      border-radius: 4px;
+      padding: .06em .34em
+    }
+
+    .id {
+      color: var(--ac);
+      font-family: Consolas, monospace;
+      font-size: .85em
+    }
+
+    .wrap {
+      overflow-x: auto;
+      margin: .9rem 0 1.2rem
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      min-width: 460px
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: .5rem .65rem;
+      text-align: left;
+      vertical-align: top
+    }
+
+    thead th {
+      background: var(--acbg);
+      color: var(--thead-ink);
+      white-space: nowrap
+    }
+
+    tbody tr:nth-child(even) {
+      background: var(--row-alt, #fafcfd)
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: .71rem;
+      font-weight: 700;
+      padding: .14em .5em;
+      border-radius: 3px;
+      white-space: nowrap;
+      font-family: "Segoe UI", sans-serif
+    }
+
+    .b-obs {
+      background: var(--obs-bg);
+      color: var(--obs-ink);
+      border: 1px solid var(--obs-line)
+    }
+
+    .b-int {
+      background: var(--mdbg);
+      color: var(--md);
+      border: 1px solid var(--md-line)
+    }
+
+    .b-lim {
+      background: var(--libg);
+      color: var(--li);
+      border: 1px solid var(--li-line)
+    }
+
+    .b-mock {
+      background: var(--mock-bg);
+      color: var(--mock-ink);
+      border: 1px solid var(--mock-line)
+    }
+
+    .callout {
+      border-radius: 6px;
+      padding: .8rem 1rem;
+      margin: 1.1rem 0;
+      font-size: .9rem;
+      border: 1px solid;
+      border-left-width: 5px
+    }
+
+    .callout .h {
+      font-weight: 700;
+      display: block;
+      margin-bottom: .25rem
+    }
+
+    .warn {
+      background: var(--mdbg);
+      border-color: var(--md-line);
+      border-left-color: var(--md)
+    }
+
+    .warn .h {
+      color: var(--md)
+    }
+
+    .lim {
+      background: var(--libg);
+      border-color: var(--li-line);
+      border-left-color: var(--li)
+    }
+
+    .lim .h {
+      color: var(--li)
+    }
+
+    figure.diagram {
+      margin: 1.2rem 0
+    }
+
+    figure.diagram svg {
+      display: block;
+      width: 100%;
+      height: auto
+    }
+
+    figcaption {
+      color: var(--muted);
+      font-size: .82rem;
+      margin-top: .5rem
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: .55rem .85rem;
+      margin: 1rem 0;
+      background: var(--row-alt);
+      font-size: .87rem
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--ac);
+      font-weight: 600
+    }
+
+    pre {
+      margin: .7rem 0 0;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: .75rem .9rem;
+      overflow-x: auto;
+      font-size: .83rem;
+      line-height: 1.5
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: .9rem 0;
+      font-size: .88rem
+    }
+
+    .kv>div {
+      padding: .5rem .7rem;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .kv>div:nth-child(odd) {
+      background: var(--code-bg);
+      font-weight: 600
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 2.5rem 0 0
+    }
+
+    footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .82rem
+    }
+
+    @media(max-width:720px) {
+      .page {
+        padding: 1.2rem
+      }
+
+      .fm {
+        padding-left: .6rem
+      }
+
+      nav.toc ol {
+        columns: 1
+      }
+
+      .kv {
+        grid-template-columns: 1fr
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+        font-size: 10.5pt
+      }
+
+      .page {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        max-width: none
+      }
+
+      h2 {
+        break-after: avoid
+      }
+
+      table {
+        font-size: 9pt
+      }
+
+      tr {
+        break-inside: avoid
+      }
+
+      .callout,
+      figure.diagram,
+      details {
+        break-inside: avoid
+      }
+
+      details>summary {
+        display: none
+      }
+    }
+
+    @page {
+      margin: 18mm 16mm
+    }
+  </style>
+  <!-- Lightweight kit-like shell: CSS + small JS only, no 2.8 MB Mermaid/DOMPurify bundle. -->
+  <style id="shell-style">
+    :root {
+      --shell-h: 3.25rem;
+      --side-w: 16rem;
+      --sh-bg: var(--card);
+      --sh-line: #e3e9ef;
+      --sh-ac: var(--ac);
+      --sh-muted: var(--muted);
+      --sh-sel: #e8f0fa
+    }
+
+    html[data-theme=evening] {
+      --sh-bg: #1d232a;
+      --sh-line: #2e3742;
+      --sh-ac: #4db1ff;
+      --sh-muted: #a9b4be;
+      --sh-sel: #1d2d3e
+    }
+
+    html[data-theme=evening] {
+      --ink: #eef3f8;
+      --muted: #b6c2cd;
+      --line: #3a4653;
+      --bg: #0f1419;
+      --card: #1a2129;
+      --ac: #6dbaff;
+      --acbg: #20364a;
+      --hi: #ff9d94;
+      --hibg: #3a211f;
+      --hi-ink: #ffccc7;
+      --md: #f0c46a;
+      --mdbg: #362c16;
+      --li: #d8a6ee;
+      --libg: #2f2238;
+      --fm-ink: #d8e3ee;
+      --code-bg: #222c36;
+      --code-line: #3a4653;
+      --thead-ink: #cfe6ff;
+      --mark-bg: #b8912f;
+      --mark-ink: #10161d;
+      --row-alt: #1e2730;
+      --obs-bg: #163026;
+      --obs-ink: #8fe0b4;
+      --obs-line: #2b5e45;
+      --md-line: #6a5426;
+      --li-line: #5c3e6c;
+      --mock-bg: #26313b;
+      --mock-ink: #c3ced8;
+      --mock-line: #394654;
+      --svg-node: #1a2129;
+      --svg-label: #eef3f8;
+      --svg-node-out: #20364a;
+      --svg-phys: #222c36;
+      --svg-phys-stroke: #8a99a8;
+      --svg-stroke: #6dbaff;
+      --svg-edge: #b6c2cd;
+      --svg-edge-label: #b6c2cd
+    }
+
+    :root {
+      --hi-ink: #7a2a24;
+      --fm-ink: #2b3947;
+      --code-bg: #eef2f6;
+      --code-line: #e0e7ee;
+      --thead-ink: #123f6f;
+      --mark-bg: #ffdf72;
+      --mark-ink: #131e29
+    }
+
+    body {
+      padding: calc(var(--shell-h) + 1rem) 1rem 4rem
+    }
+
+    .shellbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--shell-h);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: 0 .9rem;
+      background: var(--sh-bg);
+      border-bottom: 1px solid var(--sh-line);
+      box-shadow: 0 1px 4px rgba(34, 53, 72, .08)
+    }
+
+    .mark {
+      width: 2rem;
+      height: 2rem;
+      border-radius: .5rem;
+      background: var(--sh-ac);
+      color: #10161d;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      flex: 0 0 auto
+    }
+
+    .sh-title {
+      font-weight: 700;
+      line-height: 1.15;
+      font-size: .98rem
+    }
+
+    .sh-sub {
+      font-size: .72rem;
+      color: var(--sh-muted);
+      line-height: 1.15
+    }
+
+    .sh-grow {
+      flex: 1
+    }
+
+    .icon-btn {
+      min-width: 2rem;
+      height: 2rem;
+      border: 1px solid var(--sh-line);
+      background: transparent;
+      color: var(--ink);
+      border-radius: .45rem;
+      cursor: pointer;
+      font-size: .9rem;
+      padding: 0 .5rem
+    }
+
+    .icon-btn:hover {
+      background: var(--sh-sel)
+    }
+
+    .icon-btn:focus-visible {
+      outline: 2px solid var(--sh-ac);
+      outline-offset: 2px
+    }
+
+    .search-hint {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      margin: .3rem .2rem .55rem;
+      color: var(--sh-muted);
+      font-size: .74rem
+    }
+
+    .search-hint kbd {
+      border: 1px solid var(--sh-line);
+      border-bottom-width: 2px;
+      border-radius: .25rem;
+      background: var(--sh-bg);
+      color: var(--ink);
+      font: 600 .7rem/1.4 Consolas, monospace;
+      padding: 0 .3rem
+    }
+
+    .shellbar #navToggle {
+      display: inline-block
+    }
+
+    /* Single state on <html>: data-sidebar="open|closed".
+       Never mix a desktop class with a mobile class — that caused stale display:none. */
+    /* When closed, drop the sidebar column entirely (no 0-width column + gap),
+       so the main column never re-centers or appears to shrink. */
+    html[data-sidebar="closed"] .layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0
+    }
+
+    html[data-sidebar="closed"] aside {
+      display: none
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--side-w) minmax(0, 1fr);
+      gap: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      align-items: start
+    }
+
+    aside {
+      position: sticky;
+      top: calc(var(--shell-h) + 1rem);
+      max-height: calc(100vh - var(--shell-h) - 2rem);
+      overflow: auto;
+      background: var(--sh-bg);
+      border: 1px solid var(--sh-line);
+      border-radius: .65rem;
+      padding: .75rem;
+      overscroll-behavior: contain
+    }
+
+    aside::after {
+      content: '';
+      display: block;
+      height: 1.5rem
+    }
+
+    .seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .2rem;
+      padding: .2rem;
+      border: 1px solid var(--sh-line);
+      border-radius: .5rem;
+      margin-bottom: .8rem
+    }
+
+    .seg button {
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      border-radius: .35rem;
+      padding: .35rem;
+      font-size: .82rem;
+      cursor: pointer
+    }
+
+    .seg button.active {
+      background: var(--sh-sel);
+      color: var(--sh-ac);
+      font-weight: 700
+    }
+
+    .toc-label {
+      font-size: .72rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--sh-muted);
+      display: block;
+      margin: .3rem .2rem .45rem
+    }
+
+    #toc a {
+      display: block;
+      padding: .28rem .45rem;
+      border-radius: .35rem;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: .84rem
+    }
+
+    #toc a.sub {
+      padding-left: 1.15rem;
+      color: var(--sh-muted)
+    }
+
+    #toc a:hover,
+    #toc a.active {
+      background: var(--sh-sel);
+      color: var(--sh-ac)
+    }
+
+    #toc a.active {
+      font-weight: 700
+    }
+
+    main {
+      min-width: 0
+    }
+
+    mark.match {
+      background: var(--mark-bg);
+      color: var(--mark-ink);
+      border-radius: .15rem;
+      padding: 0 .05rem
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .scrim {
+      display: none
+    }
+
+    @media(max-width:64rem) {
+      :root {
+        --side-w: 14rem
+      }
+    }
+
+    @media(max-width:48rem) {
+      .shellbar #navToggle {
+        display: inline-block
+      }
+
+      .sh-sub {
+        display: none
+      }
+
+      .layout {
+        display: block
+      }
+
+      html[data-sidebar="closed"] .layout {
+        grid-template-columns: none
+      }
+
+      /* Override the desktop hide: on mobile the drawer uses transform, not display. */
+      html[data-sidebar="closed"] aside {
+        display: block
+      }
+
+      aside {
+        position: fixed;
+        left: 0;
+        top: var(--shell-h);
+        bottom: 0;
+        width: min(18rem, 86vw);
+        z-index: 35;
+        border-radius: 0;
+        transform: translateX(-105%);
+        transition: transform .28s
+      }
+
+      html[data-sidebar="open"] aside {
+        transform: translateX(0)
+      }
+
+      /* Visible scrim makes it clear the drawer overlays content rather than
+         shrinking it. Tap outside to close. */
+      .scrim {
+        display: block;
+        position: fixed;
+        inset: var(--shell-h) 0 0;
+        background: rgba(0, 0, 0, .32);
+        z-index: 34;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .28s
+      }
+
+      html[data-sidebar="open"] .scrim {
+        opacity: 1;
+        pointer-events: auto
+      }
+
+      html[data-sidebar="open"] body {
+        overflow: hidden
+      }
+
+      .page {
+        padding: 1rem
+      }
+    }
+
+    @media print {
+
+      .shellbar,
+      aside {
+        display: none !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="shellbar" role="banner">
+    <button id="navToggle" class="icon-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
+    <div class="mark">S</div>
+    <div>
+      <div class="sh-title" id="viewTitle">Technical Specification</div>
+      <div class="sh-sub">Evidence-based TS &amp; Product Capability · SAMPLE</div>
+    </div>
+    <div class="sh-grow"></div>
+    <button id="langToggle" class="icon-btn" aria-label="Change language" title="Language / ภาษา">TH</button>
+    <button id="theme" class="icon-btn" aria-label="Switch theme" title="Light / Dark">◐</button>
+    <button id="exportWord" class="icon-btn" aria-label="Export current document as a genuine .docx file"
+      title="Export .docx (OOXML) — text, headings and tables only; no TOC field, page numbers, images or brand styling; use scripts for full styling">W</button>
+    <button id="print" class="icon-btn" aria-label="Print or save as PDF" title="Print / PDF">⎙</button>
+  </header>
+
+  <div class="scrim" aria-hidden="true"></div>
+  <div class="layout">
+    <aside id="sidePanel">
+      <div class="seg" id="docs">
+        <button class="active" data-v="ts">TS</button>
+        <button data-v="prd">PRD</button>
+      </div>
+      <span class="toc-label">Contents / สารบัญ</span>
+      <div class="search-hint">ค้นหาในหน้า: <kbd>Ctrl</kbd><kbd>F</kbd></div>
+      <nav id="toc" aria-label="Table of contents"></nav>
+    </aside>
+
+    <main>
+      <div class="page">
+
+        <article class="doc" data-doc="ts" data-lang="th" data-toc-label="Technical Specification" data-module="core">
+
+          <div class="banner">
+            <strong>SAMPLE / MOCK DATA — ไม่ใช่ผลการวิเคราะห์จริง</strong>
+            <p>ทุก object, field, count, evidence ID และ finding เป็นข้อมูลสมมติ ใช้ดูโครงสร้างและการจัดหน้าเท่านั้น</p>
+            <p>Markdown source: <code>technical-specification-sample.md</code> · HTML นี้เป็น derived rendition</p>
+          </div>
+
+          <h1>Technical Specification<br><span class="obj">ZC_DEMO_OPEN_ORDER_MARGIN</span></h1>
+
+          <div class="fm" data-module="frontmatter">
+            <div><strong>Evidence status:</strong> ส่วนใหญ่ <code>OBSERVED</code> · F-02 <code>INTERPRETATION</code> ·
+              DCL <code>UNRESOLVED</code> (mock)</div>
+            <div><strong>Architecture classes:</strong> <code>CDS_SQL_GRAPH</code>, <code>RAP_SERVICE_UNVERIFIED</code>
+            </div>
+            <div><strong>Overall confidence:</strong> <code>Medium</code> — ไม่มี runtime evidence และ DCL
+              ยังยืนยันไม่ได้</div>
+          </div>
+
+          <p class="sub">CDS consumption view · package <code>ZDEMO_SD_MARGIN</code> · intensity
+            <code>COMPREHENSIVE</code> · ภาษาไทย
+          </p>
+
+          <nav class="toc" aria-label="สารบัญ">
+            <h2>สารบัญ</h2>
+            <ol>
+              <li><a href="#s1">Document Control</a></li>
+              <li><a href="#s2">Technical Overview</a></li>
+              <li><a href="#s3">Object Identification + Boundary</a></li>
+              <li><a href="#s4">Technical Architecture</a></li>
+              <li><a href="#s5">Inputs</a></li>
+              <li><a href="#s6">Processing Design</a></li>
+              <li><a href="#s7">Output Shape</a></li>
+              <li><a href="#s8">Field Lineage</a></li>
+              <li><a href="#s10">Authorization</a></li>
+              <li><a href="#s11">Service Exposure</a></li>
+              <li><a href="#s16">Findings and Risks</a></li>
+              <li><a href="#s17">Test Handoff</a></li>
+              <li><a href="#s18">Final Acceptance</a></li>
+              <li><a href="#appA">Appendix A · Objects</a></li>
+              <li><a href="#appD">Appendix D · Evidence</a></li>
+              <li><a href="#appF">Appendix F · Unresolved</a></li>
+            </ol>
+          </nav>
+
+          <section data-module="core">
+            <h2 id="s1"><span class="n">1.</span>ข้อมูลเอกสาร <span class="en">(Document Control)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:34%">รายการ</th>
+                    <th>ค่า</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Source system / client</td>
+                    <td><code>DEMO_S4H</code> · client <code>100</code> <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                  <tr>
+                    <td>Extraction date</td>
+                    <td>2026-11-24 <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                  <tr>
+                    <td>Intensity profile</td>
+                    <td><code>COMPREHENSIVE</code></td>
+                  </tr>
+                  <tr>
+                    <td>Verified root type</td>
+                    <td><code>DDLS</code></td>
+                  </tr>
+                  <tr>
+                    <td>Dominant archetype</td>
+                    <td><code>CDS_SQL_GRAPH</code></td>
+                  </tr>
+                  <tr>
+                    <td>Template</td>
+                    <td><code>templates/technical-specification.md</code></td>
+                  </tr>
+                  <tr>
+                    <td>Language / format</td>
+                    <td><code>TH</code> · <code>MARKDOWN</code> → <code>HTML</code> (derived)</td>
+                  </tr>
+                  <tr>
+                    <td>Version / status</td>
+                    <td>0.2 · <span class="badge b-mock">SAMPLE_ONLY</span></td>
+                  </tr>
+                  <tr>
+                    <td>Limitations</td>
+                    <td>ข้อมูลทั้งหมดเป็น mock; ไม่มีการอ่าน SAP จริง</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s2"><span class="n">2.</span>ภาพรวมทางเทคนิค <span class="en">(Technical Overview)</span></h2>
+            <p>รายงานนี้แสดงยอดขายเทียบต้นทุนและอัตรากำไรขั้นต้นของใบสั่งขายที่ยังเปิดอยู่
+              ผู้ใช้กรองตามองค์กรและช่วงวันที่ส่งมอบ และระบบรวมยอดต่อรายการสินค้าเพื่อให้เห็นใบสั่งที่กำไรต่ำกว่าที่คาด
+            </p>
+            <p>กลไกคือ CDS stack สี่ชั้นที่อ่านตารางขายมาตรฐานแล้วเสริมชื่อลูกค้าและต้นทุนจากเงื่อนไขราคา
+              (<code>ZC_DEMO_OPEN_ORDER_MARGIN</code> → <code>ZI_DEMO_OPEN_ORDER_MARGIN</code> →
+              <code>ZI_DEMO_OPEN_ORDER_BASE</code> → physical tables)
+            </p>
+            <div class="callout warn"><span class="h">จุดที่ผู้อ่านควรระวัง</span>
+              <p>การหารอัตรากำไรไม่มี guard เมื่อยอดเป็นศูนย์ และต้นทุนจะนับก็ต่อเมื่อมี <code>KSCHL = 'VPRS'</code>
+                ถ้าไม่พบ ระบบรายงานกำไรเท่ากับยอดขาย ซึ่งดูเหมือนกำไรดีทั้งที่ข้อมูลต้นทุนขาด</p>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s3"><span class="n">3.</span>ระบุวัตถุใน repository <span class="en">(Repository Object
+                Identification)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Object</th>
+                    <th>Type</th>
+                    <th>Version</th>
+                    <th>Read</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>2026-11-10 <span class="badge b-mock">MOCK</span></td>
+                    <td>full</td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>2026-11-08 <span class="badge b-mock">MOCK</span></td>
+                    <td>full</td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_OPEN_ORDER_BASE</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>2026-10-30 <span class="badge b-mock">MOCK</span></td>
+                    <td>full</td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_CUSTOMER_TEXT</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>2026-09-14 <span class="badge b-mock">MOCK</span></td>
+                    <td>full</td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td>DCL role ของ root</td>
+                    <td><code>DCLS</code></td>
+                    <td>—</td>
+                    <td>not found</td>
+                    <td><code>Expected but Missing</code></td>
+                  </tr>
+                  <tr>
+                    <td>Service binding</td>
+                    <td><code>SRVB</code></td>
+                    <td>—</td>
+                    <td>unverified</td>
+                    <td><code>Unverified</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>3.1 Solution Boundary</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>หมวด</th>
+                    <th>รายการ</th>
+                    <th>เหตุผล / ผล</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Included</td>
+                    <td>CDS stack 4 ชั้น + ตารางฐาน</td>
+                    <td>scope ที่ตรวจแล้ว</td>
+                  </tr>
+                  <tr>
+                    <td>Excluded / inaccessible</td>
+                    <td>ข้อมูล row จริงของ <code>VBAK</code>, <code>VBAP</code></td>
+                    <td>ต้องได้รับอนุญาตอ่านข้อมูลก่อน</td>
+                  </tr>
+                  <tr>
+                    <td>Expected but missing</td>
+                    <td>DCL role ของ <code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>ค้น metadata แล้วไม่พบ ผล: authorization ยัง <code>UNRESOLVED</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s4"><span class="n">4.</span>สถาปัตยกรรมทางเทคนิค <span class="en">(Technical Architecture)</span>
+            </h2>
+            <h3>4.1 ชั้น dependency</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Layer</th>
+                    <th>Object</th>
+                    <th>บทบาท</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Consumption</td>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>projection สำหรับผู้ใช้</td>
+                  </tr>
+                  <tr>
+                    <td>Interface</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>คำนวณกำไร</td>
+                  </tr>
+                  <tr>
+                    <td>Base join</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_BASE</code></td>
+                    <td>รวมหัว/รายการขายกับลูกค้า</td>
+                  </tr>
+                  <tr>
+                    <td>Text</td>
+                    <td><code>ZI_DEMO_CUSTOMER_TEXT</code></td>
+                    <td>ชื่อลูกค้าตามภาษา</td>
+                  </tr>
+                  <tr>
+                    <td>Physical</td>
+                    <td><code>VBAK</code>, <code>VBAP</code>, <code>KNA1</code>, <code>PRCD_ELEMENTS</code></td>
+                    <td>ตารางฐาน</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>4.2 กราฟ dependency</h3>
+            <figure class="diagram">
+              <svg viewBox="0 0 760 300" role="img" aria-label="Dependency graph">
+                <defs>
+                  <marker id="arw" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L8,3 z" fill="var(--svg-edge)" />
+                  </marker>
+                  <style>
+                    .n {
+                      stroke: var(--svg-stroke);
+                      stroke-width: 1.6;
+                      rx: 6
+                    }
+
+                    .n-out {
+                      fill: var(--svg-node-out)
+                    }
+
+                    .n-cds {
+                      fill: var(--svg-node)
+                    }
+
+                    .n-phys {
+                      fill: var(--svg-phys);
+                      stroke: var(--svg-phys-stroke);
+                      stroke-dasharray: 4 3
+                    }
+
+                    .lbl {
+                      font-family: Consolas, monospace;
+                      font-size: 12px;
+                      fill: var(--svg-label);
+                      text-anchor: middle
+                    }
+
+                    .e {
+                      stroke: var(--svg-edge);
+                      stroke-width: 1.4;
+                      fill: none;
+                      marker-end: url(#arw)
+                    }
+
+                    .k {
+                      font-family: "Segoe UI", sans-serif;
+                      font-size: 9.5px;
+                      fill: var(--svg-edge-label);
+                      text-anchor: middle
+                    }
+                  </style>
+                </defs>
+                <rect class="n n-out" x="270" y="14" width="230" height="38" /><text class="lbl" x="385"
+                  y="38">ZC_DEMO_OPEN_ORDER_MARGIN</text>
+                <rect class="n n-cds" x="255" y="92" width="260" height="38" /><text class="lbl" x="385"
+                  y="116">ZI_DEMO_OPEN_ORDER_MARGIN</text>
+                <rect class="n n-cds" x="60" y="170" width="230" height="38" /><text class="lbl" x="175"
+                  y="194">ZI_DEMO_OPEN_ORDER_BASE</text>
+                <rect class="n n-cds" x="470" y="170" width="220" height="38" /><text class="lbl" x="580"
+                  y="194">ZI_DEMO_CUSTOMER_TEXT</text>
+                <rect class="n n-phys" x="18" y="252" width="86" height="32" /><text class="lbl" x="61"
+                  y="272">VBAK</text>
+                <rect class="n n-phys" x="118" y="252" width="86" height="32" /><text class="lbl" x="161"
+                  y="272">VBAP</text>
+                <rect class="n n-phys" x="218" y="252" width="86" height="32" /><text class="lbl" x="261"
+                  y="272">KNA1</text>
+                <rect class="n n-phys" x="318" y="252" width="150" height="32" /><text class="lbl" x="393"
+                  y="272">PRCD_ELEMENTS</text>
+                <rect class="n n-phys" x="530" y="252" width="86" height="32" /><text class="lbl" x="573"
+                  y="272">KNA1</text>
+                <path class="e" d="M385,52 L385,90" /><text class="k" x="412" y="78">SQL dependency</text>
+                <path class="e" d="M340,130 C300,145 230,145 195,168" /><text class="k" x="245" y="145">SQL
+                  dependency</text>
+                <path class="e" d="M435,130 C470,145 530,145 560,168" /><text class="k" x="520" y="145">SQL
+                  dependency</text>
+                <path class="e" d="M120,208 L70,250" /><text class="k" x="72" y="232">FROM</text>
+                <path class="e" d="M160,208 L160,250" /><text class="k" x="186" y="232">INNER</text>
+                <path class="e" d="M205,208 C225,225 245,235 258,250" /><text class="k" x="252" y="232">LEFT</text>
+                <path class="e" d="M235,208 L370,250" /><text class="k" x="322" y="232">LEFT</text>
+                <path class="e" d="M560,208 L572,250" /><text class="k" x="600" y="232">FROM</text>
+              </svg>
+              <figcaption>กราฟตาม branch — node ตารางฐานใช้เส้นประ ภาพเป็นภาพสรุป Appendix A/C คือบันทึกที่ตรวจสอบได้
+              </figcaption>
+            </figure>
+            <details>
+              <summary>Mermaid source (ต้อง render แยกใน Word)</summary>
+              <pre>flowchart TD
+    ZC["ZC_DEMO_OPEN_ORDER_MARGIN"] --&gt;|SQL dependency| ZI["ZI_DEMO_OPEN_ORDER_MARGIN"]
+    ZI --&gt;|SQL dependency| BASE["ZI_DEMO_OPEN_ORDER_BASE"]
+    ZI --&gt;|SQL dependency| TXT["ZI_DEMO_CUSTOMER_TEXT"]
+    BASE --&gt;|FROM| VBAK["VBAK"]
+    BASE --&gt;|INNER JOIN| VBAP["VBAP"]
+    BASE --&gt;|LEFT JOIN| KNA1["KNA1"]
+    BASE --&gt;|LEFT JOIN| PRCD["PRCD_ELEMENTS"]
+    TXT --&gt;|FROM| KNA1</pre>
+            </details>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s5"><span class="n">5.</span>อินพุตและเงื่อนไขการเลือก <span class="en">(Inputs)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>พารามิเตอร์</th>
+                    <th>ผล</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>p_CompanyCode</code></td>
+                    <td>จำกัดตามบริษัท <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>p_DeliveryDateFrom</code> / <code>p_DeliveryDateTo</code></td>
+                    <td>กรองช่วงส่งมอบ <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s6"><span class="n">6.</span>การประมวลผล <span class="en">(Processing and Dependency Design)</span>
+            </h2>
+            <h3>6.1 UNION / set operation</h3>
+            <p>ไม่พบใน scope นี้ — ไม่เติมตารางว่าง</p>
+            <h3>6.2 JOIN Matrix</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ซ้าย</th>
+                    <th>ขวา</th>
+                    <th>ชนิด</th>
+                    <th>ผลเมื่อไม่พบคู่</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>VBAK</code></td>
+                    <td><code>VBAP</code></td>
+                    <td><code>INNER JOIN</code></td>
+                    <td>ใบสั่งที่ไม่มีรายการหาย</td>
+                  </tr>
+                  <tr>
+                    <td><code>VBAP</code></td>
+                    <td><code>KNA1</code></td>
+                    <td><code>LEFT JOIN</code></td>
+                    <td>ชื่อลูกค้าว่าง</td>
+                  </tr>
+                  <tr>
+                    <td><code>VBAP</code></td>
+                    <td><code>PRCD_ELEMENTS</code></td>
+                    <td><code>LEFT JOIN</code></td>
+                    <td>ต้นทุนเป็นศูนย์</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3>6.3 ตัวกรอง</h3>
+            <ul>
+              <li>กรองตามช่วงวันที่ที่กำหนด <span class="badge b-mock">MOCK</span></li>
+              <li>ตัดรายการที่ <code>WAERK</code> ว่าง</li>
+            </ul>
+            <h3>6.4 การรวมยอดและสกุลเงิน</h3>
+            <ul>
+              <li>รวมยอดต่อ <code>VBELN</code> + <code>POSNR</code></li>
+              <li><code>MarginAmount = NetAmount - CostAmount</code></li>
+              <li><code>MarginPercent = ( MarginAmount / NetAmount ) * 100</code> — ไม่มี guard สำหรับศูนย์</li>
+              <li>ใช้ <code>WAERK</code> จากหัวใบสั่ง ไม่มีการแปลงสกุลเงิน</li>
+            </ul>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s7"><span class="n">7.</span>โครงผลลัพธ์ <span class="en">(Output Shape)</span></h2>
+            <p>หลักฐาน <code>DECLARED</code> จาก element ของ <code>ZC_DEMO_OPEN_ORDER_MARGIN</code></p>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Field</th>
+                    <th>ชนิด</th>
+                    <th>หลักฐาน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><code>SalesDocument</code></td>
+                    <td><code>VBELN</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><code>SalesDocumentItem</code></td>
+                    <td><code>POSNR</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td><code>SoldToParty</code></td>
+                    <td><code>KUNNR</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td><code>CustomerName</code></td>
+                    <td><code>NAME1</code></td>
+                    <td class="id">EV-002</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td><code>NetAmount</code></td>
+                    <td><code>CURR</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td><code>CostAmount</code></td>
+                    <td><code>CURR</code></td>
+                    <td class="id">EV-003</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td><code>MarginAmount</code></td>
+                    <td><code>CURR</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td><code>MarginPercent</code></td>
+                    <td><code>DEC</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>9</td>
+                    <td><code>Currency</code></td>
+                    <td><code>WAERK</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                  <tr>
+                    <td>10</td>
+                    <td><code>DeliveryDate</code></td>
+                    <td><code>VDATU</code></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout lim"><span class="h">ข้อจำกัดของหลักฐาน</span>
+              <p>ไม่มีการยืนยัน <code>UI_CONFIGURED</code> หรือ <code>RUNTIME_OBSERVED</code> — ยังไม่มี UI annotation
+                evidence และไม่ได้รันระบบ</p>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s8"><span class="n">8.</span>lineage ระดับฟิลด์ <span class="en">(Field-Level Lineage)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>ที่มา</th>
+                    <th>การแปลง</th>
+                    <th>หลักฐาน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>MarginAmount</code></td>
+                    <td><code>NetAmount</code>, <code>CostAmount</code></td>
+                    <td>ผลต่าง</td>
+                    <td class="id">EV-001 L42–L44</td>
+                  </tr>
+                  <tr>
+                    <td><code>MarginPercent</code></td>
+                    <td><code>MarginAmount</code>, <code>NetAmount</code></td>
+                    <td>หาร×100 ไม่มี guard</td>
+                    <td class="id">EV-001 L45–L47</td>
+                  </tr>
+                  <tr>
+                    <td><code>CostAmount</code></td>
+                    <td><code>PRCD_ELEMENTS~KWERT</code></td>
+                    <td>เฉพาะ <code>VPRS</code></td>
+                    <td class="id">EV-003 L18–L24</td>
+                  </tr>
+                  <tr>
+                    <td><code>CustomerName</code></td>
+                    <td><code>KNA1~NAME1</code></td>
+                    <td>ผ่าน text view</td>
+                    <td class="id">EV-002 L12–L16</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s9"><span class="n">9.</span>Table function และ AMDP</h2>
+            <p>ไม่มีใน scope นี้</p>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s10"><span class="n">10.</span>การออกแบบสิทธิ์ <span class="en">(Authorization)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ประเด็น</th>
+                    <th>สถานะ</th>
+                    <th>หลักฐาน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>DCL ของ <code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><span class="badge b-lim">PROVIDER_LIMITED</span> · <code>Expected but Missing</code></td>
+                    <td class="id">EV-004</td>
+                  </tr>
+                  <tr>
+                    <td>การกรองระดับบริษัท</td>
+                    <td>พบ parameter ไม่พบ authority check</td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout lim"><span class="h">ห้ามสรุปแทนหลักฐาน</span>
+              <p>ตัวอย่างนี้ไม่ยืนยันว่ามี DCL หรือไม่ จึงห้ามสรุปว่าปลอดภัยหรือไม่ปลอดภัย</p>
+            </div>
+          </section>
+
+          <section data-module="rap-object-model">
+            <h2 id="s11"><span class="n">11.</span>RAP และ service exposure <span class="en">(RAP and Service
+                Exposure)</span></h2>
+            <p>ไม่พบ service definition หรือ binding ใน scope → <code>Unverified</code> ไม่ใช่ “ไม่มี”</p>
+            <p style="font-size:.82rem;color:var(--muted)">Module marker <code>rap-object-model</code>
+              อยู่ที่นี่เพื่อสาธิต
+              structural marker ตาม kit convention — เนื้อหายืนยันได้เพียงระดับ <code>Unverified</code></p>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s12"><span class="n">12.</span>dependency ด้าน configuration</h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Object</th>
+                    <th>บทบาท</th>
+                    <th>หลักฐาน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>PRCD_ELEMENTS</code> (<code>VPRS</code>)</td>
+                    <td>แหล่งต้นทุนขาย</td>
+                    <td class="id">EV-003</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h2 id="s13"><span class="n">13.</span>ประวัติ change / transport</h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Object</th>
+                    <th>Revision</th>
+                    <th>Transport</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>3 <span class="badge b-mock">MOCK</span></td>
+                    <td><code>DEMOK900123</code> <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h2 id="s14"><span class="n">14.</span>metric ความซับซ้อนจาก SAP</h2>
+            <p><span class="badge b-lim">NOT_COLLECTED</span> — ไม่มีหลักฐาน metric จากผู้ให้บริการ</p>
+            <h2 id="s15"><span class="n">15.</span>reconciliation และ coverage</h2>
+            <p><span class="badge b-lim">NOT_APPLICABLE</span> — ไม่มี dependency artifact ส่งมา</p>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s16"><span class="n">16.</span>ข้อค้นพบและความเสี่ยง <span class="en">(Static Findings and
+                Risks)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>ระดับ</th>
+                    <th>ข้อความ</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="id">F-01</td>
+                    <td>สูง</td>
+                    <td>การหารด้วยยอดเป็นศูนย์</td>
+                    <td><span class="badge b-obs">OBSERVED</span> <span class="id">EV-001</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-02</td>
+                    <td>สูง</td>
+                    <td>ต้นทุนขาดเมื่อไม่มี <code>VPRS</code> → กำไรดูสูงเกินจริง</td>
+                    <td><span class="badge b-int">INTERPRETATION</span> <span class="id">EV-003</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-03</td>
+                    <td>กลาง</td>
+                    <td>ไม่พบ authorization check ในชั้น view</td>
+                    <td><span class="badge b-obs">OBSERVED</span> <span class="id">EV-001</span>, DCL <span
+                        class="badge b-lim">UNRESOLVED</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-04</td>
+                    <td>ต่ำ</td>
+                    <td><code>LEFT JOIN</code> ทำให้ชื่อลูกค้าว่างได้</td>
+                    <td><span class="badge b-obs">OBSERVED</span> <span class="id">EV-001</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s17"><span class="n">17.</span>ส่งต่อการทดสอบ <span class="en">(Test and Runtime Handoff)</span>
+            </h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Static analysis</td>
+                    <td>done <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                  <tr>
+                    <td>ABAP Unit</td>
+                    <td>ไม่ได้รัน</td>
+                  </tr>
+                  <tr>
+                    <td>Runtime / data verification</td>
+                    <td>ไม่ได้รัน — ต้องได้รับอนุญาตอ่านข้อมูล</td>
+                  </tr>
+                  <tr>
+                    <td>ต้องทดสอบ</td>
+                    <td><code>NetAmount = 0</code>, ไม่มี <code>VPRS</code>, ไม่มี <code>KNA1</code>, หลายสกุลเงิน</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section data-module="core">
+            <h2 id="s18"><span class="n">18.</span>การยอมรับขั้นสุดท้าย <span class="en">(Final Acceptance and
+                Cleanup)</span></h2>
+            <div class="kv">
+              <div>Structural completion</div>
+              <div><code>REQUESTED_SCOPE_COMPLETE_WITH_STANDARD_BOUNDARIES</code> <span class="badge b-mock">MOCK</span>
+              </div>
+              <div>Semantic / lineage</div>
+              <div><code>SEMANTIC_PARTIAL</code></div>
+              <div>Evidence locatability</div>
+              <div><code>PARTIAL</code> — F-02 เป็น interpretation</div>
+              <div>Language check</div>
+              <div><code>MANUAL</code> (mock)</div>
+              <div>Rendition parity</div>
+              <div><code>MATCHED</code></div>
+              <div>Scratchpad</div>
+              <div><code>NOT_USED</code></div>
+              <div>Final outcome</div>
+              <div><code>ACCEPTED_WITH_LIMITATIONS</code></div>
+            </div>
+            <p style="font-size:.88rem">ส่วนนี้เป็น status declaration สั้น ๆ รายละเอียด check อยู่ใน
+              <code>evidence-model.json</code> และ <code>VALIDATION_REPORT.md</code> เมื่อผู้ใช้ขอ
+            </p>
+          </section>
+
+          <hr>
+          <h2 style="border:0">ภาคผนวก <span class="en">(Appendices)</span></h2>
+
+          <section data-module="core">
+            <h3 id="appA">Appendix A · Canonical Object Registry</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Object</th>
+                    <th>Type</th>
+                    <th>Read</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="id">OBJ-01</td>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>full</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-02</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>full</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-03</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_BASE</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>full</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-04</td>
+                    <td><code>ZI_DEMO_CUSTOMER_TEXT</code></td>
+                    <td><code>DDLS</code></td>
+                    <td>full</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-05</td>
+                    <td><code>VBAK</code></td>
+                    <td><code>TABL</code></td>
+                    <td>metadata</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-06</td>
+                    <td><code>VBAP</code></td>
+                    <td><code>TABL</code></td>
+                    <td>metadata</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-07</td>
+                    <td><code>KNA1</code></td>
+                    <td><code>TABL</code></td>
+                    <td>metadata</td>
+                  </tr>
+                  <tr>
+                    <td class="id">OBJ-08</td>
+                    <td><code>PRCD_ELEMENTS</code></td>
+                    <td><code>TABL</code></td>
+                    <td>metadata</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="appD">Appendix D · Evidence Pointer Register</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Object</th>
+                    <th>Location</th>
+                    <th>หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="id">EV-001</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>source L1–L60 <span class="badge b-mock">MOCK</span></td>
+                    <td>calculation + join</td>
+                  </tr>
+                  <tr>
+                    <td class="id">EV-002</td>
+                    <td><code>ZI_DEMO_CUSTOMER_TEXT</code></td>
+                    <td>source L1–L20 <span class="badge b-mock">MOCK</span></td>
+                    <td>text view</td>
+                  </tr>
+                  <tr>
+                    <td class="id">EV-003</td>
+                    <td><code>ZI_DEMO_OPEN_ORDER_BASE</code></td>
+                    <td>source L1–L40 <span class="badge b-mock">MOCK</span></td>
+                    <td>cost join</td>
+                  </tr>
+                  <tr>
+                    <td class="id">EV-004</td>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>metadata <span class="badge b-mock">MOCK</span></td>
+                    <td>DCL ไม่ยืนยัน</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="appF">Appendix F · Unresolved and Provider-Limited Items</h3>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>รายการ</th>
+                    <th>ผล</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="id">U-1</td>
+                    <td>DCL ของ <code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td>authorization <code>UNRESOLVED</code></td>
+                  </tr>
+                  <tr>
+                    <td class="id">U-2</td>
+                    <td>ผู้บริโภคปลายทาง</td>
+                    <td>output ที่ผู้ใช้เห็นจริงยืนยันไม่ได้</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>ข้อตกลงเรื่องหลักฐานและสถานะ</h3>
+            <ul style="font-size:.9rem">
+              <li>ค่าทั้งหมดเป็น mock; <code>EV-*</code>, revision และตัวเลขบรรทัดเป็นข้อมูลสมมติ</li>
+              <li>แยก <code>OBSERVED</code> / <code>INTERPRETATION</code> / <code>ASSUMPTION</code> /
+                <code>HYPOTHESIS</code> / <code>UNVERIFIED_INTENT</code> / <code>NOT_COLLECTED</code> ตามจริง
+              </li>
+              <li>ชื่อ object คงอักขระต่ออักขระ ไม่ตัด ไม่แปล ไม่เติมช่องว่าง</li>
+              <li>ส่วนที่ไม่เกี่ยวข้องให้ละไว้ ไม่เติม <code>N/A</code> เพื่อให้ครบเลข</li>
+            </ul>
+          </section>
+
+          <footer>Sample rendition — format review only. Source: <code>technical-specification-sample.md</code>. Font
+            stack: Leelawadee UI → Tahoma → Segoe UI.</footer>
+
+        </article>
+
+        <article class="doc hidden" data-doc="prd" data-lang="th" data-toc-label="Product Requirement Document (PRD)"
+          data-module="core">
+          <div class="banner">
+            <strong>SAMPLE / MOCK DATA — ไม่ใช่ผลการวิเคราะห์จริง</strong>
+            <p>PRD panel ที่สาธิตการรวมอยู่ใน HTML เดียวกับ TS (<code>data-doc="prd"</code>) ตามตัวเลือก `HTML`
+              ที่ผู้ใช้เลือกได้</p>
+          </div>
+          <h1>Product Requirement Document<br><span class="obj">Open Order Margin Capability</span></h1>
+          <div class="fm">
+            <div><strong>PRD framing:</strong> <code>AS_IS_CAPABILITY</code> — สร้างจากหลักฐาน source ไม่ใช่ requirement
+              ที่อนุมัติแล้ว</div>
+            <div><strong>Business evidence baseline:</strong> <code>NOT_PROVIDED</code></div>
+            <div><strong>Claim class หลัก:</strong> <code>INTERPRETATION</code> สำหรับ business meaning ที่อนุมานจากโค้ด
+            </div>
+          </div>
+          <section data-module="core">
+            <h2 id="prd-s1"><span class="n">1.</span>บริบทเอกสารและความเชื่อมั่น <span class="en">(Document Context and
+                Confidence)</span></h2>
+            <p>เอกสารนี้สะทับ capability ที่พบจาก <code>ZC_DEMO_OPEN_ORDER_MARGIN</code> และ CDS stack ที่เกี่ยวข้อง ใช้
+              evidence model ชุดเดียวกับ TS</p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s2"><span class="n">2.</span>สรุป capability <span class="en">(Capability Summary)</span></h2>
+            <p>แสดงยอดขายเทียบต้นทุนและอัตรากำไรของใบสั่งที่ยังเปิดอยู่ กรองตามองค์กรและช่วงส่งมอบ</p>
+            <p class="en-note" style="font-size:.85rem;color:var(--muted)">เจตนาทางธุรกิจ (business intent) ยังเป็น
+              <code>UNVERIFIED_INTENT</code> เพราะไม่มี business evidence โดยตรง
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s3"><span class="n">3.</span>ขอบเขตผลิตภัณฑ์ <span class="en">(Product Boundary)</span></h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>หมวด</th>
+                    <th>รายการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>In scope</td>
+                    <td>CDS stack, output fields, authorization check</td>
+                  </tr>
+                  <tr>
+                    <td>Excluded</td>
+                    <td>ข้อมูล row จริง (ต้องได้รับอนุญาต)</td>
+                  </tr>
+                  <tr>
+                    <td>Expected but missing</td>
+                    <td>DCL role · service binding</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s4"><span class="n">4.</span>ผู้กระทำและการเข้าถึง <span class="en">(Actors and Access)</span>
+            </h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Actor</th>
+                    <th>Trigger</th>
+                    <th>Framing</th>
+                    <th>Claim class</th>
+                    <th>Evidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ผู้ใช้รายงาน (อนุมานจาก output)</td>
+                    <td>เรียกใช้ view</td>
+                    <td><code>AS_IS_CAPABILITY</code></td>
+                    <td><span class="badge b-int">INTERPRETATION</span></td>
+                    <td class="id">EV-001</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s5"><span class="n">5.</span>ความสามารถทางธุรกิจ <span class="en">(Business Capabilities)</span>
+            </h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Capability</th>
+                    <th>Observed Behavior</th>
+                    <th>Outcome</th>
+                    <th>Claim class</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ดูกำไรขั้นต้นต่อรายการ</td>
+                    <td>รวมยอดแล้วหักต้นทุนจาก <code>VPRS</code></td>
+                    <td>MarginAmount / MarginPercent</td>
+                    <td><span class="badge b-int">INTERPRETATION</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s6"><span class="n">6.</span>การเดินทางของผู้ใช้และระบบ <span class="en">(User and System
+                Journeys)</span></h2>
+            <p>ลำดับที่พบจาก source: ใส่เงื่อนไข → อ่าน view → ได้ผลลัพธ์ต่อรายการ <span class="id">EV-001</span> ·
+              journey เป็น interpretation ไม่ใช่ UX ที่อนุมัติแล้ว</p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s7"><span class="n">7.</span>กฎทางธุรกิจ <span class="en">(Business Rules)</span></h2>
+            <p>BR-001: ต้นทุนมาจาก <code>KSCHL = 'VPRS'</code> เท่านั้น <span class="badge b-int">INTERPRETATION</span>
+              <span class="id">EV-003</span> — ไม่ใช่กฎที่ businesses อนุมัติ
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s8"><span class="n">8.</span>อินพุต เอาต์พุต และข้อมูล <span class="en">(Inputs, Outputs, and
+                Business Data)</span></h2>
+            <p>ใช้โครงผลลัพธ์ร่วมกับ TS Section 7 (<code>DECLARED</code>) · ความหมายทางธุรกิจเป็น
+              <code>INTERPRETATION</code> <span class="id">EV-001</span> · ชื่อลูกค้าจาก <code>KNA1~NAME1</code> <span
+                class="id">EV-002</span>
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s9"><span class="n">9.</span>การผสานรวมและ dependency <span class="en">(Integrations and
+                Dependencies)</span></h2>
+            <p>ไม่พบ service definition หรือ binding ใน scope → <code>Unverified</code> ตาม TS Section 11 · DCL role ของ
+              root เป็น <code>Expected but Missing</code> <span class="id">EV-004</span> · ใช้ evidence model
+              ชุดเดียวกัน</p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s10"><span class="n">10.</span>คุณลักษณะและข้อจำกัด <span class="en">(Quality Attributes and
+                Constraints)</span></h2>
+            <p>ไม่มี runtime/performance evidence → <span class="badge b-lim">NOT_COLLECTED</span> ·
+              ข้อจำกัดที่ยืนยันได้คือไม่มี guard สำหรับยอดเป็นศูนย์ <span class="id">EV-001</span></p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s11"><span class="n">11.</span>เกณฑ์การยอมรับ <span class="en">(Acceptance Criteria)</span></h2>
+            <p><strong>Given</strong> ยอดเป็นศูนย์ · <strong>When</strong> คำนวณ MarginPercent · <strong>Then</strong>
+              ต้องไม่เกิด DIV0 — นี่คือการอ่านพฤติกรรมจาก source พร้อม <span class="id">EV-001</span> ไม่ใช่ acceptance
+              ที่ธุรกิจอนุมัติ</p>
+          </section>
+          <section data-module="core">
+            <h2 id="prd-s12"><span class="n">12.</span>ความเสี่ยงและ traceability <span class="en">(Risks, Unknowns, and
+                Traceability)</span></h2>
+            <p>ความเสี่ยง F-01..F-04 ใช้ร่วมกับ TS · business intent, KPI, vision และ priority เป็น
+              <code>UNVERIFIED_INTENT</code> ทั้งหมดเพราะไม่มี business evidence
+            </p>
+          </section>
+          <footer>PRD panel — derived from the same evidence model; see
+            <code>templates/product-requirement-document.md</code>.
+          </footer>
+        </article>
+
+        <!-- ===== EN panels: real English content, same evidence IDs and section numbers ===== -->
+        <article class="doc hidden" data-doc="ts" data-lang="en" data-toc-label="Technical Specification (EN)"
+          data-module="core">
+          <div class="banner">
+            <strong>SAMPLE / MOCK DATA — not a real analysis</strong>
+            <p>English rendition of the same sample. All objects, counts and evidence IDs are mock. Source:
+              <code>technical-specification-sample.md</code>.
+            </p>
+          </div>
+          <h1>Technical Specification<br><span class="obj">ZC_DEMO_OPEN_ORDER_MARGIN</span></h1>
+          <div class="fm">
+            <div><strong>Evidence status:</strong> mostly <code>OBSERVED</code>; F-02 <code>INTERPRETATION</code>; DCL
+              <code>UNRESOLVED</code> (mock)
+            </div>
+            <div><strong>Architecture classes:</strong> <code>CDS_SQL_GRAPH</code>, <code>RAP_SERVICE_UNVERIFIED</code>
+            </div>
+            <div><strong>Overall confidence:</strong> <code>Medium</code> — no runtime evidence; DCL not verified</div>
+          </div>
+          <section data-module="core">
+            <h2 id="en-ts-s1"><span class="n">1.</span>Document Control</h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Source system / client</td>
+                    <td><code>DEMO_S4H</code> / <code>100</code> <span class="badge b-mock">MOCK</span></td>
+                  </tr>
+                  <tr>
+                    <td>Intensity profile</td>
+                    <td><code>COMPREHENSIVE</code></td>
+                  </tr>
+                  <tr>
+                    <td>Root type / archetype</td>
+                    <td><code>DDLS</code> / <code>CDS_SQL_GRAPH</code></td>
+                  </tr>
+                  <tr>
+                    <td>Language / format</td>
+                    <td><code>EN</code> · derived HTML rendition</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s2"><span class="n">2.</span>Technical Overview</h2>
+            <p>The report shows net sales, cost of sales and gross margin for open sales orders. Users filter by company
+              and delivery-date range; the view aggregates amounts per order item.</p>
+            <p>The mechanism is a four-layer CDS stack reading standard sales tables and enriching customer name and
+              cost from condition records (<code>ZC_DEMO_OPEN_ORDER_MARGIN</code> →
+              <code>ZI_DEMO_OPEN_ORDER_MARGIN</code> → <code>ZI_DEMO_OPEN_ORDER_BASE</code> → physical tables).
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s3"><span class="n">3.</span>Repository Object Identification</h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Object</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>ZC_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_OPEN_ORDER_MARGIN</code></td>
+                    <td><code>DDLS</code></td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_OPEN_ORDER_BASE</code></td>
+                    <td><code>DDLS</code></td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ZI_DEMO_CUSTOMER_TEXT</code></td>
+                    <td><code>DDLS</code></td>
+                    <td><code>Detected</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h3>3.1 Solution Boundary</h3>
+            <p>Included: CDS stack and base tables. Excluded: real row data (authorization required). Expected but
+              missing: DCL role of <code>ZC_DEMO_OPEN_ORDER_MARGIN</code>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s4"><span class="n">4.</span>Technical Architecture</h2>
+            <h3>4.1 Dependency layers</h3>
+            <p>Consumption → Interface → Base join / Text → Physical tables (<code>VBAK</code>, <code>VBAP</code>,
+              <code>KNA1</code>, <code>PRCD_ELEMENTS</code>).
+            </p>
+            <h3>4.2 Dependency graph</h3>
+            <pre class="mermaid">flowchart TD
+    ZC["ZC_DEMO_OPEN_ORDER_MARGIN"] --&gt;|SQL dependency| ZI["ZI_DEMO_OPEN_ORDER_MARGIN"]
+    ZI --&gt; BASE["ZI_DEMO_OPEN_ORDER_BASE"]
+    ZI --&gt; TXT["ZI_DEMO_CUSTOMER_TEXT"]
+    BASE --&gt; VBAK["VBAK"]
+    BASE --&gt; VBAP["VBAP"]</pre>
+            <p>The diagram is a summary; registries in Appendices A/C are the checkable record.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s5"><span class="n">5.</span>Inputs, Parameters and Selection Behavior</h2>
+            <p><code>p_CompanyCode</code> limits by company; <code>p_DeliveryDateFrom</code> /
+              <code>p_DeliveryDateTo</code> filter the delivery window (mock).
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s6"><span class="n">6.</span>Processing and Dependency Design</h2>
+            <p>No set operations were found. Joins: <code>VBAK</code>→<code>VBAP</code> INNER,
+              <code>VBAP</code>→<code>KNA1</code> LEFT, <code>VBAP</code>→<code>PRCD_ELEMENTS</code> LEFT with
+              <code>KSCHL = 'VPRS'</code> <span class="id">EV-003</span>.
+            </p>
+            <p>Amounts are aggregated by <code>VBELN</code> + <code>POSNR</code>;
+              <code>MarginPercent = ( NetAmount - CostAmount ) / NetAmount * 100</code> with no zero guard <span
+                class="id">EV-001</span>.
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s7"><span class="n">7.</span>Output Shape / Exposed Fields</h2>
+            <p><code>DECLARED</code> elements of <code>ZC_DEMO_OPEN_ORDER_MARGIN</code>: <code>SalesDocument</code>,
+              <code>SalesDocumentItem</code>, <code>SoldToParty</code>, <code>CustomerName</code>,
+              <code>NetAmount</code>, <code>CostAmount</code>, <code>MarginAmount</code>, <code>MarginPercent</code>,
+              <code>Currency</code>, <code>DeliveryDate</code> <span class="id">EV-001</span> <span
+                class="id">EV-002</span>.
+            </p>
+            <p>No <code>UI_CONFIGURED</code> or <code>RUNTIME_OBSERVED</code> evidence in this sample.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s8"><span class="n">8.</span>Field-Level Lineage</h2>
+            <p><code>MarginAmount</code> ← <code>NetAmount</code> − <code>CostAmount</code> <span
+                class="id">EV-001</span>; <code>CostAmount</code> ← <code>PRCD_ELEMENTS~KWERT</code> where
+              <code>VPRS</code> <span class="id">EV-003</span>; <code>CustomerName</code> ← <code>KNA1~NAME1</code>
+              <span class="id">EV-002</span>.
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s9"><span class="n">9.</span>Table Functions and AMDP</h2>
+            <p>None in scope.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s10"><span class="n">10.</span>Authorization Design</h2>
+            <p>DCL role: <span class="badge b-lim">PROVIDER_LIMITED</span> / <code>Expected but Missing</code> <span
+                class="id">EV-004</span>. Company filtering is a parameter, not an observed authority check <span
+                class="id">EV-001</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s11"><span class="n">11.</span>RAP and Service Exposure</h2>
+            <p>No service definition or binding found in scope → <code>Unverified</code>, not “does not exist”.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s12"><span class="n">12.</span>Configuration Dependencies</h2>
+            <p><code>PRCD_ELEMENTS</code> (<code>VPRS</code>) is the cost source <span class="id">EV-003</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s13"><span class="n">13.</span>Change and Transport History</h2>
+            <p>3 revisions (mock), transport <code>DEMOK900123</code> (mock).</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s14"><span class="n">14.</span>SAP-Native Complexity Metrics</h2>
+            <p><span class="badge b-lim">NOT_COLLECTED</span> — no provider metric in this sample.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s15"><span class="n">15.</span>Dependency Reconciliation and Coverage</h2>
+            <p><span class="badge b-lim">NOT_APPLICABLE</span> — no dependency artifact supplied.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s16"><span class="n">16.</span>Static Findings and Risks</h2>
+            <div class="wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Severity</th>
+                    <th>Finding</th>
+                    <th>Class</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="id">F-01</td>
+                    <td>High</td>
+                    <td>Division by zero in <code>MarginPercent</code> <span class="id">EV-001</span></td>
+                    <td><span class="badge b-obs">OBSERVED</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-02</td>
+                    <td>High</td>
+                    <td>Missing <code>VPRS</code> makes margin look profitable <span class="id">EV-003</span></td>
+                    <td><span class="badge b-int">INTERPRETATION</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-03</td>
+                    <td>Medium</td>
+                    <td>No authority check in the view layer <span class="id">EV-001</span></td>
+                    <td><span class="badge b-obs">OBSERVED</span></td>
+                  </tr>
+                  <tr>
+                    <td class="id">F-04</td>
+                    <td>Low</td>
+                    <td>LEFT JOIN can blank customer name <span class="id">EV-001</span></td>
+                    <td><span class="badge b-obs">OBSERVED</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s17"><span class="n">17.</span>Test and Runtime Handoff</h2>
+            <p>Static analysis done (mock). No ABAP Unit, no runtime/data verification. Test: zero net amount, missing
+              <code>VPRS</code>, missing <code>KNA1</code>, mixed currencies.
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-ts-s18"><span class="n">18.</span>Final Acceptance and Cleanup</h2>
+            <p>Structural: <code>REQUESTED_SCOPE_COMPLETE_WITH_STANDARD_BOUNDARIES</code> (mock). Semantic:
+              <code>SEMANTIC_PARTIAL</code>. Outcome: <code>ACCEPTED_WITH_LIMITATIONS</code>. Scratchpad:
+              <code>NOT_USED</code>. Detailed checks: <code>VALIDATION_REPORT.md</code> when requested.
+            </p>
+          </section>
+          <footer>English rendition — same evidence model and section numbers as the Thai panel.</footer>
+        </article>
+
+        <article class="doc hidden" data-doc="prd" data-lang="en" data-toc-label="Product Requirement Document (EN)"
+          data-module="core">
+          <div class="banner"><strong>SAMPLE / MOCK DATA</strong>
+            <p>English PRD panel — as-is capability, not approved requirements.</p>
+          </div>
+          <h1>Product Requirement Document<br><span class="obj">Open Order Margin Capability</span></h1>
+          <div class="fm">
+            <div><strong>PRD framing:</strong> <code>AS_IS_CAPABILITY</code></div>
+            <div><strong>Business evidence baseline:</strong> <code>NOT_PROVIDED</code></div>
+          </div>
+          <section data-module="core">
+            <h2 id="en-prd-s1"><span class="n">1.</span>Document Context and Confidence</h2>
+            <p>Reconstructed from source evidence of <code>ZC_DEMO_OPEN_ORDER_MARGIN</code>; shares one evidence model
+              with the TS.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s2"><span class="n">2.</span>Capability Summary</h2>
+            <p>Displays sales, cost and margin for open orders filtered by company and delivery window. Business intent:
+              <code>UNVERIFIED_INTENT</code>.
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s3"><span class="n">3.</span>Product Boundary</h2>
+            <p>In scope: CDS stack and output fields. Excluded: real row data. Expected but missing: DCL role and
+              service binding.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s4"><span class="n">4.</span>Actors and Access</h2>
+            <p>Report user inferred from output contract — <span class="badge b-int">INTERPRETATION</span> <span
+                class="id">EV-001</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s5"><span class="n">5.</span>Business Capabilities</h2>
+            <p>View gross margin per item (as-is, derived from source) — <span class="badge b-int">INTERPRETATION</span>
+              <span class="id">EV-001</span>.
+            </p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s6"><span class="n">6.</span>User and System Journeys</h2>
+            <p>Enter filters → read view → item-level results <span class="id">EV-001</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s7"><span class="n">7.</span>Business Rules</h2>
+            <p>BR-001: cost from <code>KSCHL = 'VPRS'</code> only <span class="badge b-int">INTERPRETATION</span> <span
+                class="id">EV-003</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s8"><span class="n">8.</span>Inputs, Outputs, and Business Data</h2>
+            <p>Shares the TS output contract; business meaning remains <code>INTERPRETATION</code> <span
+                class="id">EV-001</span>; customer name from <code>KNA1~NAME1</code> <span class="id">EV-002</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s9"><span class="n">9.</span>Integrations and Dependencies</h2>
+            <p>No service exposure found → <code>Unverified</code>; DCL role is <code>Expected but Missing</code> <span
+                class="id">EV-004</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s10"><span class="n">10.</span>Quality Attributes and Constraints</h2>
+            <p><span class="badge b-lim">NOT_COLLECTED</span> for performance; zero-amount guard missing <span
+                class="id">EV-001</span>.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s11"><span class="n">11.</span>Acceptance Criteria</h2>
+            <p>Given zero net amount, when margin is calculated, then DIV0 must not occur — restates observed source
+              behavior <span class="id">EV-001</span>, not business-approved acceptance.</p>
+          </section>
+          <section data-module="core">
+            <h2 id="en-prd-s12"><span class="n">12.</span>Risks, Unknowns, and Traceability</h2>
+            <p>F-01..F-04 shared with TS. Intent, KPI, vision and priority are <code>UNVERIFIED_INTENT</code> without
+              business evidence.</p>
+          </section>
+          <footer>English PRD — derived from the same evidence model.</footer>
+        </article>
+
+      </div><!-- /page -->
+    </main>
+  </div><!-- /layout -->
+
+  <script id="shell-js">
+    (function () {
+      var root = document.documentElement;
+      var toc = document.getElementById('toc');
+      var docs = [].slice.call(document.querySelectorAll('article.doc'));
+      var seg = document.getElementById('docs');
+      var title = document.getElementById('viewTitle');
+      var side = document.getElementById('sidePanel');
+      var navToggle = document.getElementById('navToggle');
+      var langBtn = document.getElementById('langToggle');
+      var currentDoc = 'ts';
+      var currentLang = 'th';
+      var tocLinks = [];
+      var pinnedId = null;
+
+      function activePanel() {
+        return docs.filter(function (a) {
+          return a.getAttribute('data-doc') === currentDoc &&
+            a.getAttribute('data-lang') === currentLang;
+        })[0] || docs[0];
+      }
+      function render() {
+        docs.forEach(function (a) {
+          var show = a.getAttribute('data-doc') === currentDoc &&
+            a.getAttribute('data-lang') === currentLang;
+          a.classList.toggle('hidden', !show);
+        });
+        [].slice.call(seg.querySelectorAll('button')).forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-v') === currentDoc);
+        });
+        langBtn.textContent = currentLang.toUpperCase();
+        root.setAttribute('lang', currentLang);
+        title.textContent = (currentDoc === 'ts' ? 'Technical Specification' : 'Product Capability Document') +
+          (currentLang === 'th' ? '' : ' · EN');
+        pinnedId = null;
+        buildToc();
+      }
+      function buildToc() {
+        var a = activePanel();
+        if (!a || !toc) return;
+        toc.innerHTML = '';
+        tocLinks = [];
+        [].slice.call(a.querySelectorAll('h2[id],h3[id]')).forEach(function (h) {
+          var el = document.createElement('a');
+          el.href = '#' + h.id;
+          el.textContent = h.textContent.replace(/\s+/g, ' ').trim();
+          if (h.tagName === 'H3') el.className = 'sub';
+          el.addEventListener('click', function () {
+            pinnedId = h.id;
+            syncToc();
+            setTimeout(clearPin, 900);
+            if (mq.matches) setSidebar('closed');
+          });
+          toc.appendChild(el);
+          tocLinks.push({ link: el, target: h });
+        });
+        syncToc();
+      }
+      // Highlight the section currently in view. A clicked TOC item is pinned: a
+      // following one-line section has its heading only ~120px lower, so a plain
+      // top-threshold used to steal the highlight (s9->s10, s14->s15, s15->s16).
+      function syncToc() {
+        if (!tocLinks.length) return;
+        var active = tocLinks[0];
+        if (pinnedId) {
+          active = tocLinks.filter(function (p) { return p.target.id === pinnedId; })[0] || active;
+        } else if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4) {
+          active = tocLinks[tocLinks.length - 1];
+        } else {
+          tocLinks.forEach(function (pair) {
+            if (pair.target.getBoundingClientRect().top <= 80) active = pair;
+          });
+        }
+        tocLinks.forEach(function (pair) {
+          pair.link.classList.toggle('active', pair === active);
+        });
+      }
+      function clearPin() { if (!pinnedId) return; pinnedId = null; syncToc(); }
+      window.addEventListener('wheel', clearPin, { passive: true });
+      window.addEventListener('touchmove', clearPin, { passive: true });
+      window.addEventListener('keydown', clearPin);
+      window.addEventListener('hashchange', function () {
+        pinnedId = location.hash.replace('#', '') || null;
+        syncToc();
+        setTimeout(clearPin, 900);
+      });
+      function setDoc(d) { currentDoc = d; render(); window.scrollTo(0, 0); }
+      [].slice.call(seg.querySelectorAll('button')).forEach(function (b) {
+        b.addEventListener('click', function () { setDoc(b.getAttribute('data-v')) });
+      });
+      langBtn.addEventListener('click', function () {
+        currentLang = currentLang === 'th' ? 'en' : 'th';
+        render();
+      });
+
+      // Single source of truth: data-sidebar on <html>. Reset on breakpoint change
+      // so a desktop 'closed' state can never leave display:none on a mobile drawer.
+      var mq = window.matchMedia('(max-width:48rem)');
+      function setSidebar(state) {
+        root.setAttribute('data-sidebar', state);
+        navToggle.setAttribute('aria-expanded', String(state === 'open'));
+        navToggle.setAttribute('aria-label', state === 'open' ? 'Hide sidebar' : 'Show sidebar');
+      }
+      function isOpen() { return root.getAttribute('data-sidebar') === 'open'; }
+      function toggleSidebar() { setSidebar(isOpen() ? 'closed' : 'open'); }
+      function resetSidebar() { setSidebar(mq.matches ? 'closed' : 'open'); }
+      navToggle.addEventListener('click', toggleSidebar);
+      if (mq.addEventListener) { mq.addEventListener('change', resetSidebar); }
+      else if (mq.addListener) { mq.addListener(resetSidebar); }
+      resetSidebar();
+      document.addEventListener('click', function (e) {
+        if (mq.matches && isOpen() && !side.contains(e.target) && !navToggle.contains(e.target)) {
+          setSidebar('closed');
+        }
+      });
+
+      document.getElementById('theme').addEventListener('click', function () {
+        root.setAttribute('data-theme', root.getAttribute('data-theme') === 'evening' ? 'morning' : 'evening');
+      });
+      document.getElementById('print').addEventListener('click', function () { window.print() });
+
+      // Genuine .docx export, fully client-side: minimal OOXML + store-only ZIP.
+      // No external library, no server. Produces a real .docx (zip with word/document.xml).
+      // For full fidelity (styles/TOC/fonts) use tools/export_docx.py or pandoc --reference-doc.
+      function crc32(bytes) {
+        var table = crc32.table;
+        if (!table) {
+          table = crc32.table = new Uint32Array(256);
+          for (var n = 0; n < 256; n++) {
+            var c = n;
+            for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+            table[n] = c >>> 0;
+          }
+        }
+        var crc = 0xFFFFFFFF;
+        for (var i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+      }
+      function zipStore(files) {
+        var enc = new TextEncoder(), chunks = [], central = [], offset = 0;
+        function u16(v) { return [v & 255, (v >> 8) & 255]; }
+        function u32(v) { return [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255]; }
+        files.forEach(function (f) {
+          var name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data);
+          var local = [].concat(u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+            u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), Array.from(name));
+          var localArr = new Uint8Array(local.length + data.length);
+          localArr.set(local, 0); localArr.set(data, local.length);
+          chunks.push(localArr);
+          central.push({ name: name, crc: crc, size: data.length, offset: offset });
+          offset += localArr.length;
+        });
+        var cdStart = offset, cd = [];
+        central.forEach(function (e) {
+          cd = cd.concat([].concat(u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+            u32(e.crc), u32(e.size), u32(e.size), u16(e.name.length), u16(0), u16(0), u16(0), u16(0),
+            u32(0), u32(e.offset), Array.from(e.name)));
+        });
+        var cdArr = new Uint8Array(cd), end = new Uint8Array([].concat(u32(0x06054b50), u16(0), u16(0),
+          u16(central.length), u16(central.length), u32(cdArr.length), u32(cdStart), u16(0)));
+        return new Blob(chunks.concat([cdArr, end]), { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      }
+      function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function wP(text, style) {
+        var pr = style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '';
+        return '<w:p>' + pr + '<w:r><w:t xml:space="preserve">' + esc(text) + '</w:t></w:r></w:p>';
+      }
+      function wTable(table) {
+        var rows = [].slice.call(table.querySelectorAll('tr'));
+        if (!rows.length) return '';
+        var xml = ['<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/>' +
+          '<w:tblBorders>' +
+          '<w:top w:val="single" w:sz="4" w:color="B8C4CF"/><w:left w:val="single" w:sz="4" w:color="B8C4CF"/>' +
+          '<w:bottom w:val="single" w:sz="4" w:color="B8C4CF"/><w:right w:val="single" w:sz="4" w:color="B8C4CF"/>' +
+          '<w:insideH w:val="single" w:sz="4" w:color="B8C4CF"/><w:insideV w:val="single" w:sz="4" w:color="B8C4CF"/>' +
+          '</w:tblBorders></w:tblPr>'];
+        rows.forEach(function (tr, ri) {
+          xml.push('<w:tr>');
+          [].slice.call(tr.children).forEach(function (cell) {
+            var txt = cell.textContent.replace(/\s+/g, ' ').trim();
+            var shading = ri === 0 ? '<w:shd w:val="clear" w:fill="E8F0FA"/>' : '';
+            xml.push('<w:tc><w:tcPr>' + shading + '</w:tcPr>' + wP(txt, ri === 0 ? 'Heading2' : null) + '</w:tc>');
+          });
+          xml.push('</w:tr>');
+        });
+        xml.push('</w:tbl>');
+        return xml.join('') + '<w:p/>';
+      }
+      function buildDocumentXml(panel) {
+        var body = [];
+        // Iterate in document order so headings, tables and lists keep their place.
+        [].slice.call(panel.children).forEach(function walk(node) {
+          if (node.tagName === 'TABLE') {
+            var t = wTable(node);
+            if (t) body.push(t);
+            return;
+          }
+          if (node.tagName === 'SECTION' || node.tagName === 'DIV' || node.tagName === 'ARTICLE') {
+            [].slice.call(node.children).forEach(walk);
+            return;
+          }
+          var text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+          if (!text || node.tagName === 'STYLE' || node.tagName === 'SCRIPT') return;
+          if (node.tagName === 'H1') body.push(wP(text, 'Title'));
+          else if (node.tagName === 'H2' || node.tagName === 'H3') body.push(wP(text, 'Heading2'));
+          else if (node.tagName === 'LI') body.push(wP('• ' + text, 'ListParagraph'));
+          else if (node.tagName === 'P' || node.tagName === 'FIGCAPTION') body.push(wP(text));
+        });
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+          body.join('') +
+          '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1021" w:left="1247"/></w:sectPr>' +
+          '</w:body></w:document>';
+      }
+      document.getElementById('exportWord').addEventListener('click', function () {
+        var a = activePanel();
+        if (!a) return;
+        var docXml = buildDocumentXml(a);
+        var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+          '<Default Extension="xml" ContentType="application/xml"/>' +
+          '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+          '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+          '</Types>';
+        var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+          '</Relationships>';
+        var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+          '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Leelawadee UI" w:hAnsi="Leelawadee UI" w:eastAsia="Leelawadee UI" w:cs="Leelawadee UI"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
+          '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:rPr><w:b/><w:color w:val="1F5FA8"/><w:sz w:val="44"/></w:rPr></w:style>' +
+          '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:rPr><w:b/><w:color w:val="1F5FA8"/><w:sz w:val="28"/></w:rPr></w:style>' +
+          '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/></w:style>' +
+          '<w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style>' +
+          '</w:styles>';
+        var docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+          '</Relationships>';
+        var blob = zipStore([
+          { name: '[Content_Types].xml', data: contentTypes },
+          { name: '_rels/.rels', data: rels },
+          { name: 'word/document.xml', data: docXml },
+          { name: 'word/_rels/document.xml.rels', data: docRels },
+          { name: 'word/styles.xml', data: styles }
+        ]);
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = currentDoc.toUpperCase() + '_' + currentLang.toUpperCase() + '.docx';
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(url) }, 1000);
+      });
+
+      // Text search is intentionally delegated to the browser (Ctrl+F) —
+      // no in-page search box, no DOM mutation, no freeze risk.
+      window.addEventListener('scroll', syncToc, { passive: true });
+
+      render();
+    })();
+  </script>
+</body>
+
+</html>

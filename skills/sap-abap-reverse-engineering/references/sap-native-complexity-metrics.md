@@ -1,0 +1,2 @@
+# SAP-Native Complexity Metrics
+For CDS/SQL analyses, capture evidence source and exact values when supported for database tables/table entities, database views, parameterized CDS views, table functions, joins, set operations, GROUP BY, function calls, CAST, and CASE. Use `NOT_COLLECTED` when applicable but unavailable and `NOT_APPLICABLE` when the root/scope has no such metric. For other object kinds, report only relevant native metrics supported by evidence; do not force CDS measures. Keep static complexity separate from runtime ST05/PlanViz evidence.

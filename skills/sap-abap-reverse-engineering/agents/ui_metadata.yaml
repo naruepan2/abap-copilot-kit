@@ -1,0 +1,4 @@
+interface:
+  display_name: "SAP ABAP Deep Reverse Engineering"
+  short_description: "Read-only SAP technical specification and dependency analysis"
+  brand_color: "#0A6ED1"

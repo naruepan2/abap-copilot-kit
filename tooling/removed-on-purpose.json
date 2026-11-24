@@ -50,5 +50,27 @@
             "upstream": "mattpocock/skills"
         }
     ],
-    "immutable_tag_damage": []
+    "immutable_tag_damage": [],
+    "mojibake_exempt_files": [
+        {
+            "path": "skills/sap-abap-reverse-engineering/references/thai-output-rules.md",
+            "page": "cp874",
+            "reason": "Legitimate UTF-8 Thai prose. Some Thai words (e.g. the run in 'สําคัญ') re-encode to cp874 bytes that also decode as valid UTF-8 Cyrillic, which the detector cannot distinguish from damage. Verified byte-for-byte as strict UTF-8 with correct Thai text on 2026-11-24."
+        },
+        {
+            "path": "skills/sap-abap-reverse-engineering/templates/samples/technical-specification-sample.md",
+            "page": "cp874",
+            "reason": "Legitimate UTF-8 Thai sample specification. Same cp874 false-positive class as thai-output-rules.md; verified strict UTF-8 with correct Thai text on 2026-11-24."
+        },
+        {
+            "path": "backup/20261124-reverse-engineering/skills/sap-abap-reverse-engineering/references/thai-output-rules.md",
+            "page": "cp874",
+            "reason": "Byte-identical snapshot of the exempt Thai-language reference above."
+        },
+        {
+            "path": "backup/20261124-reverse-engineering/skills/sap-abap-reverse-engineering/templates/samples/technical-specification-sample.md",
+            "page": "cp874",
+            "reason": "Byte-identical snapshot of the exempt Thai-language sample above."
+        }
+    ]
 }

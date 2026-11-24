@@ -32,8 +32,8 @@
 ## 2. Clone the kit
 
 ```powershell
-git clone <private-kit-remote> D:\abap-copilot-kit
-$env:ABAP_KIT_ROOT = 'D:\abap-copilot-kit'
+git clone <kit-remote> <clone-path>          # any local drive or folder
+$env:ABAP_KIT_ROOT = '<clone-path>'          # or let install-kit.ps1 write the pin
 ```
 
 The kit has no package version and no lockfile. Releases are **annotated git tags**
@@ -43,7 +43,7 @@ to a known-good state when a pull regresses something.
 ## 3. Install kit files (agents, tooling, skills, hooks)
 
 ```powershell
-Set-Location D:\abap-copilot-kit
+Set-Location <clone-path>
 powershell -ExecutionPolicy Bypass -File .\tooling\install-kit.ps1 -Check   # dry run first
 powershell -ExecutionPolicy Bypass -File .\tooling\install-kit.ps1          # real copy
 ```
@@ -271,6 +271,6 @@ runs, and silence is indistinguishable from "nothing changed".
 | caveman skills | https://github.com/JuliusBrussee/caveman | `~/.agents/skills/caveman` (+ ultracave/megacave) |
 | ARC-1 runtime | `npm i -g arc-1` (arc-mcp/arc-1) | MCP server `arc-1` |
 | SAP AI Dev Toolkit | `npm i -g sap-ai-dev-toolkit` | MCP servers + `~/.copilot/skills/*` (toolkit set) |
-| Kit (agents/tooling/skills/hooks/templates) | private repo `abap-copilot-kit` (`git pull` = update) | `D:\abap-copilot-kit` → `~/.copilot/{agents,state,skills,hooks}` |
+| Kit (agents/tooling/skills/hooks/templates) | public repo `abap-copilot-kit` (`git pull` = update) | `<clone-path>` → `~/.copilot/{agents,state,skills,hooks}`; pin records the clone path |
 | ABAP FS extension | https://marketplace.visualstudio.com (murbani.vscode-abap-remote-fs) | VS Code extension |
 | Skill inventory detail | `docs/reference/skills.md`, `docs/reference/arc-1.md` in the kit | — |

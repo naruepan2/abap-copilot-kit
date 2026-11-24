@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.0.0",
+  "solution": {
+    "name": "Open Order Margin (SAMPLE)",
+    "scope": "CDS consumption view and direct dependency branches",
+    "root_object": "ZC_DEMO_OPEN_ORDER_MARGIN",
+    "intensity_profile": "COMPREHENSIVE",
+    "target_system": "DEMO_S4H/100 (mock)"
+  },
+  "architectures": ["CDS_SQL_GRAPH", "RAP_SERVICE_UNVERIFIED"],
+  "activated_modules": ["core", "rap-object-model"],
+  "evidence": [
+    {
+      "id": "EV-001",
+      "source": "ZI_DEMO_OPEN_ORDER_MARGIN (DDLS, active 2026-11-08)",
+      "locator": "source L1-L60 (mock)",
+      "excerpt": "MarginAmount = NetAmount - CostAmount; MarginPercent division has no zero guard",
+      "claim_class": "OBSERVED",
+      "provenance": "supplied artifact"
+    },
+    {
+      "id": "EV-002",
+      "source": "ZI_DEMO_CUSTOMER_TEXT (DDLS, active 2026-09-14)",
+      "locator": "source L1-L20 (mock)",
+      "excerpt": "CustomerName from KNA1~NAME1",
+      "claim_class": "OBSERVED",
+      "provenance": "supplied artifact"
+    },
+    {
+      "id": "EV-003",
+      "source": "ZI_DEMO_OPEN_ORDER_BASE (DDLS, active 2026-10-30)",
+      "locator": "source L1-L40 (mock)",
+      "excerpt": "LEFT JOIN PRCD_ELEMENTS with KSCHL = 'VPRS'",
+      "claim_class": "OBSERVED",
+      "provenance": "supplied artifact"
+    },
+    {
+      "id": "EV-004",
+      "source": "ZC_DEMO_OPEN_ORDER_MARGIN metadata",
+      "locator": "metadata endpoint (mock)",
+      "excerpt": "No DCL role found in bounded metadata search",
+      "claim_class": "NOT_COLLECTED",
+      "provenance": "live read"
+    }
+  ],
+  "objects": [
+    {
+      "id": "OBJ-01",
+      "name": "ZC_DEMO_OPEN_ORDER_MARGIN",
+      "type": "DDLS",
+      "layer": "Consumption",
+      "role": "Root consumption view",
+      "archetype": "CDS_SQL_GRAPH",
+      "status": "Detected",
+      "read_status": "full",
+      "fingerprint": "active 2026-11-10 (mock)",
+      "evidence_ids": ["EV-004"]
+    },
+    {
+      "id": "OBJ-02",
+      "name": "ZI_DEMO_OPEN_ORDER_MARGIN",
+      "type": "DDLS",
+      "layer": "Interface",
+      "role": "Margin calculation",
+      "archetype": "CDS_SQL_GRAPH",
+      "status": "Detected",
+      "read_status": "full",
+      "evidence_ids": ["EV-001"]
+    },
+    {
+      "id": "OBJ-03",
+      "name": "ZI_DEMO_OPEN_ORDER_BASE",
+      "type": "DDLS",
+      "layer": "Base join",
+      "role": "Order/customer enrichment",
+      "archetype": "CDS_SQL_GRAPH",
+      "status": "Detected",
+      "read_status": "full",
+      "evidence_ids": ["EV-003"]
+    },
+    {
+      "id": "OBJ-04",
+      "name": "ZI_DEMO_CUSTOMER_TEXT",
+      "type": "DDLS",
+      "layer": "Text",
+      "role": "Customer name by language",
+      "archetype": "CDS_SQL_GRAPH",
+      "status": "Detected",
+      "read_status": "full",
+      "evidence_ids": ["EV-002"]
+    },
+    {
+      "id": "OBJ-05",
+      "name": "VBAK",
+      "type": "TABL",
+      "layer": "Physical",
+      "status": "Detected",
+      "read_status": "metadata",
+      "evidence_ids": ["EV-003"]
+    },
+    {
+      "id": "OBJ-06",
+      "name": "VBAP",
+      "type": "TABL",
+      "layer": "Physical",
+      "status": "Detected",
+      "read_status": "metadata",
+      "evidence_ids": ["EV-003"]
+    },
+    {
+      "id": "OBJ-07",
+      "name": "KNA1",
+      "type": "TABL",
+      "layer": "Physical",
+      "status": "Detected",
+      "read_status": "metadata",
+      "evidence_ids": ["EV-002"]
+    },
+    {
+      "id": "OBJ-08",
+      "name": "PRCD_ELEMENTS",
+      "type": "TABL",
+      "layer": "Physical",
+      "status": "Detected",
+      "read_status": "metadata",
+      "evidence_ids": ["EV-003"]
+    },
+    {
+      "id": "OBJ-09",
+      "name": "DCL role of ZC_DEMO_OPEN_ORDER_MARGIN",
+      "type": "DCLS",
+      "status": "Expected but Missing",
+      "read_status": "not_read",
+      "evidence_ids": ["EV-004"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "CLM-001",
+      "statement": "MarginPercent divides by NetAmount without a zero guard",
+      "classification": "OBSERVED",
+      "confidence": "High",
+      "evidence_ids": ["EV-001"],
+      "target_sections": ["Section 6", "Section 16", "F-01"]
+    },
+    {
+      "id": "CLM-002",
+      "statement": "Missing VPRS condition makes margin look profitable although cost data is absent",
+      "classification": "INTERPRETATION",
+      "confidence": "Medium",
+      "evidence_ids": ["EV-003"],
+      "target_sections": ["Section 16", "F-02"]
+    },
+    {
+      "id": "CLM-003",
+      "statement": "The report is used by a business user to review margin",
+      "classification": "UNVERIFIED_INTENT",
+      "confidence": "Low",
+      "evidence_ids": ["EV-001"],
+      "target_sections": ["PRD Section 4", "PRD Section 5"]
+    }
+  ],
+  "dependencies": [
+    { "from": "ZC_DEMO_OPEN_ORDER_MARGIN", "to": "ZI_DEMO_OPEN_ORDER_MARGIN", "kind": "SQL dependency", "occurrence_id": "OCC-001", "path_id": "P-1", "evidence_ids": ["EV-004"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_MARGIN", "to": "ZI_DEMO_OPEN_ORDER_BASE", "kind": "SQL dependency", "occurrence_id": "OCC-002", "path_id": "P-1", "evidence_ids": ["EV-001"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_MARGIN", "to": "ZI_DEMO_CUSTOMER_TEXT", "kind": "SQL dependency", "occurrence_id": "OCC-003", "path_id": "P-2", "evidence_ids": ["EV-001"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_BASE", "to": "VBAK", "kind": "FROM", "occurrence_id": "OCC-004", "path_id": "P-1", "evidence_ids": ["EV-003"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_BASE", "to": "VBAP", "kind": "INNER JOIN", "occurrence_id": "OCC-005", "path_id": "P-1", "evidence_ids": ["EV-003"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_BASE", "to": "KNA1", "kind": "LEFT JOIN", "occurrence_id": "OCC-006", "path_id": "P-1", "evidence_ids": ["EV-002"] },
+    { "from": "ZI_DEMO_OPEN_ORDER_BASE", "to": "PRCD_ELEMENTS", "kind": "LEFT JOIN", "occurrence_id": "OCC-007", "path_id": "P-1", "evidence_ids": ["EV-003"] },
+    { "from": "ZI_DEMO_CUSTOMER_TEXT", "to": "KNA1", "kind": "FROM", "occurrence_id": "OCC-008", "path_id": "P-2", "evidence_ids": ["EV-002"] }
+  ],
+  "counts": {
+    "occurrence_count": 8,
+    "unique_object_count": 9,
+    "source_read_count": 4,
+    "selected_scope_count": 9,
+    "count_status": "EXACT",
+    "root_included": true
+  },
+  "reconciliation": {
+    "status": "NOT_APPLICABLE",
+    "artifact_provenance": "NOT_PROVIDED",
+    "artifact_format": "NOT_APPLICABLE",
+    "parser_disposition": "NOT_APPLICABLE",
+    "divergences": []
+  },
+  "delivery": {
+    "mode": "TECHNICAL_SPECIFICATION",
+    "prd_requested": true,
+    "language": "EN+TH",
+    "output_format": "HTML",
+    "template_provenance": "templates/technical-specification.md + templates/product-requirement-document.md (canonical defaults)",
+    "rendition_parity": "MATCHED",
+    "scratchpad_status": "NOT_USED"
+  }
+}

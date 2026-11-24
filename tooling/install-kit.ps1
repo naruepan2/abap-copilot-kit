@@ -67,7 +67,8 @@ if ($ShowPaths) {
 }
 
 # The live copies have no way to know where the clone lives, and a drive letter cannot be baked
-# into a script that is committed. Write the location once, here, where it belongs.
+# into a script that is committed. Write the location once, here, where it belongs. The write-gate
+# shim reads this pin, so the delivery agent's hook needs no kit path and survives a move.
 $pinFile = Join-Path $dest.tooling 'kit-root.txt'
 if (-not $Check) {
     if (-not (Test-Path $dest.tooling)) { New-Item -ItemType Directory -Path $dest.tooling -Force | Out-Null }
@@ -96,7 +97,15 @@ foreach ($f in Get-ChildItem (Join-Path $KitRoot 'tooling') -File -ErrorAction S
 foreach ($d in Get-ChildItem (Join-Path $KitRoot 'skills') -Directory -ErrorAction SilentlyContinue) {
     $s = Join-Path $d.FullName 'SKILL.md'
     if (-not (Test-Path $s)) { continue }
-    $plan += [pscustomobject]@{ Kind = 'skills'; Name = ($d.Name + '\SKILL.md'); Src = $s; Dest = (Join-Path (Join-Path $dest.skills $d.Name) 'SKILL.md') }
+    # A skill can own references/, templates/, schemas/ and tools/. Copying only SKILL.md leaves
+    # every relative link broken (measured 2026-11-24 with sap-abap-reverse-engineering: 24 BAD
+    # links). Enumerate the whole subtree, but keep the name relative to the skill folder so the
+    # installer's mirror/DRIFT reporting stays readable.
+    foreach ($f in Get-ChildItem $d.FullName -Recurse -File -ErrorAction SilentlyContinue) {
+        if ($f.FullName -match '\\\.git\\|__pycache__') { continue }
+        $rel = $f.FullName.Substring($d.FullName.Length).TrimStart('\')
+        $plan += [pscustomobject]@{ Kind = 'skills'; Name = ($d.Name + '\' + $rel); Src = $f.FullName; Dest = (Join-Path (Join-Path $dest.skills $d.Name) $rel) }
+    }
 }
 # Hooks were missed entirely: the installer copied agents, tooling and skills, and never the three
 # .cjs files that run on every session. Measured 2026-11-15, the live subagent-rules.cjs was a version
@@ -124,6 +133,12 @@ $added = 0; $same = 0; $conflict = @(); $forced = 0; $normalised = 0
 # every check said identical while Get-FileHash said otherwise. Writing the normalised form makes
 # both answers agree, and matches what .gitattributes pins in the repository.
 function Write-Normalised([string]$src, [string]$dest) {
+    # Binary assets (DOCX templates, images) must not go through a text decoder. Measured 2026-11-24:
+    # the reverse-engineering skill ships sample .docx files, and normalising them would corrupt them.
+    if ($src -match '\.(docx|xlsx|pdf|png|jpe?g|gif|zip)$') {
+        Copy-Item -LiteralPath $src -Destination $dest -Force
+        return
+    }
     $t = [System.IO.File]::ReadAllText($src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"
     [System.IO.File]::WriteAllText($dest, $t, (New-Object System.Text.UTF8Encoding($false)))
 }
@@ -136,6 +151,14 @@ foreach ($i in $plan) {
             Write-Normalised $i.Src $i.Dest
         }
         $added++
+        continue
+    }
+    if ($i.Src -match '\.(docx|xlsx|pdf|png|jpe?g|gif|zip)$') {
+        $rawS = [System.IO.File]::ReadAllBytes($i.Src)
+        $rawD = [System.IO.File]::ReadAllBytes($i.Dest)
+        if ([System.Convert]::ToBase64String($rawS) -ceq [System.Convert]::ToBase64String($rawD)) { $same++; continue }
+        if ($Force -and -not $Check) { Copy-Item -LiteralPath $i.Src -Destination $i.Dest -Force }
+        if ($Force) { $forced++ } else { $conflict += $i }
         continue
     }
     $a = [System.IO.File]::ReadAllText($i.Src, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n"

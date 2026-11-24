@@ -109,6 +109,14 @@ Rules that keep this list honest:
   every skill's injected size, and its section 6 prints each skill's body size — section 2 of
   `verify-all.ps1` checks frontmatter, not size.
 
+### Classic ABAP report template — shared asset
+
+`skills/sap-new-program` and `auto-abap-delivery` both need the YSMILE SALV template for a new
+classic report. It lives once at `reference-assets/salv/`, verified by `MANIFEST.sha256`; the
+resolution and preflight rules are in `docs/reference/salv-template.md`. The installed
+`sap-new-program` skill still prints the old relative path — this routing rule wins. Do not edit
+installed skills or create a second copy.
+
 ### A `.md` name inside a skill usually means a sibling skill, not a file
 
 The `arc-mcp/arc-1` skills were written as flat `.md` files in one directory and the installer turns

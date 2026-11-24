@@ -18,8 +18,9 @@ the setup itself is in question. The short rule set stays in user memory; this f
 
 ## Repository visibility — corrected 2026-11-19
 
-The framework repo `D:\abap-copilot-kit` = GitHub `naruepan2/abap-copilot-kit` is **public** and
-was already public when the co-edit work started. An earlier memory note said "Deliberately
+The framework repo (GitHub `naruepan2/abap-copilot-kit`, local path from `$env:ABAP_KIT_ROOT`
+or the `~/.copilot/state/kit-root.txt` pin) is **public** and was already public when the co-edit
+work started. An earlier memory note said "Deliberately
 private"; that note was stale and was corrected. Consequences:
 
 - `Projects/` is gitignored. SID, client, customer, host, real TR numbers and user identifiers

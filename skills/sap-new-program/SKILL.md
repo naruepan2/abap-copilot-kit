@@ -56,9 +56,10 @@ Ask one question, in the user's language:
 Before creating a new classic ABAP report (SE38), choose the reference template:
 1. Existing template — give the exact SE38 program name. I will read its main source,
    includes, classes, event flow and comments before writing the new report.
-2. No template — use the bundled YSMILE SALV template in
-   skills/sap-new-program/references/salv/ (main + _TOPZ, _S01, _C01, _C02;
+2. No template — use the shared YSMILE SALV template in the repository asset
+   reference-assets/salv/ (main + _TOPZ, _S01, _C01, _C02;
    variants/edit1 and edit2 for whole-column and per-cell editing).
+   Resolve and verify it with docs/reference/salv-template.md before writing code.
 ```
 
 Rules:

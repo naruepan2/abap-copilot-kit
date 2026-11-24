@@ -1,0 +1,4 @@
+# Occurrence versus Canonical Counting
+Preserve every dependency occurrence and parent-to-leaf path while deduplicating source reads by verified canonical object/fingerprint. Label all counts as `occurrence_count`, `unique_object_count`, `source_read_count`, or `selected_scope_count`; when reconciling an export, distinguish native provider counts from locally computed counts. Never deduplicate SAP-native occurrence metrics.
+
+For hierarchical dependency exports, each object occurrence is one row/path occurrence, even if the same canonical object appears many times or is reused by several branches. Count operator nodes (`SELECT`, `UNION`, `UNION ALL`, and similar syntax markers) separately from repository objects. State whether the root is included in each denominator. Derive a unique-object count from verified canonical entity/object names, not raw aliases, and report unresolved name collisions rather than merging them silently.

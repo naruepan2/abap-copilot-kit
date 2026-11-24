@@ -1853,6 +1853,11 @@ $mojiPages = @(
     @{ Id = 28591; Name = 'latin-1' }
 )
 $mojiStrict = New-Object System.Text.UTF8Encoding($false, $true)
+# Declared exceptions for legitimate non-Latin prose that the cp874 re-decode heuristic cannot
+# distinguish from real damage. One home: tooling/removed-on-purpose.json. Each entry names the
+# exact file and page; an undeclared Thai file still fails, and a new damaged file is not excused.
+$mojiExempt = @()
+if ($removedDoc) { $mojiExempt = @($removedDoc.mojibake_exempt_files | Where-Object { $_ -and $_.path -and $_.page }) }
 
 function Get-MojiRuns([string]$text) {
     # Maximal runs of non-ASCII characters, capped at 12. A single damaged character is 2-4 codepoints;
@@ -1943,6 +1948,7 @@ if ($repoOk) {
         $label = if ($fp.StartsWith($REPO, [StringComparison]::OrdinalIgnoreCase)) { $fp.Substring($REPO.Length).TrimStart('\') } else { $fp }
         $n = 0
         $soft = 0
+        $exempt = @($mojiExempt | Where-Object { $label.Replace('\', '/') -eq ([string]$_.path).Replace('\', '/') })
         foreach ($run in (Get-MojiRuns $mt)) {
             $page = Test-MojiRun $run $mojiPages
             if (-not $page) { continue }
@@ -1951,6 +1957,11 @@ if ($repoOk) {
             if ($page -eq 'cp874' -and $allThai -and $run.Length -eq 2) {
                 $soft++
                 Write-Output ("  NOTE    " + $label + " has a 2-letter Thai run (" + $cps + ") that is also the cp874 form of U+00B7 - ambiguous, not counted")
+                continue
+            }
+            if ($exempt.Count -gt 0 -and @($exempt | Where-Object { ([string]$_.page) -eq $page }).Count -gt 0) {
+                $soft++
+                Write-Output ("  NOTE    " + $label + " has a declared cp874 false positive (" + $cps + ") - see removed-on-purpose.json")
                 continue
             }
             $n++
