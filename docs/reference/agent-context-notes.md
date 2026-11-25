@@ -79,6 +79,12 @@ object, clean core level, release state and source in the note. Unknown means `n
 file inside the project. It is read-only against SAP and never reads secrets or `Projects/` content
 outside the named project.
 
+`tooling/context-pack.ps1 -Project <CODE> -Pending` is a separate **discovery surface**: it prints
+up to five inbox drafts by metadata only (path, confidence, source, date). It never prints a draft
+body, never sets `agent_context: true`, and never promotes anything. Use it when starting a deep
+task or at UAT handoff so a draft the owner forgot is visible; a human still reviews and promotes in
+this folder. The default pack is unchanged — inbox remains excluded.
+
 Use it at session start for a deep task, not for every request. Measure the output size before
 assuming it saves tokens; a pack that is larger than the targeted reads is a regression.
 

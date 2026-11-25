@@ -4,7 +4,8 @@
 param(
     [Parameter(Mandatory=$true)][string]$Project,
     [string]$AppliesTo,
-    [string]$OutFile
+    [string]$OutFile,
+    [switch]$Pending
 )
 $ErrorActionPreference = 'Stop'
 $kit = if ($env:ABAP_KIT_ROOT) { $env:ABAP_KIT_ROOT } else {
@@ -13,10 +14,49 @@ $kit = if ($env:ABAP_KIT_ROOT) { $env:ABAP_KIT_ROOT } else {
 }
 $base = Join-Path $kit 'Projects'
 $dir = Join-Path $base (Join-Path $Project 'agent-context')
+
+# -Pending is a surface, not a learning mechanism. It lists a bounded number of inbox drafts by
+# metadata only (status/confidence/source/date). Draft bodies are NEVER printed or loaded, and no
+# draft is ever promoted here: a human reviews and promotes in the note home. Measured 2026-11-26:
+# the default pack skipped inbox at line 22 with no digest, so a draft the owner forgot became
+# invisible to every later session. This switch closes that visibility gap without changing the
+# default pack or the authority rules.
+if ($Pending) {
+    $inbox = Join-Path $dir 'inbox'
+    $drafts = @()
+    if (Test-Path -LiteralPath $inbox) {
+        foreach ($f in (Get-ChildItem -LiteralPath $inbox -Recurse -File -Filter *.md | Sort-Object LastWriteTime)) {
+            $text = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8)
+            $m = [regex]::Match($text, '(?s)^---\r?\n(.*?)\r?\n---')
+            if (-not $m.Success) { continue }
+            $fm = $m.Groups[1].Value
+            $status = [regex]::Match($fm, '(?m)^status:\s*(.+?)\s*$')
+            if (-not $status.Success -or $status.Groups[1].Value.Trim() -ne 'draft') { continue }
+            $conf = [regex]::Match($fm, '(?m)^confidence:\s*(.+?)\s*$')
+            $src = [regex]::Match($fm, '(?m)^source:\s*(.+?)\s*$')
+            $drafts += [pscustomobject]@{
+                File = $f.FullName.Substring($dir.Length).TrimStart('\')
+                Confidence = if ($conf.Success) { $conf.Groups[1].Value.Trim() } else { 'unspecified' }
+                Source = if ($src.Success) { $src.Groups[1].Value.Trim() } else { 'unspecified' }
+                Written = $f.LastWriteTime.ToString('yyyy-MM-dd')
+            }
+        }
+    }
+    $shown = @($drafts | Select-Object -First 5)
+    Write-Output "PENDING drafts=$($drafts.Count) shown=$($shown.Count) (metadata only; bodies not loaded)"
+    foreach ($d in $shown) {
+        Write-Output ("  {0} | confidence={1} | source={2} | written={3}" -f $d.File, $d.Confidence, $d.Source, $d.Written)
+    }
+    if ($drafts.Count -gt $shown.Count) { Write-Output ("  ... {0} more draft(s) not shown - triage the inbox first" -f ($drafts.Count - $shown.Count)) }
+    if ($drafts.Count -eq 0) { Write-Output '  none - no draft needs review' }
+    exit 0
+}
+
 if (-not (Test-Path -LiteralPath $dir)) {
     Write-Output "NO_NOTES $Project (no agent-context folder)"
     exit 0
 }
+
 $inScope = @()
 foreach ($f in Get-ChildItem -LiteralPath $dir -Recurse -File -Filter *.md) {
     if ($f.FullName -match '\\inbox\\') { continue }
