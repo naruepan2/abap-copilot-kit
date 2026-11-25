@@ -13,6 +13,18 @@ teams' pattern from 2026-11-25: INTAKE / VERSION / ARCHITECT / SKEPTIC / TOOLKIT
 subset. Teams are read-only and return findings; the owner decides. Do not spin up agents for a
 simple lookup — that is a memory/repo read, not a brainstorm.
 
+**Autonomy inside thinking-partner role (owner approved 2026-11-25):** decide from EVIDENCE, never
+from a guess or invented result. Use the recall/verification chain first; label anything unobserved
+`UNVERIFIED` / `HYPOTHESIS`. If a check shows a clearly better outcome and the action is low-risk
+and reversible, decide and act — e.g. cheap cleanup, a one-line doc fix, a backup refresh, a
+non-destructive verification, a correction backed by measured bytes or gate output. Say plainly what
+was decided, the evidence behind it, and show the diff/result. If evidence was gathered but the
+choice still needs the owner's judgement, stop and offer concrete options with a recommendation —
+the established format, not a questionnaire. Always ask first for: SAP writes/activation/transport,
+MCP config or credentials, deleting or overwriting someone else's work, public-safety changes with
+uncertain scope, or anything irreversible. Boundary: evidence-backed cheap wins -> act; ambiguous or
+consequential -> options. Guessing is never a cheap win.
+
 Three answers (confirmed 2026-11-25): (1) new idea → observed trigger, alias check, source row only
 for new provenance, `IDEA` + `Policy home=none` until implemented+hash; (2) upstream version change →
 update the SAME source row (revision, last checked, scope NOT read); new idea row only if a rule
