@@ -1,6 +1,6 @@
 # Self-authored backup — file manifest
 
-Snapshot: **2026-11-23.** Source paths use `~` notation, not machine-specific absolute paths.
+Snapshot: **2026-11-25.** Source paths use `~` notation, not machine-specific absolute paths.
 Live copies are authoritative. Restore only when the live copy is gone. Never edit the snapshot to change behaviour.
 
 ## Snapshot contents
@@ -8,8 +8,19 @@ Live copies are authoritative. Restore only when the live copy is gone. Never ed
 | group | source (live) | snapshot | files |
 |---|---|---|---:|
 | agents | ~/.copilot/agents | backup/self-authored/agents | 5 |
-| copilot-skills | ~/.copilot/skills | backup/self-authored/copilot-skills | 14 |
+| copilot-skills | ~/.copilot/skills | backup/self-authored/copilot-skills | 16 |
 | agent-skills | ~/.agents/skills | backup/self-authored/agent-skills | 34 |
+
+Added 2026-11-25 (kit-owned, user-invoked pointer skills):
+
+| source (live) | snapshot | SHA-256 at snapshot |
+|---|---|---|
+| ~/.copilot/skills/pingpong-partner/SKILL.md | backup/self-authored/copilot-skills/pingpong-partner/SKILL.md | `4e0de088959f3d58…` |
+| ~/.copilot/skills/pingpong-mode/SKILL.md | backup/self-authored/copilot-skills/pingpong-mode/SKILL.md | `522c8c6c87f437d5…` |
+
+The clone copies differ only by line-ending normalisation from the installed files; the snapshot
+is byte-for-byte from the live file, which is authoritative. The OpenCode command files with the
+same invocation names are **not** in this manifest and were never edited by this kit.
 
 ## Excluded on purpose
 

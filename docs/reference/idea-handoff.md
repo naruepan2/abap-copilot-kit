@@ -11,9 +11,10 @@ no customer, host, user, client, transport or private run detail appears here.
 2. `docs/memory-decisions.md` — *why* an idea was adopted, rejected or deferred, plus the vocabulary
    map. Status lives only in the register; rationale lives only here.
 3. Live user memory file `idea-intake.md` (path in `INDEX.md`) — the assistant role and autonomy
-   rules. The owner named this assistant **pingpong-partner** on 2026-11-25. That name is recorded
-   here as a conversation fact; it is not yet written into always-on memory, so do not claim the
-   live memory contains it without reading that file.
+   rules. The owner named this assistant **pingpong-partner** on 2026-11-25; that alias was written
+   in place into the live memory and its `backup/user-memory` mirror (identical SHA-256,
+   `3cbb627`), still on the existing thinking-partner line so the 200-line budget did not grow.
+   Read the file rather than trusting this sentence.
 
 Then measure state; never trust a remembered hash:
 
@@ -119,6 +120,26 @@ and `skill-version-scan`; no observed incident justifies building a new one.
 
 `remember` → `capture-lesson` (human gate, notes are data). `improve` → register + `memory-decisions`
 alias check. Both already have homes; ECC's catalog scale is a deliberate mismatch.
+
+### Two pingpong entry points — same names, different jobs, different owners
+
+The owner's OpenCode repo (`naruepan2/abap-ai-opencode-toolkit`) has two slash commands. They were
+read read-only on 2026-11-25 (`pingpong-partner.md` 658 B SHA-256 `74E822F4…`,
+`pingpong-mode.md` 554 B SHA-256 `72DEB36D…`), never edited from this kit. This kit now has its own
+two skills with the same invocation names; they are separate implementations with kit ownership,
+listed in `INDEX.md` and covered by the kit-backup allowlist. Do not edit the OpenCode files from
+here, and do not treat one repo's rules as authority for the other.
+
+| Invocation | Job | Rule home (authority) | Kit skill (entry point only) |
+|---|---|---|---|
+| `/pingpong-partner` | thinking partner / คู่คิด for ideas, issues, problem-solving and decisions — not a delivery run | live `idea-intake.md` §Thinking partner + §Autonomy; this note §2 | `skills/pingpong-partner/SKILL.md` |
+| `/pingpong-mode` | short alias that starts an unattended SAP ABAP delivery run — not a brainstorm command | `auto-abap-delivery/SKILL.md` (`start-unattended`; alias `APPLIED (0a4f6e7)`) | `skills/pingpong-mode/SKILL.md` |
+
+Both kit skills are pure pointers with `disable-model-invocation: true` (user-invoked only). They
+add no enum value, run-state field, validator change or hard gate; `/pingpong-mode` still runs steps
+1-5, still needs SAP-write approval, and still stops at `READY_FOR_UAT`. The alias overlap in names
+is intentional; the rule homes stay separate so a change in one harness cannot silently rewrite the
+other.
 
 ### YouTube four-ways clip — reviewed, not adopted
 
