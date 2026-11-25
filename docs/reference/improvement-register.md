@@ -45,6 +45,10 @@ be replaced with a hash.
 | opencode-mem | Persistent-memory plugin; Turso/libSQL + vectors, markdown vault, capture/hygiene; revision UNVERIFIED | MIT | 2026-11-23; last checked same | README read in full from GitHub. NOT considered: vector/embedding infrastructure | Upstream version change |
 | V9.4-design | Local experimental design: 1,080-line master + 58-line traceability addendum + partial benchmark harness | local design, provenance not asserted | 2026-11-23; last checked 2026-11-25 | Both documents read in full; harness and smoke result inspected. NOT built: migrations 002-008, adapters, validators, full test matrix | A measured trigger in `derived-index-design.md` fires |
 
+| ecc | `affaan-m/ECC` (canonical casing; source row from the earlier `affaan-m/ecc` alias), release v2.2.3 (2026-10-01), main `4adeee6`; 72 agents / 328 skills / 99 commands, Memory Vault, instincts, AgentShield | MIT (confirmed in README and LICENSE) | 2026-11-25; last checked same | README fetched in full. NOT read: full agent/skill/hook source trees; no local install performed | New upstream release or an install decision |
+| pstack | `cursor/plugins` pstack `poteto-mode` guide + `SKILL.md` + playbook directory (22 playbooks, dir commit `dd24b67`) | **UNVERIFIED** — GitHub API reports `license: null`, no root LICENSE | 2026-11-25; last checked same | Guide, SKILL.md and playbook file list fetched. NOT read: all 22 playbook bodies, leaf principle skills, worker.md | Upstream commit change or a license file appears |
+| V2.0-operating-model | Local synthesis "SAP ABAP Classic-to-RAP Agent Operating Model V2.0 Complete" | local design, provenance not asserted | 2026-11-25; last checked same | Full document read. NOT built: §19 schema, §21 test matrix, §22 harness, §27 rollout tree. Upstreams fetched separately above; synthesis fidelity to upstream not line-verified | New local revision or a measured trigger |
+
 License consequence: ideas from MIT sources may be re-implemented freely; **do not copy OpenViking
 code**. Re-express the idea in our own words, as with the other sources. An `UNVERIFIED` license
 keeps the source at `IDEA` with no policy home. Use the Source ID in idea rows; add a source row
@@ -157,6 +161,21 @@ rationale is in [`../memory-decisions.md`](../memory-decisions.md).
 | Future PostgreSQL + pgvector "shared team platform" | `REJECTED` (reconfirmed) | Reopens the decision already closed by the explicit no-vector and no-multi-writer policy; multi-writer is `PENDING / not qualified` in the register. |
 | Commit "sanitized evidence summaries" containing `system_id`, client, `file_path`, hashes | `REJECTED` | Would commit exactly the identifier join that §9c of `verify-all.ps1` exists to prevent. Only schema DDL with placeholders and synthetic benchmark config may be tracked. |
 | `OWNER_ACTION_REQUIRED` as a blocking status, or owner approval for migrations during a run | `DEFERRED` with constraint | If ever implemented, define it as a terminal handoff for a genuine decision boundary only, and restrict migrations to initialization. A mid-run gate would break Unattended's "approve once, run to gate" contract. The separate approval-card design stays `IDEA` and is not imported here. |
+
+## Reviewed from the V2.0 operating model (2026-11-25)
+
+Three read-only teams compared the local V2.0 synthesis with the toolkit; the three upstream URLs were
+then fetched (ECC and pstack rows above carry the verified identity). Verdict: most V2.0 components
+are existing kit rules under different names. Keep the small SAP-specific delta, do not scaffold the
+catalog. Full comparison and rationale are in [`../memory-decisions.md`](../memory-decisions.md).
+
+| Idea | Status | Why / next step |
+|---|---|---|
+| Classic-to-RAP option comparison with weighted scorecard and veto constraints (`V2.0` §8.1-8.3) | `IDEA` | Genuinely new: our Methodology Profiles A-D classify current/language target, not Preserve / Refactor / Facade / Unmanaged / Managed / Retire. If adopted, extend `references/methodology-and-capability.md` and `validate_methodology_resolution.py`; no new file. Trigger: a real fork where A-D cannot decide. |
+| Classic verification profile: selection screen, SALV/ALV, spool, background, update task, locks (`V2.0` §15.2) | `IDEA` | Our verification strengths are RAP-side. Add as an annex in `references/evidence-and-uat.md`, never as a new gate. Trigger: a Classic maintenance task needing explicit verification evidence. |
+| Four-way capability grade: Native / Connected Tool / Instruction Only / Unavailable (`V2.0` §7.2) | `IDEA` | ECC's README uses "instruction-only" for Copilot Chat, so the distinction has precedent. Extend `references/capability-and-intake.md` "Live discovery" so simulated validation cannot masquerade as a connected call. |
+| `/pingpong-mode` as an alias of `start-unattended`, selected only after requirement analysis and scope draft, with `READY_FOR_UAT` unchanged | `APPLIED` (`0a4f6e7`) | Trigger alias only. Workflow steps 1-5, the `execution_mode` enum, run-state schema, validator, evidence manifest and UAT stop are unchanged. Acceptance checked: identical run-state key set, no alias field, `validate_run.py` passes on the unmodified validator, scripts hash unchanged. Adjustments use the approved envelope, `RECONFIGURING`, or owner post-UAT review. |
+| Not imported: 18-component catalog, 17-entity SQLite schema, 14/22-playbook copy, 15-test matrix, 10-metric harness, 6-phase rollout tree, numeric E1-E7 confidence scores | `DEFERRED` | Scale mismatch like V9.4; preflight, gates, inbox, recovery, learning and one-home rules already have homes. SQLite and multi-writer decisions stay deferred/rejected until overridden with measured evidence. |
 
 ## Open items from earlier work (still valid)
 
