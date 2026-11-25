@@ -617,6 +617,15 @@ if (-not $repoOk) {
         # "all resolve". Scan table rows too, but only in repository-owned SKILL.md files - agent
         # tables name MCP servers and tools, which are not skills and must not be reported here.
         $gateTableRx = '`([a-z0-9]+(?:-[a-z0-9]+)+)`'
+        # User-invoked skills are named in slash form (`/pingpong-mode`). Measured 2026-11-25: both
+        # new pointer skills were written only that way and the prose regex counted neither. Strip
+        # the optional slash in the capture so the name still resolves against the installed roots.
+        $namedSkillRx = '(?i)(?:load|loads|loading|use|using|skill)\s+`/?([a-z0-9]+(?:-[a-z0-9]+)+)`'
+        $slashSelf = [regex]::Match('Use `/pingpong-partner` here', $namedSkillRx)
+        if (-not $slashSelf.Success -or $slashSelf.Groups[1].Value -ne 'pingpong-partner') {
+            Write-Output '  ISSUE   named-skill slash self-test extracted the wrong name'
+            Note 'ISSUE' 1
+        }
         # Status words that look like skill names but are not skills. Keep this list short and
         # explicit; a tool like abaplint has no hyphen and cannot match the pattern at all.
         $gateNonSkill = @{}
@@ -639,7 +648,7 @@ if (-not $repoOk) {
             $nt = $null
             try { $nt = [System.IO.File]::ReadAllText($f, [System.Text.Encoding]::UTF8) } catch { continue }
             $namedRead++
-            foreach ($m in [regex]::Matches($nt, '(?i)(?:load|loads|loading|use|using|skill)\s+`([a-z0-9]+(?:-[a-z0-9]+)+)`')) {
+            foreach ($m in [regex]::Matches($nt, $namedSkillRx)) {
                 $n2 = $m.Groups[1].Value
                 $gateKey = $f + '|' + $n2
                 if ($gateSeen.ContainsKey($gateKey)) { continue }
@@ -1232,7 +1241,11 @@ $skillMirrors = @(Get-ChildItem "$REPO\skills" -Directory -ErrorAction SilentlyC
 # previous release replaced - and no section noticed, because the installer had never copied hooks/
 # either. A file that runs on every session and is compared nowhere is the worst place to be stale.
 $hookMirrors = @(Get-ChildItem "$REPO\hooks" -Filter '*.cjs' -ErrorAction SilentlyContinue | ForEach-Object { 'hooks\' + $_.Name })
-$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1', 'tooling\findings.json', 'tooling\removed-on-purpose.json')
+# write-gate-shim.ps1 is the fixed hook path the delivery gate resolves through the kit-root pin;
+# census.ps1 and context-pack.ps1 are copied by install-kit and claimed by census as mirror-covered.
+# Measured 2026-11-25: none of the three was in $pairs, so census claimed a gate that did not read
+# them. All three now take the same normalized repo-vs-state comparison as the other tooling files.
+$pairs = @() + $agentMirrors + $skillMirrors + $hookMirrors + @('roster.json', 'tooling\verify-all.ps1', 'tooling\write-gate-shim.ps1', 'tooling\census.ps1', 'tooling\context-pack.ps1', 'tooling\measure-context.ps1', 'tooling\who-locks.ps1', 'tooling\sap-secret.ps1', 'tooling\sap-connection.ps1', 'tooling\sap-arc1-launcher.ps1', 'tooling\sap-auth-probe.js', 'tooling\workspace-sync.ps1', 'tooling\install-kit.ps1', 'tooling\findings.json', 'tooling\removed-on-purpose.json')
 # findings.json is on the list because install-kit copies it: the installer's tooling filter takes
 # every .ps1, .js and .json except surface.json, so the ledger became a live file that no section
 # compared. Measured 2026-11-15: the live copy held 26 findings in 14,721 bytes while the clone held

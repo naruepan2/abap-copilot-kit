@@ -1,10 +1,9 @@
 ---
 name: pingpong-mode
 description: >-
-  User-invoked short alias that starts an unattended SAP ABAP delivery run via
-  the auto-abap-delivery skill's start-unattended token. Not a third mode and
-  not a brainstorm command. Spec, plan, qualification and Autonomy Envelope
-  still need approval before any SAP write; the run stops at READY_FOR_UAT.
+  User-invoked short alias that forwards to the auto-abap-delivery skill's
+  start-unattended token. Not a third mode and not a brainstorm command.
+  Pointer only: qualification, approval and the UAT stop live in that skill.
 disable-model-invocation: true
 ---
 
@@ -27,14 +26,16 @@ that skill wins.
 
 ## Invocation
 
-Use `/pingpong-mode <task>` only when the owner explicitly wants an unattended SAP ABAP delivery
-run. It is equivalent to invoking the `auto-abap-delivery` skill with the `start-unattended` token
-and the owner's task arguments.
+Use `/pingpong-mode` with the task as arguments only when the owner explicitly wants an unattended
+SAP ABAP delivery run. It is equivalent to invoking the `auto-abap-delivery` skill with the
+`start-unattended` token and the owner's task arguments. The token only preselects unattended after qualification:
+unqualified scope resolves to Attended Standard and critical scope requires at least Controlled.
+The invocation alone is not override evidence.
 
-Before any SAP write: discover safely, draft the assignment, resolve architecture and guardrails,
-assess trust and qualification with a stored JSON verdict, and obtain approval of the Spec, plan,
-Autonomy Envelope and interaction policy. SAP writes still require explicit `APPROVE AND START`.
-Finish at `READY_FOR_UAT`, never `DONE`; production and irreversible actions remain prohibited.
+Before any SAP write, follow `auto-abap-delivery` exactly: its workflow steps 1-5 freeze the Spec,
+implementation plan, test plan, execution contract, Autonomy Envelope and resolved interaction
+policy. SAP writes require that skill's explicit approval; the run stops where that skill says it
+stops.
 
 Do not use this skill for brainstorming, ideas, issues or problem-solving; that is
 `/pingpong-partner`.

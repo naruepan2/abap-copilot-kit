@@ -265,7 +265,7 @@ if ($Detail -ne 'gaps') {
     Write-Output ''
 }
 
-Write-Output '=== 3. NO GATE READS THESE ==='
+Write-Output '=== 3. NO GATE NAMED IN THIS INVENTORY READS THESE ==='
 $uncovered = @($rows | Where-Object { [string]$_.Gate -eq '-' })
 $uncBytes = 0
 foreach ($r in $uncovered) { $uncBytes += $r.Bytes }
@@ -316,7 +316,7 @@ foreach ($g in $byScope) {
 Write-Output ('  {0,-10} {1,4} artifact(s) {2,10} B' -f 'UNCLASSIFIED', $sweep.Count, ($sweep | Measure-Object Bytes -Sum).Sum)
 Write-Output ''
 $gapCount = $uncovered.Count + $sweep.Count
-Write-Output ('  unread by any gate: {0} artifact(s) + {1} unclassified = {2}' -f $uncovered.Count, $sweep.Count, $gapCount)
+Write-Output ('  not named by any gate in this inventory: {0} artifact(s) + {1} unclassified = {2}' -f $uncovered.Count, $sweep.Count, $gapCount)
 
 # -- verdict -------------------------------------------------------------------
 # This tool began as a report, and a report nobody has to act on is how 161 files stayed invisible for

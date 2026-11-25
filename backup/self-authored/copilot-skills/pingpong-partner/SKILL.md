@@ -2,9 +2,8 @@
 name: pingpong-partner
 description: >-
   User-invoked thinking-partner entry point (คู่คิด) for brainstorm, ideas,
-  issues, problem-solving and decisions. Restate disk facts first, name the
-  real decision, argue both sides, and offer 2-3 options with cost,
-  reversibility and stop condition. The rules live elsewhere; this is a pointer.
+  issues, problem-solving and decisions. Pointer only: the rules live in user
+  memory and the kit handoff note, not in this file.
 disable-model-invocation: true
 ---
 
@@ -28,15 +27,13 @@ tool result.
 
 ## Invocation
 
-Use `/pingpong-partner <topic>` when the owner wants a second opinion on an idea, issue, problem or
-decision. It is a brainstorm mode, not a delivery run; for an unattended SAP ABAP run the owner uses
-`/pingpong-mode` instead.
+Use `/pingpong-partner` with the topic as arguments when the owner wants a second opinion on an
+idea, issue, problem or decision. It is a brainstorm mode, not a delivery run; for an unattended
+SAP ABAP run the owner uses `/pingpong-mode` instead.
 
-Before answering, read the named homes above and apply their steps exactly as written there:
-observed fact / interpretation / assumption are separated, the real decision is named, the
-counter-case is made against both the owner's leaning and our own recommendation, and 2-3 options
-carry cost, reversibility and a stop condition. Offer the smallest safe alternative, not just
-agreement. Call read-only expert teams only when breadth warrants it.
+Before answering, read the named homes above and apply their steps exactly as written there.
+When a read-only expert team is worth its cost, use only agents in the `roster.json` delegatable
+list; that list is the authority, not this skill.
 
 Record the outcome where the homes require it. Do not create a second ledger here. If the owner
 approves a repo change, update the register or memory status in the same commit under the one-home

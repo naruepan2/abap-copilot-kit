@@ -12,9 +12,10 @@ no customer, host, user, client, transport or private run detail appears here.
    map. Status lives only in the register; rationale lives only here.
 3. Live user memory file `idea-intake.md` (path in `INDEX.md`) — the assistant role and autonomy
    rules. The owner named this assistant **pingpong-partner** on 2026-11-25; that alias was written
-   in place into the live memory and its `backup/user-memory` mirror (identical SHA-256,
-   `3cbb627`), still on the existing thinking-partner line so the 200-line budget did not grow.
-   Read the file rather than trusting this sentence.
+   in place into the live memory and its `backup/user-memory` mirror, recorded in commit `3cbb627`.
+   Both files hash to `E9CA77F7EA1A96852DF4E32DA8544E50F118D62940A36892AC7FC4D2361AAEF7`; the edit
+   stayed on the existing thinking-partner line so the 200-line budget did not grow. Read the file
+   rather than trusting this sentence.
 
 Then measure state; never trust a remembered hash:
 
@@ -163,8 +164,8 @@ change follows from a summary whose last minute and comparison table were not re
 - Live SAP verification was blocked by disabled read tools and an unconfirmed target. Earlier 404s
   are **not** evidence that any object exists or does not exist. One named object from that run was
   explicitly skipped at the owner's request; its identifier stays in the private project record.
-- This handoff note is written after the release, so it is an unreleased repo change until a later
-  tag includes it.
+- The note itself was released in `v0.13.4` (`93e40b0`). The YouTube-source row and the two
+  pingpong skill additions that followed remain unreleased until a later tag includes them.
 
 ## 5. Open threads and their exact triggers
 

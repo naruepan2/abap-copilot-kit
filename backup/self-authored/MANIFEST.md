@@ -9,18 +9,20 @@ Live copies are authoritative. Restore only when the live copy is gone. Never ed
 |---|---|---|---:|
 | agents | ~/.copilot/agents | backup/self-authored/agents | 5 |
 | copilot-skills | ~/.copilot/skills | backup/self-authored/copilot-skills | 16 |
-| agent-skills | ~/.agents/skills | backup/self-authored/agent-skills | 34 |
+| agent-skills | ~/.agents/skills | backup/self-authored/agent-skills | 35 |
 
 Added 2026-11-25 (kit-owned, user-invoked pointer skills):
 
 | source (live) | snapshot | SHA-256 at snapshot |
 |---|---|---|
-| ~/.copilot/skills/pingpong-partner/SKILL.md | backup/self-authored/copilot-skills/pingpong-partner/SKILL.md | `4e0de088959f3d58…` |
-| ~/.copilot/skills/pingpong-mode/SKILL.md | backup/self-authored/copilot-skills/pingpong-mode/SKILL.md | `522c8c6c87f437d5…` |
+| ~/.copilot/skills/pingpong-partner/SKILL.md | backup/self-authored/copilot-skills/pingpong-partner/SKILL.md | `bddffb4a9303134abf010c694fac78f82cda7e9a4e44ef36bb456019dce3e8b6` |
+| ~/.copilot/skills/pingpong-mode/SKILL.md | backup/self-authored/copilot-skills/pingpong-mode/SKILL.md | `e755bab7d4887d3ca103d097db1712fd5ea694e449b4817c14228895cf347777` |
 
-The clone copies differ only by line-ending normalisation from the installed files; the snapshot
-is byte-for-byte from the live file, which is authoritative. The OpenCode command files with the
-same invocation names are **not** in this manifest and were never edited by this kit.
+These are full SHA-256 digests of the live files at snapshot time; compare both files with the
+command in Integrity before a restore. The clone copies differ only by line-ending normalisation
+from the installed files; the snapshot is byte-for-byte from the live file, which is authoritative.
+The OpenCode command files with the same invocation names are **not** in this manifest and were
+never edited by this kit.
 
 ## Excluded on purpose
 
