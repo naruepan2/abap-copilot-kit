@@ -4,9 +4,11 @@
 them, and what is still open. An AI asked to "improve the kit" must read this file first so the work
 continues from decisions already made instead of re-discovering them.
 
-**Status:** working document, 2026-11-23. Update the status cell **in the same commit** as the change
-that implements or rejects an idea. A rule that appears only here is not active — this file is a
-register, not policy. Policy lives in the agent, skill and gate files named in each row.
+**Status:** working document, 2026-11-25. This file is the single intake register: it is read
+before any kit/agent/skill improvement, as wired in `AGENTS.md` session start. Update the status
+cell **in the same commit** as the change that implements or rejects an idea. This file is a
+register, not policy: a rule that appears only here is not active. Policy lives in the agent,
+skill and gate files named in each row.
 
 **Public-safe:** this file names public repositories, kit paths and generic techniques. It never
 names a customer, host, SAP user, client, transport or private run folder.
@@ -20,28 +22,34 @@ is [`../memory-model.md`](../memory-model.md). Do not maintain two copies of a d
 
 | Mark | Meaning |
 |---|---|
-| `APPLIED` | Implemented in the named kit file; commit hash given where known |
+| `APPLIED` | Implemented in the named policy file; kit commit hash given |
 | `APPLIED-UNCOMMITTED` | Implemented in the live file and backup snapshot, but not yet committed |
 | `PENDING` | Accepted as worth doing, not implemented |
+| `DEFERRED` | Worth keeping with a measurable trigger; not active until that trigger occurs |
 | `REJECTED` | Considered and deliberately not adopted; reason recorded |
-| `IDEA` | Not yet evaluated; no action implied |
+| `IDEA` | Not yet evaluated; no action implied. `UNVERIFIED` license or an unread source stays here |
 
-Never promote `IDEA` to policy by repetition. Promotion needs an implementation plus a test or a
-gate result.
+These are **idea statuses**, not evidence states (`BEHAVIOR_*`) and not memory-note states
+(`status`, `freshness`). Never promote `IDEA` to policy by repetition. Promotion needs an
+implementation plus a test or a gate result; `APPLIED (this commit)` is not reproducible and must
+be replaced with a hash.
 
 ## Sources read
 
-| Source | What it is | License | Read on | Evidence basis |
-|---|---|---|---|---|
-| Auto ABAP Delivery V9.3 bundle | Local bundle of design docs, skills, schemas, validators and exercise evidence | bundled, provenance not asserted | 2026-11-22 | All files read; duplicate hashes checked; two ZIPS claimed in README but absent from the extracted bundle |
-| `abap-skills-main` | 17 composable ABAP skills; upstream `likweitan/abap-skills` | MIT | 2026-11-22 | All text files read in full; 129 SVG icons and the 4.7 MB `AppList.json` treated as data assets, not prose |
-| GSD Core (`gsd-core-next`) | Meta-prompting / spec-driven phase loop with fresh-context subagents; `@opengsd/gsd-core` v1.23.0 | MIT | 2026-11-23 | README, context-engineering explanation, ADR-22 drift guard, ADR-1671 size budget, `gsd-verifier.md`, out-of-scope temporal-context read in full; test names used as signal across the large test tree |
-| OpenViking (`OpenViking-main`) | Context database for agents; virtual filesystem, L0/L1/L2 layers, retrieval and session memory | **AGPLv3** | 2026-11-23 | README, concept docs 03 (context layers), 07 (retrieval), 08 (session) read in full; implementation tree (~6k files) not read wholesale |
-| `opencode-mem` (`tickernelz/opencode-mem`) | Persistent-memory plugin for coding agents; Turso/libSQL + vectors, markdown vault backend, capture/hygiene/redaction rules | MIT | 2026-11-23 | README read in full from GitHub; vector/embedding infrastructure deliberately excluded from consideration |
-| V9.4 Embedded SQL Memory Layer | Local experimental design: 1,080-line master + 58-line test-traceability addendum + a partial local benchmark harness | local design, provenance not asserted | 2026-11-23 | Both documents read in full; harness files and smoke result inspected by the analysis teams. No V9.4 machinery was implemented or promoted. |
+| Source ID | What it is + revision reviewed | License | Read on / last checked | Evidence basis / scope NOT read | Re-read trigger |
+|---|---|---|---|---|---|
+| V9.3-bundle | Local design bundle: docs, skills, schemas, validators, exercise evidence; version stated as V9.3, no upstream revision | local design, provenance not asserted | 2026-11-22; last checked same | All files read, duplicate hashes checked. NOT read: two ZIPs claimed in README but absent from the extracted bundle | New local bundle or an incident contradicts a rule |
+| abap-skills | 17 composable ABAP skills, `likweitan/abap-skills`; upstream commit UNVERIFIED | MIT | 2026-11-22; last checked same | All text files read in full. NOT read as prose: 129 SVG icons and the 4.7 MB `AppList.json` (data assets) | Upstream tag/commit change; version-sensitive claim needed |
+| gsd-core | Meta-prompting / spec-driven phase loop; `@opengsd/gsd-core` v1.23.0 (user also writes `open-gsd/gsd-core` — identity UNVERIFIED) | MIT | 2026-11-23; last checked same | README, context-engineering explanation, ADR-22, ADR-1671, `gsd-verifier.md`, temporal-context note. NOT read in full: large test tree (test names only) | Upstream version change |
+| openviking | Context database: virtual filesystem, L0/L1/L2, retrieval, session memory; revision UNVERIFIED | **AGPLv3** | 2026-11-23; last checked same | README + concept docs 03/07/08 read in full. NOT read: implementation tree (~6k files). Code must never be copied | Upstream version change; license re-check |
+| opencode-mem | Persistent-memory plugin; Turso/libSQL + vectors, markdown vault, capture/hygiene; revision UNVERIFIED | MIT | 2026-11-23; last checked same | README read in full from GitHub. NOT considered: vector/embedding infrastructure | Upstream version change |
+| V9.4-design | Local experimental design: 1,080-line master + 58-line traceability addendum + partial benchmark harness | local design, provenance not asserted | 2026-11-23; last checked 2026-11-25 | Both documents read in full; harness and smoke result inspected. NOT built: migrations 002-008, adapters, validators, full test matrix | A measured trigger in `derived-index-design.md` fires |
 
 License consequence: ideas from MIT sources may be re-implemented freely; **do not copy OpenViking
-code**. Re-express the idea in our own words, as with the other sources.
+code**. Re-express the idea in our own words, as with the other sources. An `UNVERIFIED` license
+keeps the source at `IDEA` with no policy home. Use the Source ID in idea rows; add a source row
+only for genuinely new provenance, never for an alias of an existing row. A version change updates
+the **same** row's revision/checked fields and only opens a new idea row if the diff changes a rule.
 
 ## Applied from V9.3 bundle
 
@@ -81,9 +89,9 @@ or are wrong as written.
 
 | Idea | Home in the kit | Status |
 |---|---|---|
-| Behavior verification as a separate axis from check states: `BEHAVIOR_VERIFIED`, `BEHAVIOR_UNVERIFIED`, `BEHAVIOR_FAILED`, `BEHAVIOR_UNCERTAIN` | `references/evidence-and-uat.md`, `scripts/validate_evidence_manifest.py` | `APPLIED` (this commit) |
-| `coincidental_reliance` advisory with three details (`undeclared-precondition`, `incidental-ordering`, `fixture-only`); advisory only, no score change | same files | `APPLIED` (this commit) |
-| Verification coverage block: every check that did not produce a result is named with status, reason and disposition; `READY_FOR_UAT` requires dispositions | `scripts/build_evidence_manifest.py`, `scripts/validate_evidence_manifest.py`, `SKILL.md` | `APPLIED` (this commit) |
+| Behavior verification as a separate axis from check states: `BEHAVIOR_VERIFIED`, `BEHAVIOR_UNVERIFIED`, `BEHAVIOR_FAILED`, `BEHAVIOR_UNCERTAIN` | `references/evidence-and-uat.md`, `scripts/validate_evidence_manifest.py` | `APPLIED` (`182c976`) |
+| `coincidental_reliance` advisory with three details (`undeclared-precondition`, `incidental-ordering`, `fixture-only`); advisory only, no score change | same files | `APPLIED` (`182c976`) |
+| Verification coverage block: every check that did not produce a result is named with status, reason and disposition; `READY_FOR_UAT` requires dispositions | `scripts/build_evidence_manifest.py`, `scripts/validate_evidence_manifest.py`, `SKILL.md` | `APPLIED` (`182c976`) |
 | Agent upgrade: no pinned `tools:` list, reasoning effort preference, restricted subagents, handoffs, deterministic `PreToolUse` gate | `~/.copilot/agents/abap-auto-delivery-by-pongg.agent.md`, `tooling/aad_write_gate.py` | `APPLIED` (`02c2b57`) |
 | README rewritten to match current structure (two agents, inline gate, profile-scoped MCP config) | `README.md` | `APPLIED` (`02c2b57`) |
 
@@ -96,7 +104,7 @@ reviewed notes in `agent-context/`.
 
 | Idea | Kit analogue | Status | Why / next step |
 |---|---|---|---|
-| Freshness metadata on notes: `source_revision`/`reviewed_source_revision`, pack marks a note `STALE` if source changed after review | `templates/agent-context-note.md`, `docs/reference/agent-context-notes.md`, `tooling/context-pack.ps1` | `APPLIED` (this commit) | `agent_context: true` used to mean "reviewed once", not "still current". Pack now reports `CURRENT`/`UNDATED`/`STALE`, warns, and places stale notes last. No embedding or VLM needed. |
+| Freshness metadata on notes: `source_revision`/`reviewed_source_revision`, pack marks a note `STALE` if source changed after review | `templates/agent-context-note.md`, `docs/reference/agent-context-notes.md`, `tooling/context-pack.ps1` | `APPLIED` (`9f95178`) | `agent_context: true` used to mean "reviewed once", not "still current". Pack now reports `CURRENT`/`UNDATED`/`STALE`, warns, and places stale notes last. No embedding or VLM needed. |
 | L0/L1/L2 progressive disclosure: one-sentence abstract in note, pack loads abstracts by default and full bodies with `-Full` | `tooling/context-pack.ps1` | `PENDING` (defer) | Pack is only ~540 tokens in the measured fixture. Add complexity only when notes actually grow. |
 | Scoped `find` vs context-aware `search` at note level | `context-pack.ps1 -Project -AppliesTo` | `PENDING` (defer) | Folder scoping already exists; a `-Query` filter over abstracts can come later without LLM intent analysis. |
 
@@ -110,10 +118,10 @@ learning, Turso/libSQL, embeddings, dreaming and web UI are out of scope.
 
 | Idea | Kit analogue | Status | Why / next step |
 |---|---|---|---|
-| Distinguish memory from AGENTS.md and Skills; capture is not authority; summaries must separate plans, attempts, failures, observed results and unverified claims | `docs/memory-decisions.md`, `skills/capture-lesson/SKILL.md`, behavior axis in evidence manifest | `APPLIED` (this consolidation) | Already aligned; `memory-decisions.md` now records the fifth source that agrees. No behavior change. |
+| Distinguish memory from AGENTS.md and Skills; capture is not authority; summaries must separate plans, attempts, failures, observed results and unverified claims | `docs/memory-decisions.md`, `skills/capture-lesson/SKILL.md`, behavior axis in evidence manifest | `APPLIED` (`9f95178`) | Already aligned; `memory-decisions.md` now records the fifth source that agrees. No behavior change. |
 | Capture provenance on each note: which session/run produced it and when (`captured_at`, `source_run`) | `templates/agent-context-note.md`, `docs/reference/agent-context-notes.md` | `PENDING` | Makes the new freshness pair meaningful (which run reviewed which source revision). Fits `Seen`/`Last confirmed` in capture-lesson. |
-| Redact credential shapes at the write boundary, before a lesson/memory is persisted; `<private>` regions fail closed | `skills/capture-lesson/SKILL.md`, delivery `references/second-brain-governance.md` | `APPLIED` (this consolidation) | Closes a pre-write gap; gates were detective only. Best-effort, never a full secret scrub claim. |
-| Tool evidence in a note is bounded and partial: state omissions; a model summary is not a verifier | `skills/capture-lesson/SKILL.md`, behavior/coverage axes | `APPLIED` (this consolidation) | `capture-lesson` now says evidence is a sample and omissions must be stated. Complements `coincidental_reliance`. |
+| Redact credential shapes at the write boundary, before a lesson/memory is persisted; `<private>` regions fail closed | `skills/capture-lesson/SKILL.md`, delivery `references/second-brain-governance.md` | `APPLIED` (`9f95178`) | Closes a pre-write gap; gates were detective only. Best-effort, never a full secret scrub claim. |
+| Tool evidence in a note is bounded and partial: state omissions; a model summary is not a verifier | `skills/capture-lesson/SKILL.md`, behavior/coverage axes | `APPLIED` (`9f95178`) | `capture-lesson` now says evidence is a sample and omissions must be stated. Complements `coincidental_reliance`. |
 | Hygiene vocabulary: `pinned` notes never auto-edited, `status: deprecated` names `superseded_by`, soft-delete recoverable, imports reject newer `schemaVersion` rather than guessing | `references/second-brain-governance.md`, note frontmatter | `PENDING` (lower priority) | Human promotion already exists; add vocabulary only when contradictions actually appear. Do not copy the background LLM consolidation. |
 
 Not imported: local vector search, Turso shards, auto-capture on idle, profile learning, dreaming
@@ -129,7 +137,7 @@ rationale is in [`../memory-decisions.md`](../memory-decisions.md).
 
 | Idea | Status | Why / next step |
 |---|---|---|
-| Unreconciled command-intent ledger (`command_id`, status enum, partial index) for restart recovery | `APPLIED` (this commit) — JSONL-first | Genuinely new: after a crash we could not tell "action sent, outcome unknown" from "never sent". `scripts/command_intent.py` appends intent/status events to the existing `command-log.jsonl`, lists open commands with a fail-closed detector, and is exercised by verify-all §5e. No DB, migration or FTS. SQL remains deferred until the query is too slow. |
+| Unreconciled command-intent ledger (`command_id`, status enum, partial index) for restart recovery | `APPLIED` (`462af99`) — JSONL-first | Genuinely new: after a crash we could not tell "action sent, outcome unknown" from "never sent". `scripts/command_intent.py` appends intent/status events to the existing `command-log.jsonl`, lists open commands with a fail-closed detector, and is exercised by verify-all §5e. No DB, migration or FTS. SQL remains deferred until the query is too slow. |
 | SQLite as authoritative run state, `.abap-agent/memory.db` at project root | `DEFERRED` | Only a store form, not new semantics. Requires a Markdown↔index divergence detector, fail-closed rebuild and a fenced single writer first. Recorded scale trigger: a real recovery failure or measured query cost, not the design's SLO table. |
 | `knowledge_notes` table as an index of reviewed notes | `DEFERRED` | Would create a second source of truth for `agent_context`, freshness and `instructional_authority`; `context-pack.ps1` parses frontmatter fresh and has nothing to diverge today. Revisit only when a real note corpus exists and divergence detection is implemented. |
 | Numeric retrieval budgets (200/50/12 notes, 120 KB) and FTS5 ranking | `DEFERRED` | ~220× the measured ~540-token pack; same reason L0/L1/L2 was deferred. FTS only after the design's own trigger (>5,000 notes or 25,000 chunks). |
@@ -142,7 +150,7 @@ rationale is in [`../memory-decisions.md`](../memory-decisions.md).
 
 ## Open items from earlier work (still valid)
 
-These are not from the four external sources; they are carried forward so they are not lost.
+These are not from the source tables above; they are carried forward so they are not lost.
 
 | Item | Status | Reference |
 |---|---|---|
@@ -154,12 +162,17 @@ These are not from the four external sources; they are carried forward so they a
 
 ## How to maintain this register
 
-1. When an idea is implemented, change only its status cell and add the commit hash. Do not move the
-   rule text here; the rule stays in its one home in an agent, skill or gate file.
-2. When an idea is rejected, record the reason in one line. Do not delete it — the next reviewer
-   will otherwise re-propose it.
-3. When reading a new external system, add a source row with license and evidence basis before
-   adding idea rows. "I heard/saw somewhere" is not an evidence basis.
-4. Before proposing a change, check the `Not imported` blocks. Most bad proposals fail there.
-5. Keep public-safe. If a detail needs a customer, host, user, client or transport, it belongs in a
+1. **Check aliases before adding.** Search this file and `docs/memory-decisions.md` for the idea
+   under every known name. An existing row is updated in place; a second row is a defect. Add a
+   source row only for genuinely new provenance, not for another name for a source already here.
+2. When an idea is implemented, change only its status cell and add the **kit commit hash**. Do not
+   move the rule text here; the rule stays in its one home in an agent, skill or gate file.
+3. When an idea is rejected or deferred, record the reason and, for `DEFERRED`, the measurable
+   trigger. Do not delete it — the next reviewer will otherwise re-propose it.
+4. When an upstream version changes, update the **same** source row's revision, last-checked date,
+   evidence basis and scope-not-read. Open a new idea row only if the diff changes a rule.
+5. `UNVERIFIED` license or model recollection stays at `IDEA` with no policy home; "I heard/saw
+   somewhere" is not an evidence basis.
+6. Before proposing a change, check the `Not imported` blocks. Most bad proposals fail there.
+7. Keep public-safe. If a detail needs a customer, host, user, client or transport, it belongs in a
    gitignored project file, not here.

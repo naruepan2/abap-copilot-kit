@@ -31,8 +31,8 @@ Status values: **adopted** (active in a named file), **rejected** (deliberately 
 | OpenViking | `viking://` virtual filesystem, embeddings/VLM, Studio | rejected | — | AGPLv3 plus scale mismatch; re-express ideas, never copy code. |
 | opencode-mem | Memory vs AGENTS.md vs Skills distinction; capture is not authority | adopted (already aligned) | `skills/capture-lesson/SKILL.md`, this file's vocab map | Fifth source agrees with our existing half-life/notes-as-data rules. |
 | opencode-mem | Capture provenance (`captured_at`, `source_run`) | deferred | `docs/reference/improvement-register.md` | Useful, but schema changes wait until freshness is exercised in a real run. |
-| opencode-mem | Redact credential shapes before persisting a note | **adopted in this consolidation** | `skills/capture-lesson/SKILL.md`, delivery `second-brain-governance.md` | Closes a pre-write gap; active gates were detective only. Best-effort, never a full scrub claim. |
-| opencode-mem | Tool evidence in a note is bounded and partial | **adopted in this consolidation** | `skills/capture-lesson/SKILL.md` | One sentence: state what was omitted; summary is not a verifier of the whole run. |
+| opencode-mem | Redact credential shapes before persisting a note | **adopted** (`9f95178`) | `skills/capture-lesson/SKILL.md`, delivery `second-brain-governance.md` | Closes a pre-write gap; active gates were detective only. Best-effort, never a full scrub claim. |
+| opencode-mem | Tool evidence in a note is bounded and partial | **adopted** (`9f95178`) | `skills/capture-lesson/SKILL.md` | One sentence: state what was omitted; summary is not a verifier of the whole run. |
 | opencode-mem | `pinned` / `supersede` / recoverable trash / schemaVersion reject | deferred | `docs/reference/improvement-register.md` | Human promotion exists; add vocabulary only when contradictions actually appear. |
 | opencode-mem | Vector database, auto-capture on idle, profile learning, dreaming, web UI | rejected | — | User's explicit no-vector decision, scale mismatch, background LLM calls. |
 | V9.4 design | SQLite as authoritative local run state (`.abap-agent/memory.db`) | deferred | `docs/reference/improvement-register.md` §V9.4 | One writer, two program records, no notes. Needs a divergence detector, fenced writer and a measured recovery failure first. A DB is a storage form, not a new authority: SAP and the approved run contract stay authority. Safe override shape: `docs/reference/derived-index-design.md`. |
@@ -59,19 +59,14 @@ Status values: **adopted** (active in a named file), **rejected** (deliberately 
 No level creates a new root. A rule that looks universal belongs in user memory or an agent file,
 not in a second vault.
 
-### Note states — do not confuse with evidence states
+### Note states — pointer only
 
-| Field | Allowed values | Meaning |
-|---|---|---|
-| `status` | `draft`, `active`, `stable`, `deprecated` | promotion/lifecycle state set by a human |
-| `agent_context` | `false`, `true` | whether `context-pack.ps1` may load it; `true` only after review |
-| freshness (computed) | `CURRENT`, `UNDATED`, `STALE` | comparison of `source_revision` and `reviewed_source_revision`; not a stored field |
-| `confidence` | `low`, `medium`, `high` | strength of evidence behind the note |
-| `instructional_authority` | always `false` | a note never grants permission, regardless of its wording |
-
-Separate axes that are **not** memory states: `BEHAVIOR_VERIFIED` / `BEHAVIOR_UNVERIFIED` /
-`BEHAVIOR_FAILED` / `BEHAVIOR_UNCERTAIN` and `CHECKED` / `NOT_REPORTED` / `NOT_SUPPORTED` /
-`UNCHECKABLE` belong to the evidence manifest. Do not write them into a memory note.
+The canonical note frontmatter, allowed values and freshness computation are in
+[`reference/agent-context-notes.md`](reference/agent-context-notes.md), which is the **only** note
+schema in the kit. Do not duplicate its field list here; this file maps vocabulary and records why
+a memory idea was adopted, rejected or deferred. Evidence axes (`BEHAVIOR_*`, `CHECKED` /
+`NOT_REPORTED` / `NOT_SUPPORTED` / `UNCHECKABLE`) belong to the evidence manifest, never to a
+note.
 
 ### Source vocabulary aligned to our terms
 

@@ -9,6 +9,7 @@ stays short: it points at other files instead of restating them.
 | Need | Read |
 |---|---|
 | What exists where | `INDEX.md` |
+| Improving the kit: which ideas were already read/adopted/rejected | `docs/reference/improvement-register.md`, then `docs/memory-decisions.md` (status lives in the register; why lives in decisions) |
 | Tool routing and evidence rules | `agents/abap-developer-by-pongg.agent.md` |
 | Who may be delegated to | `roster.json` |
 | Why the design is like this | `docs/architecture.md`, `docs/anti-hallucination.md` |
@@ -60,7 +61,10 @@ Pick an input tier first. It decides what you read, not what you answer.
 `docs/reference/detail-levels.md` governs output length. Do not confuse the two enums.
 
 1. Read `INDEX.md`.
-2. Read the nearest `AGENTS.md`.
+2. If the task is to improve the kit, agents or skills, read `docs/reference/improvement-register.md`
+   and `docs/memory-decisions.md` before proposing anything; an idea is not new until it is absent
+   from both.
+3. Read the nearest `AGENTS.md`.
 3. Read `project.yaml` / `program.yaml` if a project record exists for this task.
 4. Read the memory card (its location is described in `INDEX.md`).
 5. Confirm the SAP system and client explicitly. This folder does not select them.
@@ -68,7 +72,7 @@ Pick an input tier first. It decides what you read, not what you answer.
 
 ## Ownership
 
-- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's fourteen skills (derive the count from `skills/` — it changes on install)
+- `agents/*-by-pongg.agent.md`, self-authored skills, and this kit's skills (derive the count from `skills/` — it changes on install)
   (`skills/` in the clone — edit there, then reinstall) are editable.
 - Everything else here, and any other file under `%USERPROFILE%\.copilot`, is
   installer-owned: read-only.

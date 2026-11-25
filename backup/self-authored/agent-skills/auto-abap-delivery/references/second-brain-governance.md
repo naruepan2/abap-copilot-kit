@@ -10,11 +10,9 @@ SAP and the approved run contract are authorities. Project notes are evidence-in
 second schema. A run learning candidate uses the same frontmatter as a project note — there is no
 separate vault root and no `00-inbox/` folder.
 
-Required frontmatter: `title`, `type`, `status`, `confidence`, `source`, `source_revision`,
-`reviewed_source_revision`, `verified_on_system`, `agent_context`, `instructional_authority: false`.
-The canonical document names the allowed type values. Body sections: Observation; Scope and
-preconditions; Hypothesis or proven root cause; Safe response; Prohibited response; Evidence;
-Limitations; Human review.
+The canonical document names the required frontmatter and the allowed type values; do not copy
+the field list here. Body sections: Observation; Scope and preconditions; Hypothesis or proven
+root cause; Safe response; Prohibited response; Evidence; Limitations; Human review.
 
 Hard rules:
 

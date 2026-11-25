@@ -21,8 +21,10 @@ capture procedure.
 
 ## One home per decision
 
+- **External-source intake, source provenance and idea status:** [`reference/improvement-register.md`](reference/improvement-register.md).
+  It is read before any kit/agent/skill improvement (`AGENTS.md` session start).
 - **Why an idea was adopted, rejected or deferred:** [`memory-decisions.md`](memory-decisions.md).
-  This is the vocabulary map and the place to check before proposing a new memory mechanism.
+  This is the vocabulary map; it holds rationale only, never a second status column.
 - **What external source was read:** [`reference/improvement-register.md`](reference/improvement-register.md).
 - **How notes are written and promoted:** `reference/agent-context-notes.md`.
 - **How a finding is captured:** `skills/capture-lesson/SKILL.md`.

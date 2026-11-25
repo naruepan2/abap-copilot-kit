@@ -41,11 +41,8 @@ demand. When user memory is close to its budget, prefer repo memory even for a g
 fact.
 
 Ownership is by provenance, not by folder. Editable: a file ending `-by-pongg`, a skill you
-created, and this kit's eleven skills (`capture-lesson`, `long-task-control`,
-`mcp-surface-audit`, `sap-data-verify`, `sap-evidence-audit`, `sap-new-record`,
-`sap-new-project`, `sap-new-program`, `sap-project-unregister`,
-`sap-program-unregister`, `rap-lifecycle`) — their source of truth is the
-kit repo, so edit the clone and
+created, and any skill in this kit's `skills/` root — enumerate the folders instead of trusting a
+count, because installs add skills. Their source of truth is the kit repo, so edit the clone and
 reinstall. Read-only: other installer-owned skills (SAP AI Dev Toolkit) and any other file under
 `~/.copilot` — say so and stop.
 

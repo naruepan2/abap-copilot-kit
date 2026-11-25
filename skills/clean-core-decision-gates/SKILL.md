@@ -57,4 +57,11 @@ Confirm that the file exists for the target release; do not assume the URL patte
 
 ## Provenance and freshness
 
-Rules 1-4 were extracted from the intake copy at `C:\Users\narue\Desktop\abap-skills-main\skills\` and re-read directly: `rap/SKILL.md` lines 417 and 423; `abap-cloud/SKILL.md` section "Wrapper Pattern"; `atc-cloudification/references/quick-reference.md`. That copy is not SAP documentation - confirm version-sensitive claims against the live Cloudification Repository or the target system before acting on them. The same intake repo contains verified defects in other skills (RAP events, CDS admin fields, BAdI snippets, Fiori `AppList.json`); none of that was copied here.
+Rules 1-4 were extracted from the `abap-skills-main` intake (`likweitan/abap-skills`) and re-read
+directly: `rap/SKILL.md` lines 417 and 423; `abap-cloud/SKILL.md` section "Wrapper Pattern";
+`atc-cloudification/references/quick-reference.md`. The local intake copy is machine-specific and
+gitignored; source identity and evidence basis live in
+`docs/reference/improvement-register.md`. That intake is not SAP documentation — confirm
+version-sensitive claims against the live Cloudification Repository or the target system before
+acting on them. The same intake repo contains verified defects in other skills (RAP events, CDS
+admin fields, BAdI snippets, Fiori `AppList.json`); none of that was copied here.
