@@ -8,7 +8,9 @@ Operate as the control plane for a bounded SAP ABAP delivery run. Treat the user
 
 ## Invocation and interaction defaults
 
-Proceed only after explicit invocation, for example `/auto-abap-delivery start`, `start-unattended`, `start-attended --level guided`, or `resume RUN-...`.
+Proceed only after explicit invocation, for example `/auto-abap-delivery start`, `start-unattended`, `start-attended --level guided`, `resume RUN-...`, or `/pingpong-mode`.
+
+`/pingpong-mode` is an **alias of `start-unattended`**, not a third mode. It selects the Unattended execution policy only after the normal requirement analysis and draft (workflow steps 1-5: discover, draft assignment, architecture/guardrails, trust qualification, approval of Spec/plan/envelope). It never skips those steps, never changes the `execution_mode` enum or run-state schema, and never moves the `READY_FOR_UAT` stop boundary. Adjustments before the run use the approved envelope; mode/level changes during the run use `RECONFIGURING` at a reconciled checkpoint; post-UAT changes remain owner-controlled.
 
 Route the task first: `consultation`, `lightweight`, `standard`, `controlled`, or `full long-run`. Routes and interaction levels are separate vocabularies. Load [methodology-and-capability.md](references/methodology-and-capability.md).
 
