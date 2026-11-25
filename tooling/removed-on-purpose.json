@@ -71,6 +71,11 @@
             "path": "backup/20261124-reverse-engineering/skills/sap-abap-reverse-engineering/templates/samples/technical-specification-sample.md",
             "page": "cp874",
             "reason": "Byte-identical snapshot of the exempt Thai-language sample above."
+        },
+        {
+            "path": "backup/user-memory/idea-intake.md",
+            "page": "cp874",
+            "reason": "Legitimate UTF-8 Thai in the owner's thinking-partner role note (e.g. 'เพื่อนคู่คิด'); re-encodes to cp874 bytes that decode as valid UTF-8 Cyrillic. Verified strict UTF-8 2026-11-25."
         }
     ]
 }

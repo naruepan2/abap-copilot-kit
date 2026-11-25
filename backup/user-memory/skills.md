@@ -21,4 +21,15 @@ Toolkit skills are refreshed only by reinstalling `sap-ai-dev-toolkit`; edits to
 skill are overwritten, so customise by copying to a new folder name.
 
 Detail — family table, update-coverage numbers, recount commands:
-`D:\abap-copilot-kit\docs\reference\skills.md`
+`<kit-root>/docs/reference/skills.md` (kit root: `$env:ABAP_KIT_ROOT` or the pin in
+`~/.copilot/state/kit-root.txt`)
+
+
+## Tool surface
+
+**Do not pin a `tools:` list in custom agents unless there is a hard reason.** The user wants new
+and removed MCP tools (including the public docs server `sap-abap-docs`) to become available
+without editing agent files.
+Omit `tools:` so the session picker supplies the current surface; keep deterministic gates in
+`hooks.PreToolUse` instead of a static tool allowlist. Runtime tool names are observations, never
+assumptions.

@@ -2,31 +2,15 @@
 
 ## Where memory lives
 
-User memory: `%APPDATA%\Code\User\globalStorage\github.copilot-chat\memory-tool\memories\*.md` —
-roughly the first **200 lines** load into every request, across all workspaces. Length is a
-per-request cost, not a one-time one, so measure before adding: `verify-all.ps1` section 4 prints
-`used=/200 headroom=` on every run, and it fails the run when the budget is exceeded.
+User memory `*.md` in `%APPDATA%\Code\User\globalStorage\github.copilot-chat\memory-tool\memories\`
+loads ~first **200 lines** every request. Repo memory loads on demand. Budget: `verify-all.ps1` §4.
+Paths, repo visibility, hook and tool-prefix detail:
+`<kit-root>/docs/reference/memory-setup.md` (kit root: `$env:ABAP_KIT_ROOT` or the pin in
+`~/.copilot/state/kit-root.txt`).
 
-Repo memory: per-workspace, under `…\workspaceStorage\<hash>\GitHub.copilot-chat\memory-tool\memories\repo\<PROJECT>\`,
-read on demand.
-
-Project facts go in repo memory, one subfolder per project — never a flat file. Dated history,
-sync logs, and superseded tables go to `~/.copilot/docs/archive/`. When a rule and an archive
-disagree, the memory rule wins, but verify against the live system before acting on either.
-
-Exact paths, the hook JSON contract, and the repository table:
-`D:\abap-copilot-kit\docs\reference\environment.md`
-
-- Framework repo `D:\abap-copilot-kit` = GitHub `naruepan2/abap-copilot-kit`. **Deliberately
-  private.** The routing table no longer names a system: which server reaches which system is in
-  `Projects\_routing.local.md` (gitignored), and history was rewritten on 2026-11-15 to remove the
-  names that had leaked into a scanner pattern. Do not put a system, client, customer, host or user
-  back into a tracked file — that decision was made twice and reversed twice. Unauthenticated
-  `curl` returns 404 for a private repo while `git ls-remote` succeeds, so **404 never proves a
-  repo is absent**.
-- `~/.claude/CLAUDE.md` loads into every request (`chat.useClaudeMdFile` defaults `true`).
-  Disabled in `settings.json` on 2026-11-13 — its only instruction pointed at a nonexistent
-  `/graphify` skill. Re-enable by removing that one line.
+- Framework repo (GitHub `naruepan2/abap-copilot-kit`) is **public**.
+  `Projects/` is gitignored: no system, client, customer, host or user in a tracked file.
+  Detail and the 404 caveat: `docs/reference/memory-setup.md`.
 
 ## How this user works
 
@@ -46,10 +30,7 @@ Exact paths, the hook JSON contract, and the repository table:
 
 ## Two rules that bite in practice
 
-- **Hook firing is per event, not per harness** (2026-11-15): `subagentStart` fires (logged per
-  spawn); `postToolUseFailure` has never written a ledger here; `sessionStart` moves
-  `surface.json` `takenAt` but its event name is unverified. Never report a hook as having run
-  without a log line or a changed file as evidence.
-- **Agent `tools:` prefixes**: an MCP server is matched by its **`mcp.json` key**; an extension tool
-  needs **one explicit `<extensionId>/<toolName>` line each**, because a wildcard yields zero,
-  silently. Full verified/failed list: skill `mcp-surface-audit`, section "Tool entry matching".
+- **Hook firing is per event, not per harness.** Never report a hook as having run without a log
+  line or a changed file as evidence. Per-event table: `docs/reference/environment.md`.
+- **Agent `tools:` prefixes**: MCP server = `mcp.json` key; extension tool = one explicit
+  `<extensionId>/<toolName>` line (wildcard yields zero). Detail: `docs/reference/memory-setup.md`.

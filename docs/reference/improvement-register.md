@@ -51,6 +51,16 @@ keeps the source at `IDEA` with no policy home. Use the Source ID in idea rows; 
 only for genuinely new provenance, never for an alias of an existing row. A version change updates
 the **same** row's revision/checked fields and only opens a new idea row if the diff changes a rule.
 
+Re-checked 2026-11-25: `JuliusBrussee/caveman` (upstream v4.2.0 / main `47c61be`,
+2026-11-24), `DietrichGebert/ponytail` (v5.3.3 / main `ebd8654`, 2026-11-22) and
+`mattpocock/skills` (v1.3.2 / main `d653911`, 2026-11-24). Verified by byte-level comparison of
+every installed `SKILL.md`, supporting reference and `agents/openai.yaml` against upstream main:
+ponytail and mattpocock files are identical; caveman differs only by the locally added
+`disable-model-invocation: true`. No skill update applied. The v4.2.0 caveman release changes the
+CLI/Blocks stack, not the installed prompt, so SETUP-NEW-MACHINE.md now records the upstream
+revision without claiming an installed upgrade. These installed sources remain effects without a
+source row; no new idea row is opened because no rule changed.
+
 ## Applied from V9.3 bundle
 
 | Idea | Home in the kit | Status |

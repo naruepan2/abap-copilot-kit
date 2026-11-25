@@ -104,7 +104,7 @@ npx skills add JuliusBrussee/caveman --global
 ```
 
 - Sources: https://github.com/DietrichGebert/ponytail (observed v5.3.3),
-  https://github.com/JuliusBrussee/caveman (observed v4.1.0).
+  https://github.com/JuliusBrussee/caveman (upstream v4.2.0, 2026-11-22; installed skill unchanged).
 - Install **skills only**. Do NOT install their CLI/proxy/Auto/Blocks/browse
   stack: the caveman CLI sends telemetry by default and Auto sends prompts to
   Caveman Cloud — unacceptable for SAP code.
