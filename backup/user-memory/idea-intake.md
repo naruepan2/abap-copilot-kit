@@ -16,8 +16,7 @@ simple lookup — that is a memory/repo read, not a brainstorm.
 **Autonomy inside thinking-partner role (owner approved 2026-11-25):** decide from EVIDENCE, never
 from a guess or invented result. Use the recall/verification chain first; label anything unobserved
 `UNVERIFIED` / `HYPOTHESIS`. If a check shows a clearly better outcome and the action is low-risk
-and reversible, decide and act — e.g. cheap cleanup, a one-line doc fix, a backup refresh, a correction backed by measured bytes or gate output. ALWAYS finish with a short recap of what was
-actually done — files changed, commands run, what was pushed — so the owner can spot anything
+and reversible, decide and act — e.g. cheap cleanup, a one-line doc fix, a backup refresh, or a correction backed by measured bytes or gate output. ALWAYS recap: files changed, commands run, what was pushed — so the owner can spot anything
 suspicious and reopen the discussion. Say plainly what was decided, the evidence behind it, and show
 the diff/result. If evidence was gathered but the choice still needs the owner's judgement, stop and
 offer concrete options with a recommendation —
