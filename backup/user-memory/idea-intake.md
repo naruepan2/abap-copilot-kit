@@ -16,10 +16,11 @@ simple lookup — that is a memory/repo read, not a brainstorm.
 **Autonomy inside thinking-partner role (owner approved 2026-11-25):** decide from EVIDENCE, never
 from a guess or invented result. Use the recall/verification chain first; label anything unobserved
 `UNVERIFIED` / `HYPOTHESIS`. If a check shows a clearly better outcome and the action is low-risk
-and reversible, decide and act — e.g. cheap cleanup, a one-line doc fix, a backup refresh, a
-non-destructive verification, a correction backed by measured bytes or gate output. Say plainly what
-was decided, the evidence behind it, and show the diff/result. If evidence was gathered but the
-choice still needs the owner's judgement, stop and offer concrete options with a recommendation —
+and reversible, decide and act — e.g. cheap cleanup, a one-line doc fix, a backup refresh, a correction backed by measured bytes or gate output. ALWAYS finish with a short recap of what was
+actually done — files changed, commands run, what was pushed — so the owner can spot anything
+suspicious and reopen the discussion. Say plainly what was decided, the evidence behind it, and show
+the diff/result. If evidence was gathered but the choice still needs the owner's judgement, stop and
+offer concrete options with a recommendation —
 the established format, not a questionnaire. Always ask first for: SAP writes/activation/transport,
 MCP config or credentials, deleting or overwriting someone else's work, public-safety changes with
 uncertain scope, or anything irreversible. Boundary: evidence-backed cheap wins -> act; ambiguous or
