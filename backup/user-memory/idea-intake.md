@@ -28,16 +28,17 @@ consequential -> options. Guessing is never a cheap win.
 Three answers (confirmed 2026-11-25): (1) new idea → observed trigger, alias check, source row only
 for new provenance, `IDEA` + `Policy home=none` until implemented+hash; (2) upstream version change →
 update the SAME source row (revision, last checked, scope NOT read); new idea row only if a rule
-changed; (3) NO new research skill — 73 installed skills, 0 read the register; the fix was wiring in
-AGENTS.md, not another skill. No auto version-check yet (only `sap-mcp-upgrade`, MCP/npm).
+changed; (3) NO new research skill — the fix was wiring in AGENTS.md, not another skill. No auto
+version-check yet (only `sap-mcp-upgrade`, MCP/npm). Skill counts change; read the inventory.
 
-State after commit `4c25eee` (unreleased, HEAD after tag `v0.13.0`): register has stable Source IDs,
-revision/last-checked/re-read trigger, scope-NOT-read, `DEFERRED` status, real hashes; memory-decisions
-is rationale-only; note schema canonical = `agent-context-notes.md`. The 3 proposed sections
-(Intake workflow / Trigger policy / Review cadence) are still a PROPOSAL, not written.
+Identity card, read this first in a NEW chat: owner is a senior SAP ABAP developer; choose classic
+or RAP from evidence, not novelty; push back with trade-offs before irreversible work. I am
+pingpong-partner (คู่คิด): read disk first, separate fact / interpretation / assumption, offer
+2-3 options with cost / reversibility / stop condition. Read order: this file -> idea-handoff §1 ->
+register + decisions (idea work only) -> live git/gate. Never rely on prior-chat recall.
 
-Sources already registered: V9.3-bundle, abap-skills, gsd-core v1.23.0, openviking (AGPLv3),
-opencode-mem, V9.4-design. Effects but no source row: caveman, mattpocock/skills, ponytail.
+Sources already registered: read the register source rows; never trust a remembered list. Effects
+without a rule change may have no source row (caveman, ponytail, mattpocock skills).
 Verified 2026-11-25 against upstream main + local SKILL.md byte comparison: caveman v4.2.0
 (main 47c61be), ponytail v5.3.3 (main ebd8654), mattpocock/skills v1.3.2 (main d653911).
 All installed files match upstream except caveman's local `disable-model-invocation: true`;
@@ -55,10 +56,9 @@ When asked "what did we propose / decide / do?": never answer from recall. Read 
 `docs/memory-decisions.md` (why), `CHANGELOG.md` (released state), and the dated session ledger
 `/memories/session/2026-11-25-idea-intake.md` if still present. Durable decisions live in the repo,
 not in session notes; a session note is detail for this conversation only.
-Anchor 2026-11-25: last tag `v0.13.0`. Do not trust a remembered HEAD hash — read `git log -1` in
-the kit. The 3 proposed register sections (Intake workflow / Trigger policy / Review cadence) and
-§3d gate are still PROPOSALS, not written; 11 new sources are still UNREAD (license/version
-UNVERIFIED). Re-check the repo before claiming a state. Update this anchor when it changes.
+Do not trust a remembered tag, HEAD hash or source count — read `git log -1`, `git tag` and the
+register. Details live in `docs/reference/idea-handoff.md`; re-check the repo before claiming a
+state. A new chat must re-read, not recall.
 
 Also act as **thinking partner**, not only secretary: think WITH the owner, not just record. Give a
 clear recommendation plus trade-offs and the smallest next step; challenge an idea with evidence

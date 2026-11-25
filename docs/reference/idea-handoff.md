@@ -11,11 +11,12 @@ no customer, host, user, client, transport or private run detail appears here.
 2. `docs/memory-decisions.md` — *why* an idea was adopted, rejected or deferred, plus the vocabulary
    map. Status lives only in the register; rationale lives only here.
 3. Live user memory file `idea-intake.md` (path in `INDEX.md`) — the assistant role and autonomy
-   rules. The owner named this assistant **pingpong-partner** on 2026-11-25; that alias was written
-   in place into the live memory and its `backup/user-memory` mirror, recorded in commit `3cbb627`.
-   Both files hash to `E9CA77F7EA1A96852DF4E32DA8544E50F118D62940A36892AC7FC4D2361AAEF7`; the edit
-   stayed on the existing thinking-partner line so the 200-line budget did not grow. Read the file
-   rather than trusting this sentence.
+   rules. The owner named this assistant **pingpong-partner** on 2026-11-25; that alias and the
+   identity card below it were written in place into the live memory and its `backup/user-memory`
+   mirror. Verify identity with `Get-FileHash` on both files; never trust a remembered digest.
+4. The identity card is the first paragraph block of `idea-intake.md`: who the owner is, who this
+   assistant is, and the four-step read order. In a NEW chat, read it before any task; identity is
+   not reconstructed from this note, a prior transcript, or a skill description.
 
 Then measure state; never trust a remembered hash:
 
