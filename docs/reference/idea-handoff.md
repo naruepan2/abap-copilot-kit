@@ -60,10 +60,13 @@ named, inactive), `REJECTED` (deliberately not adopted), `APPLIED (<hash>)`, and
 | Anthropic MCP update | Primary post `claude.com/resources/articles/skills-over-mcp-tasks-and-more` (2026-11-24) fetched; Techsauce summary (2026-11-25) treated as secondary | no source row — no rule changed | MCP extension specs on modelcontextprotocol.io not read in full |
 | `V9.4-design`, `V2.0-operating-model`, `gsd-core`, `openviking`, `opencode-mem`, `pstack`, `V9.3-bundle`, `abap-skills` | See the register source rows for revision, licence, read date and re-read trigger | register + `memory-decisions.md` | See each row's scope-NOT-read column |
 | caveman / ponytail / mattpocock skills | Byte-compared installed files with upstream main on 2026-11-25. All match except caveman's local `disable-model-invocation: true` | register re-check paragraph; `skill-version-scan` `APPLIED (c36ff82)` | No blanket `npx skills update`; it may overwrite that local line |
+| YouTube clip `78DbKVVHaUk` (Kreycin, 2026-11-15, 7:17, "AI ไม่รู้เรื่องงานของคุณ? มี 4 ทางสอนมัน (Skill, MCP, RAG, Memory)") | Markdown transcript in `Downloads/` read through 6:14; the upstream Martin Keen (IBM) video was **not** fetched; licence **UNVERIFIED** | no register row — reviewed and not adopted, recorded in §4 below | 6:14–7:17 and the on-screen button-name table for ChatGPT/Claude/Gemini are not in the transcript; the 46 / 77 / 300k figures are the presenter's claims (**UNVERIFIED**) |
 
-The register's precedent is deliberate: provenance is recorded as a source row **only when a rule
-changes**. Effects without a rule change (the Anthropic post, caveman/ponytail/mattpocock) stay
-unrowed. Do not open a second row for an alias or a second summary of the same source.
+The register's precedent is deliberate: **in the register**, provenance is recorded as a source row
+**only when a rule changes**. Effects without a rule change (the Anthropic post,
+caveman/ponytail/mattpocock) stay unrowed there. Source rows in this handoff note are continuity
+records of what was read, not register rows and not authority. Do not open a second register row
+for an alias or a second summary of the same source.
 
 ## 4. Handoff facts from the 2026-11-25 reasoning sessions
 
@@ -117,7 +120,20 @@ and `skill-version-scan`; no observed incident justifies building a new one.
 `remember` → `capture-lesson` (human gate, notes are data). `improve` → register + `memory-decisions`
 alias check. Both already have homes; ECC's catalog scale is a deliberate mismatch.
 
-### Release and blocked work at handoff
+### YouTube four-ways clip — reviewed, not adopted
+
+The analogy (work manual = Skill, staff badge = MCP, filing cabinet = RAG, own notebook = Memory)
+maps to existing homes: on-demand manual labels → short `AGENTS.md` tiers and `docs/reference/`;
+"manual without a badge" → `capability-and-intake.md` plus the phase-level tool gate; "search first,
+then answer" in a cabinet → the recorded no-vector decision, `derived-index-design.md` `DEFERRED`
+with a measured trigger, and `context-pack.ps1`; "AI writes its own notebook and reads only the
+table of contents" → `capture-lesson` human gate, notes-as-data and the `STALE` freshness rule.
+Our memory is deliberately stricter than the clip: a durable write needs human approval, and
+auto-capture/dreaming is `REJECTED`. The four closing questions (repeat steps → manual; needs other
+apps → badge; answer in written documents → cabinet; preference or incident → notebook) are a useful
+onboarding taxonomy, but they alias one-home-per-rule and the half-life decisions; writing them as
+policy would create a second rule home. Nothing from this clip was adopted; no register row or gate
+change follows from a summary whose last minute and comparison table were not read.
 
 - `v0.13.3` was cut and published from `7eecd48`: one register status cell corrected to
   `APPLIED (c36ff82)`. Gates at release: verify clean 2100 items / 32 sections, census complete 389
