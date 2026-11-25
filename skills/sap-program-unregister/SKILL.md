@@ -1,7 +1,8 @@
 ---
 name: sap-program-unregister
-description: Retire one program record from the local Projects notebook and its private mirror - preflight, preview, explicit UNREGISTER confirmation, then _retired locally or hard delete. Use for "unregister program", "retire program record", "remove program from Projects". Never touches SAP objects, transport, MCP config, or a GitHub repository, and never pushes anything.
-argument-hint: [PROJECT] [PROGRAM]
+description: >-
+  Retire one program record from the local Projects notebook and its private mirror - preflight, preview, explicit UNREGISTER confirmation, then _retired locally or hard delete. Use for "unregister program", "retire program record", "remove program from Projects". Never touches SAP objects, transport, MCP config, or a GitHub repository, and never pushes anything.
+argument-hint: "[PROJECT] [PROGRAM]"
 ---
 
 # SAP program unregister

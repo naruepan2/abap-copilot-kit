@@ -1,7 +1,8 @@
 ---
 name: sap-data-verify
-description: Verify that an ABAP program/report/transaction or Fiori-OData app processes and displays data correctly by reading real rows via ARC-1, Clean-Core-first. Prefer C1/C2-released CDS views (e.g. I_SalesDocument) over raw tables (VBAK); check release state with SAPRead(type=API_STATE). Freestyle SQL (SAPQuery) needs SAP_ALLOW_FREE_SQL=true; table/CDS preview (SAPRead TABLE_CONTENTS/TABLE_QUERY) needs SAP_ALLOW_DATA_PREVIEW=true. If a gate is closed, STOP, explain both flags, and ask whether to enable one or both before reading data. Use to check data behind a program, verify ALV/report or Fiori output against the database, compare rows with the screen, or validate totals.
-argument-hint: [program/table/CDS name] [suspect value or key]
+description: >-
+  Verify that an ABAP program/report/transaction or Fiori-OData app processes and displays data correctly by reading real rows via ARC-1, Clean-Core-first. Prefer C1/C2-released CDS views (e.g. I_SalesDocument) over raw tables (VBAK); check release state with SAPRead(type=API_STATE). Freestyle SQL (SAPQuery) needs SAP_ALLOW_FREE_SQL=true; table/CDS preview (SAPRead TABLE_CONTENTS/TABLE_QUERY) needs SAP_ALLOW_DATA_PREVIEW=true. If a gate is closed, STOP, explain both flags, and ask whether to enable one or both before reading data. Use to check data behind a program, verify ALV/report or Fiori output against the database, compare rows with the screen, or validate totals.
+argument-hint: "[program/table/CDS name] [suspect value or key]"
 ---
 
 # SAP Data Verification — Clean-Core-First (read-only)

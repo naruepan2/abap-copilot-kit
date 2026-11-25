@@ -842,6 +842,14 @@ if (-not (Test-Path $TK)) {
     foreach ($r in @(if ($removedDoc) { $removedDoc.toolkit_skills })) {
         if ($r -and $r.name) { $declaredRemoved['skills\' + $r.name + '\SKILL.md'] = [string]$r.reason }
     }
+    # A declared local edit is a fourth designed state: a toolkit-owned file the owner changed on
+    # purpose. The declaration pins the exact SHA-256; any later change is still drift, and an
+    # undeclared edit still fails. One home: tooling/removed-on-purpose.json -> toolkit_edits.
+    $declaredEdits = @{}
+    foreach ($r in @(if ($removedDoc) { $removedDoc.toolkit_edits })) {
+        if ($r -and $r.path -and $r.sha256) { $declaredEdits[[string]$r.path] = [string]$r.sha256 }
+    }
+    $acceptedEdits = @()
     foreach ($p in @(if ($map) { $map.PSObject.Properties })) {
         if ($p.Name -like 'agents\*') { $tkAgents += ($p.Name -replace '^agents\\', '' -replace '\.agent\.md$', '') }
         elseif ($p.Name -like 'skills\*') { $tkSkills += @(($p.Name -split '\\')[1]) }
@@ -867,7 +875,12 @@ if (-not (Test-Path $TK)) {
         # "not edited since install". Reading is guarded and reported as drift instead.
         try { $actual = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower() }
         catch { $hashDrift += ($p.Name + ' (unreadable)'); continue }
-        if ($actual -ne $p.Value) { $hashDrift += $p.Name }
+        if ($actual -ne $p.Value) {
+            if ($declaredEdits.ContainsKey($p.Name) -and $declaredEdits[$p.Name] -eq $actual) {
+                $acceptedEdits += $p.Name
+            }
+            else { $hashDrift += $p.Name }
+        }
     }
     # An agent the toolkit installs that the roster has not decided about is the failure case:
     # it stays non-delegatable by default-deny, so nobody notices it is undocumented. When the
@@ -888,6 +901,7 @@ if (-not (Test-Path $TK)) {
     Write-Output ("  {0} toolkit files edited since install, {1} missing{2}" -f $hashDrift.Count, $gone.Count, $(if ($parkedGone.Count -gt 0) { ", $($parkedGone.Count) parked on purpose" } else { '' }))
     foreach ($h in $hashDrift) { Write-Output ("          EDITED  " + $h) }
     foreach ($g in $gone) { Write-Output ("          MISSING " + $g) }
+    foreach ($a in $acceptedEdits) { Write-Output ("          declared local edit: " + $a + " (see removed-on-purpose.json)") }
     if ($removedGone.Count -gt 0) {
         Write-Output ("          removed on purpose: {0} (declared in tooling\removed-on-purpose.json)" -f ($removedGone -join ', '))
     }

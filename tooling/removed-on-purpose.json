@@ -8,6 +8,13 @@
             "reason": "Not an ABAP capability. The AEM administrator agent is installed by the same toolkit and carries its own rules, so the skill costs ~200 chars in every request for a server this ABAP workspace never calls."
         }
     ],
+    "toolkit_edits": [
+        {
+            "path": "skills\\sap-webgui-fallback\\SKILL.md",
+            "sha256": "25b91d44333051612f3ba87eaa1a176d6c8a9bdbffc3d4e1c0ebaa02cad5d6f3",
+            "reason": "Intentional local frontmatter fix 2026-11-25: long description converted to a folded YAML scalar so the ': ' sequence is valid YAML. The installer source (npm package) is unchanged; verify-all section 2 no longer reports this file as an invalid scalar. Any later hash change is still reported as drift."
+        }
+    ],
     "published_skills": [
         {
             "name": "lean-build",
