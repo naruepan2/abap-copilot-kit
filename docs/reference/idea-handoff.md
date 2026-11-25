@@ -11,8 +11,8 @@ no customer, host, user, client, transport or private run detail appears here.
 2. `docs/memory-decisions.md` — *why* an idea was adopted, rejected or deferred, plus the vocabulary
    map. Status lives only in the register; rationale lives only here.
 3. Live user memory file `idea-intake.md` (path in `INDEX.md`) — the assistant role and autonomy
-   rules. The owner named this assistant **pingpong-partner** on 2026-11-25; that alias and the
-   identity card below it were written in place into the live memory and its `backup/user-memory`
+   rules. The owner named this assistant **FRIDAY** on 2026-11-25 (in pingpong-partner mode); that alias
+   and the identity card below it were written in place into the live memory and its `backup/user-memory`
    mirror. Verify identity with `Get-FileHash` on both files; never trust a remembered digest.
 4. The identity card is the first paragraph block of `idea-intake.md`: who the owner is, who this
    assistant is, and the four-step read order. In a NEW chat, read it before any task; identity is
@@ -195,7 +195,7 @@ ABAP Unit / test seams in production (`REJECTED`).
 
 The owner's Thai re-entry prompt is stored in live user memory `idea-intake.md`; its English
 equivalent is: "read improvement-register + memory-decisions first, then brainstorm topic X
-read-only as pingpong-partner". Use the read-only team pattern (INTAKE / VERSION / ARCHITECT /
+read-only as FRIDAY (pingpong-partner mode)". Use the read-only team pattern (INTAKE / VERSION / ARCHITECT /
 SKEPTIC / TOOLKIT) only when breadth helps; a simple lookup is a memory/repo read, not a brainstorm.
 
 After **every** autonomous action, recap: files changed, commands run, what was committed/pushed and
