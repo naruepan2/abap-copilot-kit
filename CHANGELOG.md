@@ -28,6 +28,7 @@ text that has to stay identical in three places already.
 | v0.12.1 | 2026-11-23 | V9.4 review, JSONL recovery ledger, derived-index option, benchmark preflight | `45eed51` |
 | v0.13.0 | 2026-11-24 | Relocatable kit, whole-skill installer, shared SALV assets, reverse-engineering skill | `911b29d` |
 | v0.13.1 | 2026-11-25 | Idea intake wiring, memory backup, upstream re-check, safe skill drift resolution | `0102889` |
+| v0.13.2 | 2026-11-25 | Pingpong-mode alias and verified V2.0 source intake | `d03b6c4` |
 
 `verify-all.ps1` section 9f checks that every tag has a row and every row names a real tag.
 Add the new row in the same commit as the release notes, before creating the tag. Do not rewrite
