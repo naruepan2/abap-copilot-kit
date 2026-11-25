@@ -30,6 +30,7 @@ text that has to stay identical in three places already.
 | v0.13.1 | 2026-11-25 | Idea intake wiring, memory backup, upstream re-check, safe skill drift resolution | `0102889` |
 | v0.13.2 | 2026-11-25 | Pingpong-mode alias and verified V2.0 source intake | `d03b6c4` |
 | v0.13.3 | 2026-11-25 | One register status cell corrected from a verified commit hash | `49d0946` |
+| v0.13.4 | 2026-11-25 | Model-change handoff note and pingpong-partner alias | `3cbb627` |
 
 `verify-all.ps1` section 9f checks that every tag has a row and every row names a real tag.
 Add the new row in the same commit as the release notes, before creating the tag. Do not rewrite
