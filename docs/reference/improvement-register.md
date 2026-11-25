@@ -169,6 +169,7 @@ These are not from the source tables above; they are carried forward so they are
 | Approval card + disabled comment blocks (two axes: write mode apply/blocks/save-only, activation strategy groups/selected/defer). Comment blocks are themselves writes (fresh read + hash + read-back); only `INSERT_AFTER` is uncommentable; DDLS/BDEF `//` syntax still `UNVERIFIED`. Not wired into any agent or skill, and it is a human gate, so it conflicts with Unattended — adopting it would mean an explicit attended/deferred run, never a global ask-before-fix rule. | `IDEA` — designed 2026-11-19, not implemented | `docs/reference/coedit-gap-closure.md` §5.12, `docs/reference/coedit-comment-block-syntax.md` |
 | Cross-harness ledger, graph server and T3 multi-writer | `PENDING` / not qualified | same |
 | `agents/abap-developer-by-pongg.agent.md` mojibake reported by git diff | `RESOLVED` | Bytes were verified `E2 80 94` (valid UTF-8 em dash) in working tree and live profile; the mojibake was a PowerShell pipe display artifact, not file corruption. The diff is a real tools-unpin plus Fast-path addition and is safe to commit. |
+| Content-level skill-version scan (compare installed `SKILL.md` + supporting files with upstream `main` and install-time commit; no install/edit) | `APPLIED-UNCOMMITTED` (skill อยู่ใน `~/.agents/skills` นอก repo) | `~/.agents/skills/skill-version-scan/{SKILL.md,scan.ps1}`; trigger = การตรวจ caveman v4.2.0 เมื่อ 2026-11-25; `sap-mcp-upgrade` ยังเป็นเจ้าของ upgrade; ไม่เพิ่ม source row เพราะไม่มี rule เปลี่ยน |
 
 ## How to maintain this register
 

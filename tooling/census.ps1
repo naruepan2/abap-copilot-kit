@@ -163,6 +163,9 @@ function Get-SweepReason([string]$group, [string]$p) {
         # Kit-authored evaluation fixture for auto-abap-delivery: an in-scope case and a boundary
         # case, stored beside the skill and copied into backup/self-authored. Measured 2026-11-22.
         if ($p -eq 'auto-abap-delivery\evals\evals.json') { return 'kit-authored delivery skill evals' }
+        # Owner-authored skill-version-scan script in the user loader root, not lock-tracked. Name
+        # the exact file so any other unknown skill content still fails as BLIND. Measured 2026-11-25.
+        if ($p -eq 'skill-version-scan\scan.ps1') { return 'owner-authored version-scan script (local copy)' }
         # Third-party skill content installed by npx. The kit does not own these bytes and never edits
         # them; replacing them is `npx skills` work, not this repository's.
         if ($p -match '\\(references|templates|scripts)\\' -or $p -match '\\agents\\(openai|ui_metadata)\.yaml$') { return 'third-party skill content' }
