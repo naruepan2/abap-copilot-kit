@@ -28,6 +28,20 @@ not the docs' plaintext `SAP_USER`/`SAP_PASSWORD` form. Launcher reads `arc1-con
 Windows Credential Manager and exports the same `SAP_*` vars before `npx -y arc-1@latest serve`.
 Check without starting: `-Check -NoProbe`.
 
+**One server entry = one SAP logon.** Add a sibling entry per client (such as `<sid>-dev` and
+`<sid>-test`) instead of overloading one `env` block. Tool IDs derive from the server key
+(`mcp_<safe-key>_*`), so renaming a key changes the prefix: an open chat keeps the old names and
+Copilot reports `Tool ... is currently disabled by the user`. That is Copilot's `availableTools`
+name mismatch, **not** auth. Recovery: enable in Chat: Open Customizations → Tools, then
+`MCP: Reset Cached Tools`, `Developer: Reload Window`, and a **new chat**. Keep keys stable after
+that.
+
+**Test client = read-only at the server ceiling:** `SAP_ALLOW_WRITES=false` on the test entry,
+keep data preview/SQL on for verification. A prompt or skill saying "do not write" is not
+enforcement — ARC-1 flags and SAP auth are the boundary. One MCP entry cannot protect a client if
+other entries still point at it; check each entry, and re-check VS Code vs CLI flags (they are per
+entry and can drift).
+
 Detail — the layers as a table, the TLS diagnosis ladder, every verified gotcha, and the
 PowerShell 5.1 constraints: `<kit-root>/docs/reference/arc-1.md` (kit root: `$env:ABAP_KIT_ROOT`
 or `~/.copilot/state/kit-root.txt`)

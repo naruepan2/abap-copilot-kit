@@ -86,6 +86,24 @@ Kit skills installed this way (14): `capture-lesson`, `clean-core-decision-gates
 Kit agents (4, `*-by-pongg`, user-editable): `abap-developer`,
 `sap-abap-reverse-engineer`, `sap-se38-report-tester`, `sap-st22-dump-analysis`.
 
+### 3c. Restore memory (manual, on purpose)
+
+`install-kit.ps1` never copies memory. Restore only when the live copy is gone, and diff before overwriting:
+
+- **User memory** — copy `backup\user-memory\*.md` into
+  `%APPDATA%\Code\User\globalStorage\github.copilot-chat\memory-tool\memories\`. The snapshot can be
+  older than the machine: compare the file lists first, so a memory that existed only live is not
+  silently lost.
+- **Repo memory / Projects** — clone `naruepan2/abap-copilot-workspace-private`, then find the
+  CURRENT workspace memory path. The `workspaceStorage\<hash>` changes with the folder set — read it
+  from the memory tool or the matching `workspace.json`, not from a hash remembered here. Verify,
+  then mirror with `-Check` before `-Write`:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\tooling\workspace-sync.ps1 -Projects .\Projects -Workspace <private-clone> -RepoMemory <current-repo-memory-path> -Check
+  ```
+- MCP config, credentials, ARC-1 connections and third-party skills are deliberately **not**
+  restored here — §5 and §9 recreate them on the new machine.
+
 ## 4. Install npm globals
 
 ```powershell
